@@ -5,7 +5,6 @@ import { Building2, ChevronDown, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
-// Define the role types
 type Role = 'broker' | 'agent' | 'tc';
 
 interface LoginData {
@@ -27,16 +26,28 @@ export default function Login() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log(formData);
-    // Next.js API call logic can go here
+    
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await res.json();
+      console.log("Login response:", data);
+    } catch (error) {
+      console.error("Login error:", error);
+    }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-2xl overflow-hidden">
         <div className="flex flex-col md:flex-row">
+          
           {/* Left side - Image */}
           <div className="md:w-1/2 relative">
             <Image
@@ -71,7 +82,7 @@ export default function Login() {
                     name="role"
                     value={formData.role}
                     onChange={handleInputChange}
-                    className="block w-full rounded-lg border-gray-300 border py-2 px-3 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
+                    className="block w-full rounded-lg border-gray-300 border py-2 px-3 pr-10 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
                   >
                     <option value="broker">Broker</option>
                     <option value="agent">Agent</option>
@@ -106,6 +117,7 @@ export default function Login() {
                   />
                   <button
                     type="button"
+                    aria-label="Toggle password visibility"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2"
                   >
@@ -129,7 +141,7 @@ export default function Login() {
 
               <div className="text-center">
                 <p className="text-sm text-gray-600">
-                  Don't have an account?{' '}
+                  Don&apos;t have an account?{' '}
                   <Link href="/auth/signup" className="text-blue-600 hover:text-blue-700 font-medium">
                     Sign Up
                   </Link>
@@ -137,6 +149,7 @@ export default function Login() {
               </div>
             </form>
           </div>
+
         </div>
       </div>
     </div>
