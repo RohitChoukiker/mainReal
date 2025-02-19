@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Building2, ChevronDown, Eye, EyeOff } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -20,6 +21,7 @@ export default function Login() {
     password: '',
     role: 'agent'
   });
+  const router = useRouter();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -41,6 +43,14 @@ export default function Login() {
     } catch (error) {
       console.error("Login error:", error);
     }
+
+    const roleRoutes = {
+      broker: "/broker-dashboard",
+      agent: "/agent-dashboard",
+      tc: "/tc-dashboard",
+    };
+    
+    router.push(roleRoutes[formData.role]);
   };
 
   return (
@@ -74,30 +84,13 @@ export default function Login() {
                 <p className="text-gray-600 mt-2">Continue your real estate journey</p>
               </div>
 
-              {/* Role Selection */}
-              <div className="relative">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Select Role</label>
-                <div className="relative">
-                  <select
-                    name="role"
-                    value={formData.role}
-                    onChange={handleInputChange}
-                    className="block w-full rounded-lg border-gray-300 border py-2 px-3 pr-10 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
-                  >
-                    <option value="broker">Broker</option>
-                    <option value="agent">Agent</option>
-                    <option value="tc">Transaction Coordinator</option>
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                </div>
-              </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                 <input
                   type="email"
                   name="email"
                   required
+                  placeholder="Enter your email address"
                   value={formData.email}
                   onChange={handleInputChange}
                   className="block w-full rounded-lg border-gray-300 border py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -110,6 +103,7 @@ export default function Login() {
                   <input
                     type={showPassword ? 'text' : 'password'}
                     name="password"
+                    placeholder="Enter your password"
                     required
                     value={formData.password}
                     onChange={handleInputChange}
@@ -127,6 +121,24 @@ export default function Login() {
                       <Eye className="w-5 h-5 text-gray-400" />
                     )}
                   </button>
+                </div>
+              </div>
+
+              <div className="relative">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Select Role</label>
+                <div className="relative">
+                  <select
+                    name="role"
+                    value={formData.role}
+                    onChange={handleInputChange}
+                    className="block w-full rounded-lg border-gray-300 border py-2 px-3 pr-10 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white"
+                  >
+                    <option value="">Select your role</option>
+                    <option value="broker">Broker</option>
+                    <option value="agent">Agent</option>
+                    <option value="tc">Transaction Coordinator</option>
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 </div>
               </div>
 
@@ -149,7 +161,6 @@ export default function Login() {
               </div>
             </form>
           </div>
-
         </div>
       </div>
     </div>
