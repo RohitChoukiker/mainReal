@@ -45,9 +45,9 @@ export default function Login() {
     }
 
     const roleRoutes = {
-      broker: "/broker-dashboard",
-      agent: "/agent-dashboard",
-      tc: "/tc-dashboard",
+      broker: "/dashboard/Broker",
+      agent: "/adashboard/Agent",
+      tc: "/dashboard/tc",
     };
     
     router.push(roleRoutes[formData.role]);
