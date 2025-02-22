@@ -522,50 +522,50 @@ export default function Auth() {
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(loginData),
-      });
-      if (!res.ok) throw new Error('Login failed');
-      const data = await res.json();
-      const roleRoutes = {
-        broker: '/dashboard/Broker',
-        agent: '/dashboard/Agent',
-        tc: '/dashboard/tc',
-      };
-      router.push(roleRoutes[loginData.role]);
-    } catch (error) {
-      console.error('Login error:', error);
-      alert('Login failed. Please try again.');
-    }
+    //try {
+    //   const res = await fetch('/api/auth/login', {
+    //     method: 'POST',
+    //     headers: { 'Content-Type': 'application/json' },
+    //     body: JSON.stringify(loginData),
+    //   });
+    //   if (!res.ok) throw new Error('Login failed');
+    //   const data = await res.json();
+    //   const roleRoutes = {
+    //     broker: '/dashboard/Broker',
+    //     agent: '/dashboard/Agent',
+    //     tc: '/dashboard/tc',
+    //   };
+    //   router.push(roleRoutes[loginData.role]);
+    // } catch (error) {
+    //   console.error('Login error:', error);
+    //   alert('Login failed. Please try again.');
+    // }
   };
 
   const handleSignupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (signupData.password !== signupData.confirmPassword) {
-      alert('Passwords do not match');
-      return;
-    }
-    try {
-      const res = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(signupData),
-      });
-      if (!res.ok) throw new Error('Signup failed');
-      const data = await res.json();
-      const roleRoutes = {
-        broker: '/dashboard/Broker',
-        agent: '/dashboard/Agent',
-        tc: '/dashboard/tc',
-      };
-      router.push(roleRoutes[signupData.role]);
-    } catch (error) {
-      console.error('Signup error:', error);
-      alert('Signup failed. Please try again.');
-    }
+    // if (signupData.password !== signupData.confirmPassword) {
+    //   alert('Passwords do not match');
+    //   return;
+    // }
+    // try {
+    //   const res = await fetch('/api/auth/signup', {
+    //     method: 'POST',
+    //     headers: { 'Content-Type': 'application/json' },
+    //     body: JSON.stringify(signupData),
+    //   });
+    //   if (!res.ok) throw new Error('Signup failed');
+    //   const data = await res.json();
+    //   const roleRoutes = {
+    //     broker: '/dashboard/Broker',
+    //     agent: '/dashboard/Agent',
+    //     tc: '/dashboard/tc',
+    //   };
+    //   router.push(roleRoutes[signupData.role]);
+    // } catch (error) {
+    //   console.error('Signup error:', error);
+    //   alert('Signup failed. Please try again.');
+    //}
   };
 
   return (
