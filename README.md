@@ -5,7 +5,7 @@ real-estate-transaction-system/
 ├── next.config.js
 ├── package.json
 ├── tsconfig.json
-├── middleware.ts            # For authentication and route protectionn1
+├── middleware.ts            # For authentication and route protection
 ├── app/
 │   ├── favicon.ico
 │   ├── globals.css
