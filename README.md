@@ -140,6 +140,69 @@ real-estate-transaction-system/
 
 
 
+
+
+
+real-estate-transaction-system/
+├── .env
+├── .env.local
+├── .gitignore
+├── next.config.js
+├── package.json
+├── tsconfig.json
+├── middleware.ts            # Add role & subscription checks (free/premium)
+├── src/
+│   ├── app/
+│   │   ├── favicon.ico
+│   │   ├── globals.css
+│   │   ├── layout.tsx          # Root layout - Add subscription status in UI
+│   │   ├── page.tsx            # Landing page - Free tier CTA + Premium upgrade option
+│   │   ├── (auth)/
+│   │   │   ├── login/page.tsx
+│   │   │   ├── register/page.tsx  # Free tier by default on signup
+│   │   │   └── forgot-password/page.tsx
+│   │   ├── agent/
+│   │   │   ├── layout.tsx
+│   │   │   ├── page.tsx
+│   │   │   ├── transactions/
+│   │   │   ├── tasks/
+│   │   │   ├── documents/
+│   │   │   ├── messages/
+│   │   │   └── reports/page.tsx
+│   │   ├── coordinator/
+│   │   ├── brokerage/
+│   │   ├── api/
+│   │   ├── subscription/
+│   │   └── data/
+│   ├── components/
+│   │   ├── ui/
+│   │   ├── auth/
+│   │   ├── dashboard/
+│   │   ├── agent/
+│   │   ├── coordinator/
+│   │   ├── brokerage/
+│   │   └── subscription/
+│   ├── lib/
+│   ├── public/
+│   └── data/
+└── public/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         messaging
 
 
