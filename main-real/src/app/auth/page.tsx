@@ -4,7 +4,7 @@
 
 import { useState } from 'react';
 import { Building2, ChevronDown, Eye, EyeOff } from 'lucide-react';
-// import { useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
 type Role = 'broker' | 'agent' | 'tc';
@@ -36,7 +36,7 @@ export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false); // For Login Password and Signup Password
   const [showConfirmPassword, setShowConfirmPassword] = useState(false); // For Signup Confirm Password
-  // const router = useRouter();
+   const router = useRouter();
 
   const [loginData, setLoginData] = useState<LoginData>({
     email: '',
@@ -92,24 +92,26 @@ export default function Auth() {
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    //try {
-    //   const res = await fetch('/api/auth/login', {
-    //     method: 'POST',
-    //     headers: { 'Content-Type': 'application/json' },
-    //     body: JSON.stringify(loginData),
-    //   });
-    //   if (!res.ok) throw new Error('Login failed');
-    //   const data = await res.json();
-    //   const roleRoutes = {
-    //     broker: '/dashboard/Broker',
-    //     agent: '/dashboard/Agent',
-    //     tc: '/dashboard/tc',
-    //   };
-    //   router.push(roleRoutes[loginData.role]);
-    // } catch (error) {
-    //   console.error('Login error:', error);
-    //   alert('Login failed. Please try again.');
-    // }
+    try {
+      // const res = await fetch('/api/auth/login', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify(loginData),
+      // });
+      // if (!res.ok) throw new Error('Login failed');
+      // const data = await res.json();
+      console.log('Login data:', loginData);
+      const roleRoutes = {
+        broker: '/broker',
+        agent: '/dashboard/Agent',
+        tc: '/dashboard/tc',
+      };
+      router.push(roleRoutes[loginData.role]);
+    } catch (error) {
+      console.error('Login error:', error);
+      alert('Login failed. Please try again.');
+    }
+    
   };
 
   const handleSignupSubmit = async (e: React.FormEvent) => {
