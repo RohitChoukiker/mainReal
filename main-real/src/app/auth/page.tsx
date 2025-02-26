@@ -4,7 +4,7 @@
 
 import { useState } from 'react';
 import { Building2, ChevronDown, Eye, EyeOff } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+// import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
 type Role = 'broker' | 'agent' | 'tc';
@@ -36,7 +36,7 @@ export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false); // For Login Password and Signup Password
   const [showConfirmPassword, setShowConfirmPassword] = useState(false); // For Signup Confirm Password
-  const router = useRouter();
+  // const router = useRouter();
 
   const [loginData, setLoginData] = useState<LoginData>({
     email: '',
