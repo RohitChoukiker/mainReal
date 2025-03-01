@@ -1,15 +1,21 @@
+
+
 "use client"
 
 import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { AgentPerformance } from "@/components/broker/agent-performance"
 import { TransactionSuccess } from "@/components/broker/transaction-success"
 import { FinancialSummary } from "@/components/broker/financial-summary"
 
+// Define the Period type
+type Period = "monthly" | "quarterly" | "yearly"
+
 export default function ReportsPage() {
-  const [selectedPeriod, setSelectedPeriod] = useState("monthly")
+  // Type the useState with Period
+  const [selectedPeriod, setSelectedPeriod] = useState<Period>("monthly")
 
   const handleExport = () => {
     // Simulated export functionality
@@ -21,7 +27,7 @@ export default function ReportsPage() {
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Reports</h1>
         <div className="flex items-center space-x-4">
-          <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+          <Select value={selectedPeriod} onValueChange={(value: Period) => setSelectedPeriod(value)}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Select period" />
             </SelectTrigger>
@@ -63,4 +69,3 @@ export default function ReportsPage() {
     </div>
   )
 }
-

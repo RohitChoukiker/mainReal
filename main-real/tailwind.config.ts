@@ -9,8 +9,11 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: "var(--background)",
-        foreground: "var(--foreground)",
+        primary: "#1a202c", // Example
+        secondary: "#4a5568", // Example
+        "gradient-theme": "linear-gradient(to right, #4a5568, #1a202c)", // Example
+        "accent-primary": "#ed8936", // Example
+        theme: "#e2e8f0", // Example
       },
     },
   },
