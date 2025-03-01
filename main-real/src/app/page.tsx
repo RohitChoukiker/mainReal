@@ -1,5 +1,600 @@
-import { redirect } from "next/navigation";
+// import { redirect } from "next/navigation";
 
-export default function Home() {
-  redirect("/auth"); 
+// export default function Home() {
+//   redirect("/auth"); 
+// }
+
+'use client'
+// pages/index.tsx
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useInView } from 'react-intersection-observer';
+import {
+  Menu, X, ChevronRight, Sun, Moon, Building2, ClipboardCheck, BarChart3,
+  Check, Star, Linkedin, Twitter, ArrowUp, ArrowRight, Phone, Mail, MapPin,
+  Github, Send, CheckCircle, Shield, Clock, Users
+} from 'lucide-react';
+import type { NextPage } from 'next';
+import Head from 'next/head';
+
+// Type definitions
+interface MenuItem {
+  name: string;
+  href: string;
 }
+
+interface Feature {
+  icon: any;
+  title: string;
+  description: string;
+}
+
+interface Service {
+  icon: any;
+  title: string;
+  description: string;
+  features: string[];
+}
+
+interface TeamMember {
+  name: string;
+  role: string;
+  image: string;
+  social: {
+    linkedin: string;
+    twitter: string;
+  };
+}
+
+interface Plan {
+  name: string;
+  price: string;
+  description: string;
+  features: string[];
+  popular: boolean;
+}
+
+interface FormData {
+  name: string;
+  email: string;
+  message: string;
+}
+
+// Constants
+const backgroundImages: string[] = [
+  'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80',
+  'https://images.unsplash.com/photo-1460472178825-e5240623afd5?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80',
+  'https://images.unsplash.com/photo-1497366811353-6870744d04b2?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80'
+];
+
+const menuItems: MenuItem[] = [
+  { name: 'About', href: '#about' },
+  { name: 'Services', href: '#services' },
+  { name: 'Team', href: '#team' },
+  { name: 'Pricing', href: '#pricing' },
+  { name: 'Contact', href: '#contact' }
+];
+
+const aboutFeatures: Feature[] = [
+  { icon: CheckCircle, title: 'Streamlined Workflow', description: 'Automate and simplify your transaction processes' },
+  { icon: Shield, title: 'Compliance Assured', description: 'Stay compliant with automated checks and balances' },
+  { icon: Clock, title: 'Time Saving', description: 'Reduce manual work and focus on what matters' },
+  { icon: Users, title: 'Team Collaboration', description: 'Work together seamlessly across your organization' }
+];
+
+const services: Service[] = [
+  { icon: Building2, title: 'Transaction Management', description: 'Comprehensive tools for agents to manage deals from start to finish', features: ['Document Management', 'Timeline Tracking', 'Client Communication'] },
+  { icon: ClipboardCheck, title: 'Task Coordination', description: 'Streamlined coordination and compliance tracking for Transaction Coordinators', features: ['Task Automation', 'Compliance Checks', 'Deadline Management'] },
+  { icon: BarChart3, title: 'Brokerage Oversight', description: 'Advanced analytics and oversight tools for administrative staff', features: ['Performance Metrics', 'Risk Assessment', 'Financial Tracking'] }
+];
+
+const team: TeamMember[] = [
+  { name: 'Rohit Choukiker', role: 'Developer', image: 'https://media.licdn.com/dms/image/v2/D5603AQEId70e5ga8Nw/profile-displayphoto-shrink_200_200/0/1731602687606?e=2147483647&v=beta&t=EA-8pYVjomYfu5eWhBcFgMj-leYQFoRF7MYj7o4ay0k', social: { linkedin: 'https://www.linkedin.com/in/rohit-choukiker-74591524b/', twitter: '#' } }
+];
+
+const plans: Plan[] = [
+  { name: 'Free', price: '0', description: 'Perfect for getting started', features: ['Basic transaction management', 'Up to 5 active listings', 'Email support', 'Basic analytics', 'Mobile app access'], popular: false },
+  { name: 'Premium', price: '49', description: 'Best for growing businesses', features: ['Unlimited transactions', 'Unlimited listings', 'Priority 24/7 support', 'Advanced analytics', 'Custom branding', 'Team collaboration', 'API access', 'Automated workflows'], popular: true }
+];
+
+// Navbar Component
+const Navbar: React.FC<{
+  isDarkMode: boolean;
+  setIsDarkMode: (value: boolean) => void;
+  setShowPricingPopup: (value: boolean) => void;
+}> = ({ isDarkMode, setIsDarkMode, setShowPricingPopup }) => {
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 50);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const handlePricingClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setShowPricingPopup(true);
+    setIsMenuOpen(false);
+  };
+
+  return (
+    <motion.nav
+      initial={{ y: -100 }}
+      animate={{ y: 0 }}
+      className={`fixed w-full z-50 transition-all duration-300 ${isScrolled ? 'bg-secondary/80 shadow-theme backdrop-blur-md' : 'bg-transparent'}`}
+    >
+      <div className="container mx-auto px-4">
+        <div className="flex justify-between items-center h-20">
+          <a href="#" className={`text-2xl font-bold ${isScrolled ? 'text-primary' : 'text-white'}`}>
+            RealEstate
+          </a>
+          <div className="hidden md:flex items-center space-x-8">
+            {menuItems.map((item) => (
+              <motion.a
+                key={item.name}
+                href={item.href}
+                onClick={item.name === 'Pricing' ? handlePricingClick : undefined}
+                className={`${isScrolled ? 'text-secondary hover:text-primary' : 'text-white/90 hover:text-white'} transition-colors relative group`}
+                whileHover={{ scale: 1.05 }}
+              >
+                {item.name}
+                <motion.span
+                  className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-theme origin-left"
+                  initial={{ scaleX: 0 }}
+                  whileHover={{ scaleX: 1 }}
+                  transition={{ duration: 0.3 }}
+                />
+              </motion.a>
+            ))}
+            <motion.button
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className={`p-2 rounded-full ${isScrolled ? 'bg-secondary hover:bg-primary' : 'bg-white/10 hover:bg-white/20'}`}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+            >
+              <AnimatePresence mode="wait">
+                {isDarkMode ? <Sun className="w-5 h-5 text-primary" /> : <Moon className="w-5 h-5 text-white" />}
+              </AnimatePresence>
+            </motion.button>
+          </div>
+          <div className="md:hidden flex items-center space-x-2">
+            <motion.button onClick={() => setIsDarkMode(!isDarkMode)} className={`p-2 rounded-full ${isScrolled ? 'bg-secondary' : 'bg-white/10'}`}>
+              <AnimatePresence mode="wait">
+                {isDarkMode ? <Sun className="w-5 h-5 text-primary" /> : <Moon className="w-5 h-5 text-white" />}
+              </AnimatePresence>
+            </motion.button>
+            <motion.button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-2 rounded-lg">
+              {isMenuOpen ? <X className={isScrolled ? 'text-primary' : 'text-white'} /> : <Menu className={isScrolled ? 'text-primary' : 'text-white'} />}
+            </motion.button>
+          </div>
+        </div>
+      </div>
+      <AnimatePresence>
+        {isMenuOpen && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }} 
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm md:hidden" 
+              onClick={() => setIsMenuOpen(false)} 
+            />
+            <motion.div 
+              initial={{ x: '-100%' }} 
+              animate={{ x: 0 }} 
+              exit={{ x: '-100%'}}
+              className="fixed top-0 left-0 h-full w-64 bg-secondary shadow-theme md:hidden"
+            >
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-8">
+                  <span className="text-xl font-bold text-primary">Menu</span>
+                  <motion.button onClick={() => setIsMenuOpen(false)} className="p-2 rounded-lg hover:bg-primary">
+                    <X className="text-primary" />
+                  </motion.button>
+                </div>
+                <div className="space-y-4">
+                  {menuItems.map((item) => (
+                    <motion.a 
+                      key={item.name} 
+                      href={item.href}
+                      onClick={item.name === 'Pricing' ? handlePricingClick : () => setIsMenuOpen(false)}
+                      className="flex items-center justify-between w-full p-3 rounded-lg text-secondary hover:text-primary hover:bg-primary transition-colors"
+                    >
+                      <span>{item.name}</span>
+                      <ChevronRight className="w-5 h-5" />
+                    </motion.a>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </motion.nav>
+  );
+};
+
+// Hero Component
+const Hero: React.FC = () => {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prev) => (prev === backgroundImages.length - 1 ? 0 : prev + 1));
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <section className="min-h-screen relative flex items-center justify-center overflow-hidden">
+      {backgroundImages.map((image, index) => (
+        <motion.div
+          key={index}
+          className="absolute inset-0"
+          initial={{ opacity: 0, scale: 1.1 }}
+          animate={{ 
+            opacity: index === currentImageIndex ? 1 : 0, 
+            scale: index === currentImageIndex ? 1 : 1.1 
+          }}
+          transition={{ 
+            duration: 1.5, 
+            ease: "easeInOut",
+            opacity: { duration: 1 },
+            scale: { duration: 1.5 }
+          }}
+          style={{ 
+            backgroundImage: `url(${image})`, 
+            backgroundSize: 'cover', 
+            backgroundPosition: 'center',
+            backgroundAttachment: 'fixed'
+          }}
+        />
+      ))}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent" />
+      <div className="container mx-auto px-4 relative z-10">
+        <motion.div 
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1.2, ease: "easeOut" }}
+          className="text-center text-white max-w-4xl mx-auto"
+        >
+          <h1 className="text-6xl md:text-8xl font-bold mb-6 leading-tight tracking-tight">
+            Revolutionize Your<br />
+            <span className="text-transparent bg-clip-text bg-gradient-theme">Real Estate Journey</span>
+          </h1>
+          <p className="text-xl md:text-2xl mb-10 text-secondary max-w-3xl mx-auto leading-relaxed">
+            Transform your real estate transactions with our cutting-edge, user-friendly platform designed for seamless efficiency.
+          </p>
+          <motion.button 
+            whileHover={{ scale: 1.1, y: -5 }}
+            whileTap={{ scale: 0.98 }}
+            className="button inline-flex items-center gap-3 px-8 py-4 text-lg font-bold shadow-md hover:shadow-lg"
+          >
+            Get Started Now <ArrowRight className="w-6 h-6 animate-pulse" />
+          </motion.button>
+        </motion.div>
+      </div>
+    </section>
+  );
+};
+
+// About Component
+const About: React.FC = () => {
+  const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.1 });
+
+  return (
+    <section id="about" className="section">
+      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-pink-500/10" />
+      <div className="container mx-auto px-4 relative z-10">
+        <motion.div ref={ref} initial={{ opacity: 0, y: 20 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.6 }} className="text-center mb-16">
+          <h2 className="text-heading mb-4">About Us</h2>
+          <p className="text-subheading max-w-2xl mx-auto">We're revolutionizing real estate transaction management with cutting-edge technology and user-centric design.</p>
+        </motion.div>
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          {aboutFeatures.map((feature, index) => {
+            const Icon = feature.icon;
+            return (
+              <motion.div key={index} initial={{ opacity: 0, y: 20 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.6, delay: index * 0.1 }} className="card p-6">
+                <div className="accent-primary mb-4"><Icon className="w-12 h-12" /></div>
+                <h3 className="text-xl font-semibold mb-2 text-primary">{feature.title}</h3>
+                <p className="text-secondary">{feature.description}</p>
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// Services Component
+const Services: React.FC = () => {
+  const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.1 });
+
+  return (
+    <section id="services" className="section">
+      <div className="absolute inset-0 bg-gradient-to-tl from-indigo-500/10 via-purple-500/10 to-pink-500/10" />
+      <div className="container mx-auto px-4 relative z-10">
+        <motion.div ref={ref} initial={{ opacity: 0, y: 20 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.6 }} className="text-center mb-16">
+          <h2 className="text-heading mb-4">Our Services</h2>
+          <p className="text-subheading max-w-2xl mx-auto">Comprehensive solutions tailored for every role in real estate transaction management</p>
+        </motion.div>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {services.map((service, index) => {
+            const Icon = service.icon;
+            return (
+              <motion.div key={index} initial={{ opacity: 0, y: 20 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.6, delay: index * 0.1 }} className="group perspective">
+                <div className="relative transform-style-3d transition-transform duration-500 group-hover:rotate-y-180">
+                  <div className="card p-8">
+                    <div className="accent-primary mb-6"><Icon className="w-12 h-12" /></div>
+                    <h3 className="text-2xl font-semibold mb-4 text-primary">{service.title}</h3>
+                    <p className="text-secondary mb-4">{service.description}</p>
+                  </div>
+                  <div className="absolute inset-0 bg-gradient-theme text-white p-8 rounded-xl shadow-lg backface-hidden rotate-y-180">
+                    <h4 className="text-xl font-semibold mb-4">Key Features</h4>
+                    <ul className="space-y-2">
+                      {service.features.map((feature, i) => (
+                        <li key={i} className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-white rounded-full" />{feature}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// Team Component
+const Team: React.FC = () => {
+  const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.1 });
+
+  return (
+    <section id="team" className="section bg-primary">
+      <div className="container mx-auto px-4 relative">
+        <motion.div ref={ref} initial={{ opacity: 0, y: 20 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.6 }} className="text-center mb-10">
+          <h2 className="text-heading mb-3">Our Team</h2>
+          <p className="text-subheading max-w-xl mx-auto">Meet the passionate individuals driving innovation in real estate technology.</p>
+        </motion.div>
+        <div>
+          {team.map((member, index) => (
+            <motion.div key={index} initial={{ opacity: 0, y: 20 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.6, delay: index * 0.1 }} whileHover={{ y: -5 }} className="card overflow-hidden max-w-xs mx-auto">
+              <div className="relative group">
+                <div className="w-full aspect-[3/4]"><img src={member.image} alt={member.name} className="w-full h-full object-cover" /></div>
+                <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 sm:group-hover:opacity-100 transition-all duration-500 flex items-center justify-center space-x-3">
+                  <a href={member.social.linkedin} className="text-white hover:text-indigo-400"><Linkedin className="w-5 h-5" /></a>
+                  <a href={member.social.twitter} className="text-white hover:text-indigo-400"><Twitter className="w-5 h-5" /></a>
+                </div>
+              </div>
+              <div className="p-4 text-center">
+                <h3 className="text-lg font-semibold mb-1 text-primary">{member.name}</h3>
+                <p className="text-secondary text-sm">{member.role}</p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// Pricing Popup Component
+const PricingPopup: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+  const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.1 });
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        className="bg-primary rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto relative"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button 
+          onClick={onClose}
+          className="absolute top-4 right-4 p-2 hover:bg-secondary rounded-full"
+        >
+          <X className="w-6 h-6 text-primary" />
+        </button>
+        <div className="p-8">
+          <motion.div 
+            ref={ref} 
+            initial={{ opacity: 0, y: 20 }} 
+            animate={inView ? { opacity: 1, y: 0 } : {}} 
+            transition={{ duration: 0.6 }} 
+            className="text-center mb-12"
+          >
+            <h2 className="text-heading mb-4">Simple, Transparent Pricing</h2>
+            <p className="text-subheading max-w-2xl mx-auto">Choose the perfect plan for your real estate business needs</p>
+          </motion.div>
+          <div className="grid md:grid-cols-2 gap-8">
+            {plans.map((plan, index) => (
+              <motion.div 
+                key={plan.name} 
+                initial={{ opacity: 0, y: 20 }} 
+                animate={inView ? { opacity: 1, y: 0 } : {}} 
+                transition={{ duration: 0.6, delay: index * 0.1 }} 
+                className={`relative card overflow-hidden ${plan.popular ? 'ring-4 ring-accent-primary' : ''}`}
+              >
+                {plan.popular && <div className="absolute top-0 right-0 bg-gradient-theme text-white px-4 py-1 rounded-bl-lg flex items-center gap-1"><Star className="w-4 h-4 fill-current" /><span className="text-sm font-medium">Most Popular</span></div>}
+                <div className="p-8">
+                  <h3 className="text-2xl font-bold mb-2 text-primary">{plan.name}</h3>
+                  <p className="text-secondary mb-6">{plan.description}</p>
+                  <div className="mb-8"><span className="text-5xl font-bold text-primary">${plan.price}</span><span className="text-secondary">/month</span></div>
+                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className={`w-full button mb-8 ${plan.popular ? '' : 'bg-secondary text-primary'}`}>Get Started</motion.button>
+                  <div className="space-y-4">
+                    {plan.features.map((feature, i) => (
+                      <div key={i} className="flex items-center gap-3"><Check className="w-5 h-5 accent-primary flex-shrink-0" /><span className="text-secondary">{feature}</span></div>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+// Contact Component
+const Contact: React.FC = () => {
+  const [formData, setFormData] = useState<FormData>({ name: '', email: '', message: '' });
+  const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.1 });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  return (
+    <section id="contact" className="section bg-primary min-h-screen">
+      <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/10 via-purple-500/10 to-pink-500/10" />
+      <div className="container mx-auto px-4 relative z-10">
+        <motion.div ref={ref} initial={{ opacity: 0, y: 20 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.6 }} className="text-center mb-16">
+          <h2 className="text-heading mb-4 bg-gradient-theme bg-clip-text text-transparent">Get in Touch</h2>
+          <p className="text-subheading max-w-2xl mx-auto">We'd love to hear from you. Drop us a line and we'll get back to you shortly.</p>
+        </motion.div>
+        <div className="grid lg:grid-cols-2 gap-12">
+          <motion.div initial={{ opacity: 0, x: -20 }} animate={inView ? { opacity: 1, x: 0 } : {}} transition={{ duration: 0.6 }} className="space-y-8">
+            <div className="card p-8">
+              <h2 className="text-2xl font-semibold text-primary mb-8">Contact Information</h2>
+              <div className="space-y-8">
+                <div className="flex items-center space-x-4 group">
+                  <div className="bg-secondary p-4 rounded-2xl group-hover:bg-primary"><Phone className="w-6 h-6 accent-primary" /></div>
+                  <div className="transform group-hover:translate-x-1"><p className="text-sm text-secondary">Call Us</p><p className="text-primary font-medium">+91 8989898989</p></div>
+                </div>
+                <div className="flex items-center space-x-4 group">
+                  <div className="bg-secondary p-4 rounded-2xl group-hover:bg-primary"><Mail className="w-6 h-6 accent-primary" /></div>
+                  <div className="transform group-hover:translate-x-1"><p className="text-sm text-secondary">Email Us</p><p className="text-primary font-medium">rohitchoukiker21@gmail.com</p></div>
+                </div>
+                <div className="flex items-center space-x-4 group">
+                  <div className="bg-secondary p-4 rounded-2xl group-hover:bg-primary"><MapPin className="w-6 h-6 accent-primary" /></div>
+                  <div className="transform group-hover:translate-x-1"><p className="text-sm text-secondary">Visit Us</p><p className="text-primary font-medium">123 Business Street, Suite 100<br />Indore, MP 453441</p></div>
+                </div>
+              </div>
+              <div className="mt-12 pt-8 border-t border-theme">
+                <h3 className="text-lg font-semibold text-primary mb-6">Connect With Us</h3>
+                <div className="flex space-x-6">
+                  <a href="#" className="bg-secondary p-4 rounded-2xl hover:bg-primary"><Github className="w-5 h-5 text-secondary" /></a>
+                  <a href="#" className="bg-secondary p-4 rounded-2xl hover:bg-primary"><Linkedin className="w-5 h-5 text-secondary" /></a>
+                  <a href="#" className="bg-secondary p-4 rounded-2xl hover:bg-primary"><Twitter className="w-5 h-5 text-secondary" /></a>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+          <motion.form 
+            action="https://formsubmit.co/rohitchoukiker2803@gmail.com" 
+            method="POST" 
+            initial={{ opacity: 0, x: 20 }} 
+            animate={inView ? { opacity: 1, x: 0 } : {}} 
+            transition={{ duration: 0.6 }} 
+            className="card p-8"
+          >
+            <div className="space-y-8">
+              <div><label htmlFor="name" className="block text-sm font-medium text-secondary mb-2">Your Name</label><input type="text" id="name" name="name" className="input" required onChange={handleChange} /></div>
+              <div><label htmlFor="email" className="block text-sm font-medium text-secondary mb-2">Email Address</label><input type="email" id="email" name="email" className="input" required onChange={handleChange} /></div>
+              <div><label htmlFor="message" className="block text-sm font-medium text-secondary mb-2">Message</label><textarea id="message" name="message" rows={4} className="input resize-none" required onChange={handleChange} /></div>
+              <motion.button type="submit" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full button flex items-center justify-center space-x-2">Send Message<Send className="w-4 h-4 animate-pulse" /></motion.button>
+            </div>
+          </motion.form>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// Footer Component
+const Footer: React.FC = () => {
+  const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  return (
+    <footer className="bg-primary text-secondary py-12">
+      <div className="container mx-auto px-4">
+        <div className="grid md:grid-cols-4 gap-8 mb-8">
+          <div>
+            <h3 className="text-xl font-semibold mb-4 text-primary">About</h3>
+            <p className="text-secondary">Streamlining real estate transactions with innovative technology solutions.</p>
+          </div>
+          <div>
+            <h3 className="text-xl font-semibold mb-4 text-primary">Quick Links</h3>
+            <ul className="space-y-2">
+              {menuItems.map((item) => (
+                <li key={item.name}><a href={item.href} className="text-secondary hover:text-primary transition-colors">{item.name}</a></li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h3 className="text-xl font-semibold mb-4 text-primary">Services</h3>
+            <ul className="space-y-2">
+              <li className="text-secondary">Transaction Management</li>
+              <li className="text-secondary">Task Coordination</li>
+              <li className="text-secondary">Brokerage Oversight</li>
+            </ul>
+          </div>
+          <div>
+            <h3 className="text-xl font-semibold mb-4 text-primary">Contact</h3>
+            <ul className="space-y-2 text-secondary">
+              <li>123 Business Ave</li>
+              <li>San Francisco, CA 94107</li>
+              <li>contact@realestate.com</li>
+              <li>+1 (555) 123-4567</li>
+            </ul>
+          </div>
+        </div>
+        <div className="border-t border-theme pt-8 flex justify-between items-center">
+          <p className="text-secondary">© {new Date().getFullYear()} Real Estate Manager. All rights reserved.</p>
+          <motion.button onClick={scrollToTop} whileHover={{ y: -5 }} className="button p-3 rounded-full"><ArrowUp className="w-6 h-6" /></motion.button>
+        </div>
+      </div>
+    </footer>
+  );
+};
+
+// Main Page Component
+const Home: NextPage = () => {
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [showPricingPopup, setShowPricingPopup] = useState(false);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', isDarkMode);
+  }, [isDarkMode]);
+
+  return (
+    <>
+      <Head>
+        <title>Real Estate Manager</title>
+        <meta name="description" content="Revolutionize your real estate journey" />
+        <link rel="icon" href="/favicon.ico" />
+      </Head>
+      <div className="min-h-screen bg-primary text-primary">
+        <Navbar 
+          isDarkMode={isDarkMode} 
+          setIsDarkMode={setIsDarkMode} 
+          setShowPricingPopup={setShowPricingPopup}
+        />
+        <Hero />
+        <About />
+        <Services />
+        <Team />
+        <Contact />
+        <Footer />
+        <AnimatePresence>
+          {showPricingPopup && <PricingPopup onClose={() => setShowPricingPopup(false)} />}
+        </AnimatePresence>
+      </div>
+    </>
+  );
+};
+
+export default Home;
