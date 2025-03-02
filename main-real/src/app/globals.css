@@ -16,7 +16,7 @@
 
 /* Default Light Theme */
 :root {
-  --background: #ffffff;
+  --background: #fffefe;
   --foreground: #171717;
   --bg-primary: #f9fafb; /* Light gray background */
   --bg-secondary: #ffffff; /* White */
@@ -215,3 +215,7 @@ html.dark {
 .font-poppins {
   font-family: 'Poppins', sans-serif;
 }
+
+
+
+
