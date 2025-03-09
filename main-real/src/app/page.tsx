@@ -127,7 +127,7 @@ const services: Service[] = [
 ];
 
 const team: TeamMember[] = [
-  { name: "Rohit Choukiker", role: "Developer", image: "https://media.licdn.com/dms/image/v2/D5603AQEId70e5ga8Nw/profile-displayphoto-shrink_200_200/0/1731602687606?e=2147483647&v=beta&t=EA-8pYVjomYfu5eWhBcFgMj-leYQFoRF7MYj7o4ay0k", social: { linkedin: "https://www.linkedin.com/in/rohit-choukiker-74591524b/", twitter: "#" } },
+  { name: "Rohit Choukiker", role: "Developer", image: "https://media.licdn.com/dms/image/v2/D5603AQFHN8m-zpDK3w/profile-displayphoto-shrink_400_400/B56ZVsCkr6HoAg-/0/1741274369372?e=1747267200&v=beta&t=8Wec9qTty1_UQ9XJVQS_SRYgF3KCy7eYveBAIU1Sy6k", social: { linkedin: "https://www.linkedin.com/in/rohit-choukiker", twitter: "#" } },
 ];
 
 const plans: Plan[] = [
@@ -782,7 +782,7 @@ const TeamPopup: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               Meet the passionate individuals driving innovation in real estate technology.
             </p>
           </motion.div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className=" grid md:grid-cols-1 lg:grid-cols-3 gap-8">
             {team.map((member, index) => (
               <motion.div
                 key={index}
@@ -793,7 +793,7 @@ const TeamPopup: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 className="card overflow-hidden"
               >
                 <div className="relative group">
-                  <div className="w-full aspect-[3/4] relative">
+                  <div className=" w-full aspect-[3/4] relative">
                     <Image src={member.image} alt={member.name} fill className="object-cover" />
                   </div>
                   <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 sm:group-hover:opacity-100 transition-all duration-500 flex items-center justify-center space-x-3">
