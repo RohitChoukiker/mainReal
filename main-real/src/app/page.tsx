@@ -171,8 +171,8 @@ const Navbar: React.FC<{
     >
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-20">
-          <a href="#" className={`text-2xl font-bold ${isScrolled ? "text-primary" : "text-white"}`}>
-            RealEstate
+          <a href="/" className={`text-2xl italic  ${isScrolled ? "text-primary" : "text-white"}`}>
+            Realus
           </a>
           <div className="hidden md:flex items-center space-x-8">
             {menuItems.map((item) => (
@@ -782,7 +782,7 @@ const TeamPopup: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               Meet the passionate individuals driving innovation in real estate technology.
             </p>
           </motion.div>
-          <div className=" grid md:grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className=" grid place-items-center md:grid-cols-1 lg:grid-cols-1 gap-8">
             {team.map((member, index) => (
               <motion.div
                 key={index}
