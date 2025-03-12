@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -127,7 +126,7 @@ const services: Service[] = [
 ];
 
 const team: TeamMember[] = [
-  { name: "Rohit Choukiker", role: "Developer", image: "https://media.licdn.com/dms/image/v2/D5603AQFHN8m-zpDK3w/profile-displayphoto-shrink_400_400/B56ZVsCkr6HoAg-/0/1741274369372?e=1747267200&v=beta&t=8Wec9qTty1_UQ9XJVQS_SRYgF3KCy7eYveBAIU1Sy6k", social: { linkedin: "https://www.linkedin.com/in/rohit-choukiker", twitter: "#" } },
+  { name: "Rohit Choukiker", role: "Developer", image: "https://media.licdn.com/dms/image/v2/D5603AQFHN8m-zpDK3w/profile-displayphoto-shrink_400_400/B56ZVsCkr6HoAg-/0/1741274369372?e=1747267200&v=beta&t=8Wec9qTty1_UQ9XJVQS_SRYgF3KCy7eYveBAIU1Sy6k", social: { linkedin: "https://www.linkedin.com/in/rohit-choukiker", twitter: "https://www.linkedin.com/in/rohit-choukiker" } },
 ];
 
 const plans: Plan[] = [
@@ -683,8 +682,7 @@ const About: React.FC = () => {
             return (
               <motion.div key={index} initial={{ opacity: 0, y: 20 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.6, delay: index * 0.1 }} className="card p-6">
                 <div className="accent-primary mb-4"><Icon className="w-12 h-12" /></div>
-                <h3 className="text-xl font-semibold mb-2 text-primary">{
-feature.title}</h3>
+                <h3 className="text-xl font-semibold mb-2 text-primary">{feature.title}</h3>
                 <p className="text-secondary">{feature.description}</p>
               </motion.div>
             );
@@ -939,7 +937,7 @@ const Contact: React.FC = () => {
                 <h3 className="text-lg font-semibold text-primary mb-6">Connect With Us</h3>
                 <div className="flex space-x-6">
                   <a href="#" className="bg-secondary p-4 rounded-2xl hover:bg-primary"><Github className="w-5 h-5 text-secondary" /></a>
-                  <a href="#" className="bg-secondary p-4 rounded-2xl hover:bg-primary"><Linkedin className="w-5 h-5 text-secondary" /></a>
+                  <a href="https://www.linkedin.com/in/rohit-choukiker" className="bg-secondary p-4 rounded-2xl hover:bg-primary"><Linkedin className="w-5 h-5 text-secondary" /></a>
                   <a href="#" className="bg-secondary p-4 rounded-2xl hover:bg-primary"><Twitter className="w-5 h-5 text-secondary" /></a>
                 </div>
               </div>
@@ -1001,7 +999,7 @@ const Footer: React.FC = () => {
             <ul className="space-y-2 text-secondary">
               <li>001 Business </li>
               <li>Bengaluru, CA 94107</li>
-              <li>contact@realestate.com</li>
+              <li>rohitchoukiker21@gmail.com</li>
               <li>+91 9898989898</li>
             </ul>
           </div>
@@ -1017,7 +1015,7 @@ const Footer: React.FC = () => {
 
 // Main Page Component
 const Home = () => {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(true); // Changed to true for dark mode by default
   const [showPricingPopup, setShowPricingPopup] = useState(false);
   const [showTeamPopup, setShowTeamPopup] = useState(false);
   const [showLoginPopup, setShowLoginPopup] = useState(false);
