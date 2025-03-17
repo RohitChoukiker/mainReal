@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useInView } from "react-intersection-observer";
 import Image from "next/image";
 import Head from "next/head";
+import Link from "next/link";
 import {
   Menu, X, ChevronRight, Sun, Moon, Building2, ClipboardCheck, BarChart3,
   Check, Star, Linkedin, Twitter, ArrowUp, ArrowRight, Phone, Mail, MapPin,
@@ -126,7 +127,7 @@ const services: Service[] = [
 ];
 
 const team: TeamMember[] = [
-  { name: "Rohit Choukiker", role: "Developer", image: "https://media.licdn.com/dms/image/v2/D5603AQFHN8m-zpDK3w/profile-displayphoto-shrink_400_400/B56ZVsCkr6HoAg-/0/1741274369372?e=1747267200&v=beta&t=8Wec9qTty1_UQ9XJVQS_SRYgF3KCy7eYveBAIU1Sy6k", social: { linkedin: "https://www.linkedin.com/in/rohit-choukiker", twitter: "https://www.linkedin.com/in/rohit-choukiker" } },
+  { name: "Rohit Choukiker", role: "Developer", image: "https://media.licdn.com/dms/image/v2/D5603AQFHN8m-zpDK3w/profile-displayphoto-shrink_400_400/B56ZVsCkr6HoAg-/0/1741274369372?e=1747267200&v=beta&t=8Wec9qTty1_UQ9XJVQS_SRYgF3KCy7eYveBAIU1Sy6k", social: { linkedin: "https://www.linkedin.com/in/rohit-choukiker", twitter: "#" } },
 ];
 
 const plans: Plan[] = [
@@ -170,9 +171,10 @@ const Navbar: React.FC<{
     >
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-20">
-          <a href="/" className={`text-2xl italic  ${isScrolled ? "text-primary" : "text-white"}`}>
+          
+            <Link href="/" className={`text-2xl italic  ${isScrolled ? "text-primary" : "text-white"}`}>
             Realus
-          </a>
+          </Link>
           <div className="hidden md:flex items-center space-x-8">
             {menuItems.map((item) => (
               <motion.a
@@ -937,7 +939,7 @@ const Contact: React.FC = () => {
                 <h3 className="text-lg font-semibold text-primary mb-6">Connect With Us</h3>
                 <div className="flex space-x-6">
                   <a href="#" className="bg-secondary p-4 rounded-2xl hover:bg-primary"><Github className="w-5 h-5 text-secondary" /></a>
-                  <a href="https://www.linkedin.com/in/rohit-choukiker" className="bg-secondary p-4 rounded-2xl hover:bg-primary"><Linkedin className="w-5 h-5 text-secondary" /></a>
+                  <a href="#" className="bg-secondary p-4 rounded-2xl hover:bg-primary"><Linkedin className="w-5 h-5 text-secondary" /></a>
                   <a href="#" className="bg-secondary p-4 rounded-2xl hover:bg-primary"><Twitter className="w-5 h-5 text-secondary" /></a>
                 </div>
               </div>
@@ -999,7 +1001,7 @@ const Footer: React.FC = () => {
             <ul className="space-y-2 text-secondary">
               <li>001 Business </li>
               <li>Bengaluru, CA 94107</li>
-              <li>rohitchoukiker21@gmail.com</li>
+              <li>contact@realestate.com</li>
               <li>+91 9898989898</li>
             </ul>
           </div>
