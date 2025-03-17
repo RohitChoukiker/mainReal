@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const MONGO_URI = process.env.MONGO_URI || "your-mongodb-connection-string";
+const MONGO_URI="mongodb+srv://rohitchoukiker:sz9ngkji2s@cluster0.onuxs.mongodb.net/realus"
 
 const dbConnect = async () => {
   if (mongoose.connection.readyState >= 1) {
@@ -8,7 +8,7 @@ const dbConnect = async () => {
   }
   try {
     await mongoose.connect(MONGO_URI, {
-      dbName: "your-db-name",
+      dbName: "realus",
     });
     console.log("Database Connected Successfully!");
   } catch (error) {
