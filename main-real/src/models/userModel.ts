@@ -13,6 +13,7 @@ export interface User extends Document {
   name: string;
   email: string;
   password: string;
+  confirmPassword: string;
   mobile: string;
   companyName: string;
   teamName: string;
@@ -32,6 +33,7 @@ const UserSchema: Schema<User> = new Schema<User>(
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
+    confirmPassword: { type: String, required :true},
     mobile: { type: String, required: true },
     companyName: { type: String, required: false },
     teamName: { type: String, required: false },

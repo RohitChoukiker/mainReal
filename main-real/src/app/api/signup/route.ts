@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import dbConnect from '../../../../utils/dbConnect';
-import User from '../../../../models/userModel';
-import { signupSchema } from '../../../../validators/userValidator';
+import dbConnect from '../../../utils/dbConnect';
+import User from '../../../models/userModel';
+import { signupSchema } from '../../../validators/userValidator';
 
-// API route handler for POST request
 export async function POST(req: NextRequest) {
   await dbConnect();
 
@@ -12,17 +11,16 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // Parse and validate request body using Zod
-    const requestBody = await req.json(); // Get JSON body from request
+    
+    const requestBody = await req.json(); 
     const validatedData = signupSchema.parse(requestBody);
 
-    // Check if user already exists
     const existingUser = await User.findOne({ email: validatedData.email });
     if (existingUser) {
       return NextResponse.json({ message: 'Email already in use' }, { status: 400 });
     }
 
-    // Create new user
+   
     const newUser = new User(validatedData);
     await newUser.save();
 
@@ -38,7 +36,3 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Optional: Handle other methods if needed
-export function GET() {
-  return NextResponse.json({ message: 'Method Not Allowed' }, { status: 405 });
-}
