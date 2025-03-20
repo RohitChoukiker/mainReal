@@ -195,7 +195,7 @@ export const SignupPopup: React.FC<SignupPopupProps> = ({ onClose, isDarkMode, o
                     htmlFor="name"
                     className={`block text-sm font-medium ${isDarkMode ? "text-white-300" : "text-secondary"} mb-1`}
                   >
-                    Full Name
+                    Full Name <span className="text-red-800">*</span>
                   </label>
                   <input
                     type="text"
@@ -215,7 +215,7 @@ export const SignupPopup: React.FC<SignupPopupProps> = ({ onClose, isDarkMode, o
                     htmlFor="email"
                     className={`block text-sm font-medium ${isDarkMode ? "text-gray-300" : "text-secondary"} mb-1`}
                   >
-                    Email Address
+                    Email Address <span className="text-red-800">*</span>
                   </label>
                   <input
                     type="email"
@@ -235,7 +235,7 @@ export const SignupPopup: React.FC<SignupPopupProps> = ({ onClose, isDarkMode, o
                     htmlFor="mobile"
                     className={`block text-sm font-medium ${isDarkMode ? "text-gray-300" : "text-secondary"} mb-1`}
                   >
-                    Mobile Number
+                    Mobile Number <span className="text-red-800">*</span>
                   </label>
                   <input
                     type="tel"
@@ -277,7 +277,7 @@ export const SignupPopup: React.FC<SignupPopupProps> = ({ onClose, isDarkMode, o
                         ? "bg-black border-gray-600 text-white focus:ring-blue-400/20"
                         : "bg-white/50 border-gray-200 text-primary"
                     }`}
-                    required
+                    
                   />
                 </motion.div>
                 <motion.div variants={inputVariants} whileFocus="focus" animate="blur" transition={{ duration: 0.2 }}>
@@ -335,7 +335,7 @@ export const SignupPopup: React.FC<SignupPopupProps> = ({ onClose, isDarkMode, o
                     htmlFor="password"
                     className={`block text-sm font-medium ${isDarkMode ? "text-gray-300" : "text-secondary"} mb-1`}
                   >
-                    Password
+                    Password <span className="text-red-800">*</span>
                   </label>
                   <input
                     type="password"
@@ -355,7 +355,7 @@ export const SignupPopup: React.FC<SignupPopupProps> = ({ onClose, isDarkMode, o
                     htmlFor="confirmPassword"
                     className={`block text-sm font-medium ${isDarkMode ? "text-gray-300" : "text-secondary"} mb-1`}
                   >
-                    Confirm Password
+                    Confirm Password <span className="text-red-800">*</span>
                   </label>
                   <input
                     type="password"
@@ -510,7 +510,7 @@ export const SignupPopup: React.FC<SignupPopupProps> = ({ onClose, isDarkMode, o
                     id="role"
                     value={signupData.role}
                     onChange={(e) => setSignupData({ ...signupData, role: e.target.value as Role })}
-                    className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-primary/20 transition-all duration-200 shadow-sm ${
+                    className={`w-full px-2 py-3 rounded-lg border focus:ring-2 focus:ring-primary/20 transition-all duration-200 shadow-sm ${
                       isDarkMode
                         ? "bg-black border-gray-600 text-white focus:ring-blue-400/20"
                         : "bg-white/50 border-gray-200 text-primary"
@@ -519,6 +519,7 @@ export const SignupPopup: React.FC<SignupPopupProps> = ({ onClose, isDarkMode, o
                     <option value="Agent">Agent</option>
                     <option value="Coordinator">Transaction Coordinator</option>
                     <option value="Broker">Broker</option>
+                    
                   </select>
                 </motion.div>
               </div>
