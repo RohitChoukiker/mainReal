@@ -1,16 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 import { X } from "lucide-react";
 
 type Role = "Agent" | "Coordinator" | "Broker" | "Admin";
-
-interface LoginData {
-  email: string;
-  password: string;
-  role: Role;
-}
 
 interface LoginPopupProps {
   onClose: () => void;
@@ -19,17 +14,36 @@ interface LoginPopupProps {
 }
 
 export const LoginPopup: React.FC<LoginPopupProps> = ({ onClose, openSignup, isDarkMode }) => {
-  const [loginData, setLoginData] = useState<LoginData>({
-    email: "",
-    password: "",
-    role: "Agent",
-  });
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState<Role>("Agent");
+
+  const router = useRouter();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Login Data:", loginData);
-    // Add your login logic here
-    onClose();
+
+    console.log("Login Data:", { email, password, role });
+
+    // Role-based redirection (Without API)
+    switch (role) {
+      case "Agent":
+        router.push("/agent");
+        break;
+      case "Broker":
+        router.push("/broker");
+        break;
+      case "Coordinator":
+        router.push("/tc");
+        break;
+      case "Admin":
+        router.push("/dashboard/admin");
+        break;
+      default:
+        router.push("/login");
+    }
+
+    onClose(); // Close the modal
   };
 
   useEffect(() => {
@@ -65,8 +79,8 @@ export const LoginPopup: React.FC<LoginPopupProps> = ({ onClose, openSignup, isD
             <input
               type="email"
               id="email"
-              value={loginData.email}
-              onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className={`input ${isDarkMode ? 'bg-gray-700 text-white border-gray-600' : ''}`}
               required
             />
@@ -76,8 +90,8 @@ export const LoginPopup: React.FC<LoginPopupProps> = ({ onClose, openSignup, isD
             <input
               type="password"
               id="password"
-              value={loginData.password}
-              onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               className={`input ${isDarkMode ? 'bg-gray-700 text-white border-gray-600' : ''}`}
               required
             />
@@ -86,8 +100,8 @@ export const LoginPopup: React.FC<LoginPopupProps> = ({ onClose, openSignup, isD
             <label htmlFor="role" className={`block text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-secondary'} mb-2`}>Role</label>
             <select
               id="role"
-              value={loginData.role}
-              onChange={(e) => setLoginData({ ...loginData, role: e.target.value as Role })}
+              value={role}
+              onChange={(e) => setRole(e.target.value as Role)}
               className={`input ${isDarkMode ? 'bg-gray-700 text-white border-gray-600' : ''}`}
             >
               <option value="Agent">Agent</option>

@@ -11,11 +11,10 @@ import {
   Check, Star, Linkedin, Twitter, ArrowUp, ArrowRight, Phone, Mail, MapPin,
   Github, Send, CheckCircle, Shield, Clock, Users, LucideIcon
 } from "lucide-react";
-import { LoginPopup } from "./../app/pages/login";
-import { SignupPopup } from "./../app/pages/signup";
+import { LoginPopup } from "./../app/auth/login"
+import { SignupPopup } from "./../app/auth/signup";
 
 // Type Definitions
-type Role = "Agent" | "Coordinator" | "Broker" | "Admin";
 
 interface MenuItem {
   name: string;
