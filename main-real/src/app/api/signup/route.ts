@@ -4,35 +4,27 @@ import User from '../../../models/userModel';
 import { signupSchema } from '../../../validators/userValidator';
 
 export async function POST(req: NextRequest) {
-  await dbConnect();
-
-  if (req.method !== 'POST') {
-    return NextResponse.json({ message: 'Method Not Allowed' }, { status: 405 });
-  }
-
-  try {
-    
-    const requestBody = await req.json(); 
-    const validatedData = signupSchema.parse(requestBody);
-
-    const existingUser = await User.findOne({ email: validatedData.email });
-    if (existingUser) {
-      return NextResponse.json({ message: 'Email already in use' }, { status: 400 });
+    if (req.method !== "POST") {
+        return NextResponse.json({ message: 'Method is not allowed' }, { status: 405 });
     }
 
-   
-    const newUser = new User(validatedData);
-    await newUser.save();
+    try {
+        await dbConnect(); 
 
-    return NextResponse.json(
-      { message: 'User created successfully', user: newUser },
-      { status: 201 }
-    );
-  } catch (error) {
-    if (error instanceof Error) {
-      return NextResponse.json({ message: error.message }, { status: 400 });
+        const body = await req.json();
+
+        
+        const validation = signupSchema.safeParse(body);
+        if (!validation.success) {
+            return NextResponse.json({ message: 'Validation failed', errors: validation.error.errors }, { status: 400 });
+        }
+
+       
+        const newUser = new User(body);
+        await newUser.save();
+
+        return NextResponse.json({ message: 'User created successfully', user: newUser }, { status: 201 });
+    } catch (error) {
+        return NextResponse.json({ message: 'Server error', error: error }, { status: 500 });
     }
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
-  }
 }
-

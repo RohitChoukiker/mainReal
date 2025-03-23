@@ -3,12 +3,14 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { X } from "lucide-react";
-import { toast, ToastContainer } from "react-toastify"; // Import react-toastify
-import "react-toastify/dist/ReactToastify.css"; // Import Toastify CSS
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { generateUniqueId } from "../../utils/generateId";
 
 type Role = "Agent" | "Coordinator" | "Broker" | "Admin";
 
 interface SignupData {
+  id: string;
   name: string;
   email: string;
   password: string;
@@ -56,6 +58,7 @@ interface SignupPopupProps {
 
 export const SignupPopup: React.FC<SignupPopupProps> = ({ onClose, isDarkMode, openLogin }) => {
   const [signupData, setSignupData] = useState<SignupData>({
+    id: "",
     name: "",
     email: "",
     password: "",
@@ -74,22 +77,25 @@ export const SignupPopup: React.FC<SignupPopupProps> = ({ onClose, isDarkMode, o
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log(signupData);
+    
+    const newId = generateUniqueId();
+    const dataWithId = { ...signupData, id: newId };
+    
+    console.log(dataWithId);
 
     try {
       const res = await fetch("/api/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(signupData),
+        body: JSON.stringify(dataWithId),
       });
 
       const data = await res.json();
 
       if (res.ok) {
-        // Show success toast
-        toast.success("Registration successful! Please login to continue.", {
+        toast.success(`Registration successful! Your ID is: ${newId}`, {
           position: "top-right",
-          autoClose: 3000,
+          autoClose: 5000,
           hideProgressBar: false,
           closeOnClick: true,
           pauseOnHover: true,
@@ -99,7 +105,6 @@ export const SignupPopup: React.FC<SignupPopupProps> = ({ onClose, isDarkMode, o
         onClose();
         openLogin();
       } else {
-        // Show error toast with message from API response
         toast.error(data.message || "Registration failed. Please try again.", {
           position: "top-right",
           autoClose: 3000,
@@ -112,7 +117,6 @@ export const SignupPopup: React.FC<SignupPopupProps> = ({ onClose, isDarkMode, o
         console.log(data);
       }
     } catch (error) {
-      // Show error toast for network or unexpected errors
       toast.error("Something went wrong. Please try again later.", {
         position: "top-right",
         autoClose: 3000,
@@ -141,9 +145,7 @@ export const SignupPopup: React.FC<SignupPopupProps> = ({ onClose, isDarkMode, o
 
   return (
     <>
-      {/* ToastContainer to render toasts */}
       <ToastContainer />
-
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -180,8 +182,11 @@ export const SignupPopup: React.FC<SignupPopupProps> = ({ onClose, isDarkMode, o
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="text-center text-sm text-gray-500">
+              Your unique ID will be generated upon successful registration
+            </div>
+            
             <div className="grid md:grid-cols-2 gap-6">
-              {/* Personal Information */}
               <motion.div
                 className="space-y-6"
                 initial={{ opacity: 0, x: -20 }}
@@ -190,10 +195,7 @@ export const SignupPopup: React.FC<SignupPopupProps> = ({ onClose, isDarkMode, o
               >
                 <h3 className="text-lg font-semibold border-b border-gray-200 pb-2">Personal Details</h3>
                 <motion.div variants={inputVariants} whileFocus="focus" animate="blur" transition={{ duration: 0.2 }}>
-                  <label
-                    htmlFor="name"
-                    className={`block text-sm font-medium ${isDarkMode ? "text-white-300" : "text-secondary"} mb-1`}
-                  >
+                  <label htmlFor="name" className={`block text-sm font-medium ${isDarkMode ? "text-white-300" : "text-secondary"} mb-1`}>
                     Full Name <span className="text-red-800">*</span>
                   </label>
                   <input
@@ -202,18 +204,13 @@ export const SignupPopup: React.FC<SignupPopupProps> = ({ onClose, isDarkMode, o
                     value={signupData.name}
                     onChange={(e) => setSignupData({ ...signupData, name: e.target.value })}
                     className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-primary/20 transition-all duration-200 shadow-sm ${
-                      isDarkMode
-                        ? "bg-black border-gray-600 text-white focus:ring-blue-400/20"
-                        : "bg-white/50 border-gray-200 text-primary"
+                      isDarkMode ? "bg-black border-gray-600 text-white focus:ring-blue-400/20" : "bg-white/50 border-gray-200 text-primary"
                     }`}
                     required
                   />
                 </motion.div>
                 <motion.div variants={inputVariants} whileFocus="focus" animate="blur" transition={{ duration: 0.2 }}>
-                  <label
-                    htmlFor="email"
-                    className={`block text-sm font-medium ${isDarkMode ? "text-gray-300" : "text-secondary"} mb-1`}
-                  >
+                  <label htmlFor="email" className={`block text-sm font-medium ${isDarkMode ? "text-gray-300" : "text-secondary"} mb-1`}>
                     Email Address <span className="text-red-800">*</span>
                   </label>
                   <input
@@ -222,36 +219,29 @@ export const SignupPopup: React.FC<SignupPopupProps> = ({ onClose, isDarkMode, o
                     value={signupData.email}
                     onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
                     className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-primary/20 transition-all duration-200 shadow-sm ${
-                      isDarkMode
-                        ? "bg-black border-gray-600 text-white focus:ring-blue-400/20"
-                        : "bg-white/50 border-gray-200 text-primary"
+                      isDarkMode ? "bg-black border-gray-600 text-white focus:ring-blue-400/20" : "bg-white/50 border-gray-200 text-primary"
                     }`}
                     required
                   />
                 </motion.div>
                 <motion.div variants={inputVariants} whileFocus="focus" animate="blur" transition={{ duration: 0.2 }}>
-                  <label
-                    htmlFor="mobile"
-                    className={`block text-sm font-medium ${isDarkMode ? "text-gray-300" : "text-secondary"} mb-1`}
-                  >
+                  <label htmlFor="mobile" className={`block text-sm font-medium ${isDarkMode ? "text-gray-300" : "text-secondary"} mb-1`}>
                     Mobile Number <span className="text-red-800">*</span>
                   </label>
                   <input
                     type="tel"
                     id="mobile"
                     value={signupData.mobile}
+                    maxLength={10}
                     onChange={(e) => setSignupData({ ...signupData, mobile: e.target.value })}
                     className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-primary/20 transition-all duration-200 shadow-sm ${
-                      isDarkMode
-                        ? "bg-black border-gray-600 text-white focus:ring-blue-400/20"
-                        : "bg-white/50 border-gray-200 text-primary"
+                      isDarkMode ? "bg-black border-gray-600 text-white focus:ring-blue-400/20" : "bg-white/50 border-gray-200 text-primary"
                     }`}
                     required
                   />
                 </motion.div>
               </motion.div>
 
-              {/* Company Information */}
               <motion.div
                 className="space-y-6"
                 initial={{ opacity: 0, x: 20 }}
@@ -260,30 +250,22 @@ export const SignupPopup: React.FC<SignupPopupProps> = ({ onClose, isDarkMode, o
               >
                 <h3 className="text-lg font-semibold border-b border-gray-200 pb-2">Company Details</h3>
                 <motion.div variants={inputVariants} whileFocus="focus" animate="blur" transition={{ duration: 0.2 }}>
-                  <label
-                    htmlFor="companyName"
-                    className={`block text-sm font-medium ${isDarkMode ? "text-gray-300" : "text-secondary"} mb-1`}
-                  >
+                  <label htmlFor="companyName" className={`block text-sm font-medium ${isDarkMode ? "text-gray-300" : "text-secondary"} mb-1`}>
                     Company Name
                   </label>
                   <input
                     type="text"
                     id="companyName"
                     value={signupData.companyName}
+                    maxLength={10}
                     onChange={(e) => setSignupData({ ...signupData, companyName: e.target.value })}
                     className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-primary/20 transition-all duration-200 shadow-sm ${
-                      isDarkMode
-                        ? "bg-black border-gray-600 text-white focus:ring-blue-400/20"
-                        : "bg-white/50 border-gray-200 text-primary"
+                      isDarkMode ? "bg-black border-gray-600 text-white focus:ring-blue-400/20" : "bg-white/50 border-gray-200 text-primary"
                     }`}
-                    
                   />
                 </motion.div>
                 <motion.div variants={inputVariants} whileFocus="focus" animate="blur" transition={{ duration: 0.2 }}>
-                  <label
-                    htmlFor="teamName"
-                    className={`block text-sm font-medium ${isDarkMode ? "text-gray-300" : "text-secondary"} mb-1`}
-                  >
+                  <label htmlFor="teamName" className={`block text-sm font-medium ${isDarkMode ? "text-gray-300" : "text-secondary"} mb-1`}>
                     Team Name (Optional)
                   </label>
                   <input
@@ -292,17 +274,12 @@ export const SignupPopup: React.FC<SignupPopupProps> = ({ onClose, isDarkMode, o
                     value={signupData.teamName}
                     onChange={(e) => setSignupData({ ...signupData, teamName: e.target.value })}
                     className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-primary/20 transition-all duration-200 shadow-sm ${
-                      isDarkMode
-                        ? "bg-black border-gray-600 text-white focus:ring-blue-400/20"
-                        : "bg-white/50 border-gray-200 text-primary"
+                      isDarkMode ? "bg-black border-gray-600 text-white focus:ring-blue-400/20" : "bg-white/50 border-gray-200 text-primary"
                     }`}
                   />
                 </motion.div>
                 <motion.div variants={inputVariants} whileFocus="focus" animate="blur" transition={{ duration: 0.2 }}>
-                  <label
-                    htmlFor="companyPhone"
-                    className={`block text-sm font-medium ${isDarkMode ? "text-gray-300" : "text-secondary"} mb-1`}
-                  >
+                  <label htmlFor="companyPhone" className={`block text-sm font-medium ${isDarkMode ? "text-gray-300" : "text-secondary"} mb-1`}>
                     Company Phone (Optional)
                   </label>
                   <input
@@ -311,16 +288,13 @@ export const SignupPopup: React.FC<SignupPopupProps> = ({ onClose, isDarkMode, o
                     value={signupData.companyPhone}
                     onChange={(e) => setSignupData({ ...signupData, companyPhone: e.target.value })}
                     className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-primary/20 transition-all duration-200 shadow-sm ${
-                      isDarkMode
-                        ? "bg-black border-gray-600 text-white focus:ring-blue-400/20"
-                        : "bg-white/50 border-gray-200 text-primary"
+                      isDarkMode ? "bg-black border-gray-600 text-white focus:ring-blue-400/20" : "bg-white/50 border-gray-200 text-primary"
                     }`}
                   />
                 </motion.div>
               </motion.div>
             </div>
 
-            {/* Security */}
             <motion.div
               className={`space-y-6 p-6 rounded-xl ${isDarkMode ? "bg-black" : "bg-gray-50"}`}
               initial={{ opacity: 0, y: 20 }}
@@ -330,10 +304,7 @@ export const SignupPopup: React.FC<SignupPopupProps> = ({ onClose, isDarkMode, o
               <h3 className="text-lg font-semibold border-b border-gray-200 pb-2">Security</h3>
               <div className="grid md:grid-cols-2 gap-6">
                 <motion.div variants={inputVariants} whileFocus="focus" animate="blur" transition={{ duration: 0.2 }}>
-                  <label
-                    htmlFor="password"
-                    className={`block text-sm font-medium ${isDarkMode ? "text-gray-300" : "text-secondary"} mb-1`}
-                  >
+                  <label htmlFor="password" className={`block text-sm font-medium ${isDarkMode ? "text-gray-300" : "text-secondary"} mb-1`}>
                     Password <span className="text-red-800">*</span>
                   </label>
                   <input
@@ -342,18 +313,13 @@ export const SignupPopup: React.FC<SignupPopupProps> = ({ onClose, isDarkMode, o
                     value={signupData.password}
                     onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
                     className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-primary/20 transition-all duration-200 shadow-sm ${
-                      isDarkMode
-                        ? "bg-black border-gray-600 text-white focus:ring-blue-400/20"
-                        : "bg-white/50 border-gray-200 text-primary"
+                      isDarkMode ? "bg-black border-gray-600 text-white focus:ring-blue-400/20" : "bg-white/50 border-gray-200 text-primary"
                     }`}
                     required
                   />
                 </motion.div>
                 <motion.div variants={inputVariants} whileFocus="focus" animate="blur" transition={{ duration: 0.2 }}>
-                  <label
-                    htmlFor="confirmPassword"
-                    className={`block text-sm font-medium ${isDarkMode ? "text-gray-300" : "text-secondary"} mb-1`}
-                  >
+                  <label htmlFor="confirmPassword" className={`block text-sm font-medium ${isDarkMode ? "text-gray-300" : "text-secondary"} mb-1`}>
                     Confirm Password <span className="text-red-800">*</span>
                   </label>
                   <input
@@ -362,9 +328,7 @@ export const SignupPopup: React.FC<SignupPopupProps> = ({ onClose, isDarkMode, o
                     value={signupData.confirmPassword}
                     onChange={(e) => setSignupData({ ...signupData, confirmPassword: e.target.value })}
                     className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-primary/20 transition-all duration-200 shadow-sm ${
-                      isDarkMode
-                        ? "bg-black border-gray-600 text-white focus:ring-blue-400/20"
-                        : "bg-white/50 border-gray-200 text-primary"
+                      isDarkMode ? "bg-black border-gray-600 text-white focus:ring-blue-400/20" : "bg-white/50 border-gray-200 text-primary"
                     }`}
                     required
                   />
@@ -372,7 +336,6 @@ export const SignupPopup: React.FC<SignupPopupProps> = ({ onClose, isDarkMode, o
               </div>
             </motion.div>
 
-            {/* Location */}
             <motion.div
               className="space-y-6"
               initial={{ opacity: 0, y: 20 }}
@@ -382,10 +345,7 @@ export const SignupPopup: React.FC<SignupPopupProps> = ({ onClose, isDarkMode, o
               <h3 className="text-lg font-semibold border-b border-gray-200 pb-2">Location</h3>
               <div className="grid md:grid-cols-2 gap-6">
                 <motion.div variants={inputVariants} whileFocus="focus" animate="blur" transition={{ duration: 0.2 }}>
-                  <label
-                    htmlFor="address"
-                    className={`block text-sm font-medium ${isDarkMode ? "text-gray-300" : "text-secondary"} mb-1`}
-                  >
+                  <label htmlFor="address" className={`block text-sm font-medium ${isDarkMode ? "text-gray-300" : "text-secondary"} mb-1`}>
                     Address
                   </label>
                   <input
@@ -394,18 +354,13 @@ export const SignupPopup: React.FC<SignupPopupProps> = ({ onClose, isDarkMode, o
                     value={signupData.address}
                     onChange={(e) => setSignupData({ ...signupData, address: e.target.value })}
                     className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-primary/20 transition-all duration-200 shadow-sm ${
-                      isDarkMode
-                        ? "bg-black border-gray-600 text-white focus:ring-blue-400/20"
-                        : "bg-white/50 border-gray-200 text-primary"
+                      isDarkMode ? "bg-black border-gray-600 text-white focus:ring-blue-400/20" : "bg-white/50 border-gray-200 text-primary"
                     }`}
                     required
                   />
                 </motion.div>
                 <motion.div variants={inputVariants} whileFocus="focus" animate="blur" transition={{ duration: 0.2 }}>
-                  <label
-                    htmlFor="city"
-                    className={`block text-sm font-medium ${isDarkMode ? "text-gray-300" : "text-secondary"} mb-1`}
-                  >
+                  <label htmlFor="city" className={`block text-sm font-medium ${isDarkMode ? "text-gray-300" : "text-secondary"} mb-1`}>
                     City
                   </label>
                   <input
@@ -414,18 +369,13 @@ export const SignupPopup: React.FC<SignupPopupProps> = ({ onClose, isDarkMode, o
                     value={signupData.city}
                     onChange={(e) => setSignupData({ ...signupData, city: e.target.value })}
                     className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-primary/20 transition-all duration-200 shadow-sm ${
-                      isDarkMode
-                        ? "bg-black border-gray-600 text-white focus:ring-blue-400/20"
-                        : "bg-white/50 border-gray-200 text-primary"
+                      isDarkMode ? "bg-black border-gray-600 text-white focus:ring-blue-400/20" : "bg-white/50 border-gray-200 text-primary"
                     }`}
                     required
                   />
                 </motion.div>
                 <motion.div variants={inputVariants} whileFocus="focus" animate="blur" transition={{ duration: 0.2 }}>
-                  <label
-                    htmlFor="state"
-                    className={`block text-sm font-medium ${isDarkMode ? "text-gray-300" : "text-secondary"} mb-1`}
-                  >
+                  <label htmlFor="state" className={`block text-sm font-medium ${isDarkMode ? "text-gray-300" : "text-secondary"} mb-1`}>
                     State
                   </label>
                   <input
@@ -434,18 +384,13 @@ export const SignupPopup: React.FC<SignupPopupProps> = ({ onClose, isDarkMode, o
                     value={signupData.state}
                     onChange={(e) => setSignupData({ ...signupData, state: e.target.value })}
                     className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-primary/20 transition-all duration-200 shadow-sm ${
-                      isDarkMode
-                        ? "bg-black border-gray-600 text-white focus:ring-blue-400/20"
-                        : "bg-white/50 border-gray-200 text-primary"
+                      isDarkMode ? "bg-black border-gray-600 text-white focus:ring-blue-400/20" : "bg-white/50 border-gray-200 text-primary"
                     }`}
                     required
                   />
                 </motion.div>
                 <motion.div variants={inputVariants} whileFocus="focus" animate="blur" transition={{ duration: 0.2 }}>
-                  <label
-                    htmlFor="pinCode"
-                    className={`block text-sm font-medium ${isDarkMode ? "text-gray-300" : "text-secondary"} mb-1`}
-                  >
+                  <label htmlFor="pinCode" className={`block text-sm font-medium ${isDarkMode ? "text-gray-300" : "text-secondary"} mb-1`}>
                     Pin Code
                   </label>
                   <input
@@ -454,9 +399,7 @@ export const SignupPopup: React.FC<SignupPopupProps> = ({ onClose, isDarkMode, o
                     value={signupData.pinCode}
                     onChange={(e) => setSignupData({ ...signupData, pinCode: e.target.value })}
                     className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-primary/20 transition-all duration-200 shadow-sm ${
-                      isDarkMode
-                        ? "bg-black border-gray-600 text-white focus:ring-blue-400/20"
-                        : "bg-white/50 border-gray-200 text-primary"
+                      isDarkMode ? "bg-black border-gray-600 text-white focus:ring-blue-400/20" : "bg-white/50 border-gray-200 text-primary"
                     }`}
                     required
                   />
@@ -464,7 +407,6 @@ export const SignupPopup: React.FC<SignupPopupProps> = ({ onClose, isDarkMode, o
               </div>
             </motion.div>
 
-            {/* Preferences */}
             <motion.div
               className={`space-y-6 p-6 rounded-xl ${isDarkMode ? "bg-gray-900" : "bg-gray-50"}`}
               initial={{ opacity: 0, y: 20 }}
@@ -474,10 +416,7 @@ export const SignupPopup: React.FC<SignupPopupProps> = ({ onClose, isDarkMode, o
               <h3 className="text-lg font-semibold border-b border-gray-200 pb-2">Preferences</h3>
               <div className="grid md:grid-cols-2 gap-6">
                 <motion.div variants={inputVariants} whileFocus="focus" animate="blur" transition={{ duration: 0.2 }}>
-                  <label
-                    htmlFor="timeZone"
-                    className={`block text-sm font-medium ${isDarkMode ? "text-gray-300" : "text-secondary"} mb-1`}
-                  >
+                  <label htmlFor="timeZone" className={`block text-sm font-medium ${isDarkMode ? "text-gray-300" : "text-secondary"} mb-1`}>
                     Time Zone
                   </label>
                   <select
@@ -485,9 +424,7 @@ export const SignupPopup: React.FC<SignupPopupProps> = ({ onClose, isDarkMode, o
                     value={signupData.timeZone}
                     onChange={(e) => setSignupData({ ...signupData, timeZone: e.target.value })}
                     className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-primary/20 transition-all duration-200 shadow-sm ${
-                      isDarkMode
-                        ? "bg-black border-gray-600 text-white focus:ring-blue-400/20"
-                        : "bg-white/50 border-gray-200 text-primary"
+                      isDarkMode ? "bg-black border-gray-600 text-white focus:ring-blue-400/20" : "bg-white/50 border-gray-200 text-primary"
                     }`}
                     required
                   >
@@ -499,10 +436,7 @@ export const SignupPopup: React.FC<SignupPopupProps> = ({ onClose, isDarkMode, o
                   </select>
                 </motion.div>
                 <motion.div variants={inputVariants} whileFocus="focus" animate="blur" transition={{ duration: 0.2 }}>
-                  <label
-                    htmlFor="role"
-                    className={`block text-sm font-medium ${isDarkMode ? "text-gray-300" : "text-secondary"} mb-1`}
-                  >
+                  <label htmlFor="role" className={`block text-sm font-medium ${isDarkMode ? "text-gray-300" : "text-secondary"} mb-1`}>
                     Role
                   </label>
                   <select
@@ -510,15 +444,12 @@ export const SignupPopup: React.FC<SignupPopupProps> = ({ onClose, isDarkMode, o
                     value={signupData.role}
                     onChange={(e) => setSignupData({ ...signupData, role: e.target.value as Role })}
                     className={`w-full px-2 py-3 rounded-lg border focus:ring-2 focus:ring-primary/20 transition-all duration-200 shadow-sm ${
-                      isDarkMode
-                        ? "bg-black border-gray-600 text-white focus:ring-blue-400/20"
-                        : "bg-white/50 border-gray-200 text-primary"
+                      isDarkMode ? "bg-black border-gray-600 text-white focus:ring-blue-400/20" : "bg-white/50 border-gray-200 text-primary"
                     }`}
                   >
                     <option value="Agent">Agent</option>
                     <option value="Coordinator">Transaction Coordinator</option>
                     <option value="Broker">Broker</option>
-                    
                   </select>
                 </motion.div>
               </div>

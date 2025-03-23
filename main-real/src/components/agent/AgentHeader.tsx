@@ -11,34 +11,34 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useDashboard } from "@/components/broker/dashboard-provider"
 
-export function Header() {
-  const { notifications, addNotification } = useDashboard()
+
+export default function AgentHeader() {
+//   const { notifications, addNotification } = useDashboard()
   const [unreadCount, setUnreadCount] = useState(0)
 
-  useEffect(() => {
-    setUnreadCount(notifications.filter((n) => !n.read).length)
-  }, [notifications])
+//   useEffect(() => {
+//     setUnreadCount(notifications.filter((n) => !n.read).length)
+//   }, [notifications])
 
-  // Simulate new notifications
-  useEffect(() => {
-    const interval = setInterval(() => {
-      addNotification({
-        id: Date.now(),
-        message: `New notification at ${new Date().toLocaleTimeString()}`,
-        time: "Just now",
-        read: false,
-      })
-    }, 1000) // Add a new notification every 30 seconds
+//   // Simulate new notifications
+//   useEffect(() => {
+//     const interval = setInterval(() => {
+//       addNotification({
+//         id: Date.now(),
+//         message: `New notification at ${new Date().toLocaleTimeString()}`,
+//         time: "Just now",
+//         read: false,
+//       })
+//     }, 1000) // Add a new notification every 30 seconds
 
-    return () => clearInterval(interval)
-  }, [addNotification])
+//     return () => clearInterval(interval)
+//   }, [addNotification])
 
   return (
     <header className="bg-white shadow-sm">
       <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-        <h1 className="text-2xl font-semibold text-gray-900">Broker Dashboard</h1>
+        <h1 className="text-2xl font-semibold text-gray-900">Agent Dashboard</h1>
         <div className="flex items-center space-x-4">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -54,7 +54,7 @@ export function Header() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-80 bg-">
               <DropdownMenuLabel>Notifications</DropdownMenuLabel>
-              <DropdownMenuSeparator />
+              {/* <DropdownMenuSeparator />
               {notifications.slice(0, 5).map((notification) => (
                 <DropdownMenuItem key={notification.id} className="flex flex-col items-start">
                   <span>{notification.message}</span>
@@ -64,8 +64,8 @@ export function Header() {
               {notifications.length > 5 && (
                 <DropdownMenuItem>
                   <span className="text-sm text-gray-500">View all notifications</span>
-                </DropdownMenuItem>
-              )}
+                </DropdownMenuItem> */}
+              {/* )} */}
             </DropdownMenuContent>
           </DropdownMenu>
           <DropdownMenu>

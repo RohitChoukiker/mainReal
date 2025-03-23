@@ -9,8 +9,7 @@ const inter = Inter({ subsets: ["latin"] })
 
 export const metadata = {
   title: "Broker Dashboard",
-  description: "Real Estate Transaction System",
-    generator: 'v0.dev'
+  description: "Real Estate Transaction System"
 }
 
 export default function RootLayout({
@@ -39,4 +38,3 @@ export default function RootLayout({
 
 
 
-import './global.css'
