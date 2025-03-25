@@ -19,13 +19,13 @@ import { Button } from "@/components/ui/button";
 const navItems = [
   { icon: Home, label: "Dashboard", href: "/agent" },
   { icon: FileText, label: "New Transactions", href: "/agent/new-transaction" },
-  { icon: FileText, label: "My Transactions", href: "/agent/transactions" },
+  { icon: FileText, label: "My Transactions", href: "/agent/my-transactions" },
   {
     icon: FileText,
     label: "Upload Documents",
     href: "/agent/upload-documents",
   },
-  { icon: FileText, label: "Tasks Assigned", href: "/agent/tasks" },
+  { icon: FileText, label: "Tasks Assigned", href: "/agent/asign-task" },
   { icon: FileText, label: "Complaints", href: "/agent/complaints" },
 
   { icon: Settings, label: "Settings", href: "/agent/settings	" },
