@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { motion } from "framer-motion"
 import { X, Mail, Lock, User, Building, MapPin, Phone, Clock, Eye, EyeOff, CheckCircle } from "lucide-react"
@@ -28,10 +27,14 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
     timeZone: "UTC",
     role: "Agent",
   })
-
+  
+  // Added missing state variables
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  
   const totalSteps = 2
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -39,15 +42,39 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1)
-    } else {
-      // Handle signup logic here
-      console.log("Signup with:", formData)
-
-      // For demo purposes, redirect to dashboard based on role
+      return
+    }
+  
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match!")
+      return
+    }
+  
+    setLoading(true)
+    setError(null)
+  
+    try {
+      const response = await fetch("/api/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      })
+  
+      const data = await response.json()
+  
+      if (!response.ok) {
+        throw new Error(data.message || "Something went wrong!")
+      }
+  
+      console.log("Signup Success:", data)
+  
+      // Redirect based on role
       if (formData.role === "Agent") {
         window.location.href = "/agent/dashboard"
       } else if (formData.role === "Broker") {
@@ -55,6 +82,11 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
       } else {
         window.location.href = "/tc/dashboard"
       }
+    } catch (err: any) {
+      console.error("Signup Error:", err.message)
+      setError(err.message)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -109,6 +141,13 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
               <span className="text-xs text-gray-500">Company Details</span>
             </div>
           </div>
+
+          {/* Added error display */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md text-sm">
+              {error}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit}>
             {currentStep === 1 && (
@@ -425,7 +464,8 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
                 <button
                   type="button"
                   onClick={goToPreviousStep}
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                  disabled={loading}
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50"
                 >
                   Back
                 </button>
@@ -435,9 +475,10 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
 
               <button
                 type="submit"
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                disabled={loading}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50"
               >
-                {currentStep < totalSteps ? "Next" : "Create Account"}
+                {loading ? "Processing..." : currentStep < totalSteps ? "Next" : "Create Account"}
               </button>
             </div>
           </form>
@@ -455,4 +496,3 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
     </div>
   )
 }
-
