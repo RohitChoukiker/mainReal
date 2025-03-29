@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '../../../utils/dbConnect';
 import User from '../../../models/userModel';
-import { signupSchema } from '../../../validators/userValidator';
 
 export async function POST(req: NextRequest) {
     if (req.method !== "POST") {
@@ -9,22 +8,40 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-        await dbConnect(); 
-
+        await dbConnect();
         const body = await req.json();
+        
+        const { 
+            name, email, password, confirmPassword, mobile, 
+            companyName, teamName, address, companyPhone, 
+            city, state, pinCode, timeZone, role 
+        } = body;
 
         
-        const validation = signupSchema.safeParse(body);
-        if (!validation.success) {
-            return NextResponse.json({ message: 'Validation failed', errors: validation.error.errors }, { status: 400 });
+        if (!name || !email || !password || !confirmPassword || !mobile || !role) {
+            return NextResponse.json({ message: 'Required fields are missing' }, { status: 400 });
         }
 
-       
-        const newUser = new User(body);
+        if (password !== confirmPassword) {
+            return NextResponse.json({ message: 'Passwords do not match' }, { status: 400 });
+        }
+
+        
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            return NextResponse.json({ message: 'User already exists' }, { status: 400 });
+        }
+
+        const newUser = new User({ 
+            name, email, password, confirmPassword, mobile, 
+            companyName, teamName, address, companyPhone, 
+            city, state, pinCode, timeZone, role 
+        });
+
         await newUser.save();
 
         return NextResponse.json({ message: 'User created successfully', user: newUser }, { status: 201 });
     } catch (error) {
-        return NextResponse.json({ message: 'Server error', error: error }, { status: 500 });
+        return NextResponse.json({ message: 'Server error', error:error}, { status: 500 });
     }
 }

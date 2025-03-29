@@ -3,6 +3,8 @@
 import type React from "react"
 import { useState } from "react"
 import { motion } from "framer-motion"
+import { ToastContainer, toast } from "react-toastify"
+import "react-toastify/dist/ReactToastify.css"
 import { X, Mail, Lock, User, Building, MapPin, Phone, Clock, Eye, EyeOff, CheckCircle } from "lucide-react"
 
 interface SignupModalProps {
@@ -28,11 +30,9 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
     role: "Agent",
   })
   
-  // Added missing state variables
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
-  const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   
   const totalSteps = 2
@@ -44,19 +44,36 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1)
       return
     }
-  
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match!")
+
+    // Validation
+    if (!formData.name || !formData.email || !formData.password) {
+      toast.error("Please fill all required fields")
       return
     }
-  
+
+    if (formData.password !== formData.confirmPassword) {
+      toast.error("Passwords do not match!", {
+        position: "top-right",
+        autoClose: 3000,
+      })
+      return
+    }
+
+    if (formData.password.length < 8) {
+      toast.error("Password must be at least 8 characters long", {
+        position: "top-right",
+        autoClose: 3000,
+      })
+      return
+    }
+
     setLoading(true)
-    setError(null)
-  
+
     try {
       const response = await fetch("/api/signup", {
         method: "POST",
@@ -65,26 +82,29 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
         },
         body: JSON.stringify(formData),
       })
-  
+
       const data = await response.json()
-  
-      if (!response.ok) {
-        throw new Error(data.message || "Something went wrong!")
-      }
-  
-      console.log("Signup Success:", data)
-  
-      // Redirect based on role
-      if (formData.role === "Agent") {
-        window.location.href = "/agent/dashboard"
-      } else if (formData.role === "Broker") {
-        window.location.href = "/broker/dashboard"
+
+      if (response.ok) {
+        toast.success("Account created successfully!", {
+          position: "top-right",
+          autoClose: 3000,
+          onClose: () => {
+            setTimeout(() => onClose(), 1000)
+          },
+        })
       } else {
-        window.location.href = "/tc/dashboard"
+        toast.error(data.message || "Failed to create account", {
+          position: "top-right",
+          autoClose: 3000,
+        })
       }
     } catch (err: any) {
+      toast.error(err.message || "An error occurred during signup", {
+        position: "top-right",
+        autoClose: 3000,
+      })
       console.error("Signup Error:", err.message)
-      setError(err.message)
     } finally {
       setLoading(false)
     }
@@ -98,6 +118,19 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
+
       <motion.div
         className="bg-white rounded-xl shadow-xl w-full max-w-2xl relative overflow-hidden my-8"
         initial={{ opacity: 0, scale: 0.9 }}
@@ -141,13 +174,6 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
               <span className="text-xs text-gray-500">Company Details</span>
             </div>
           </div>
-
-          {/* Added error display */}
-          {error && (
-            <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md text-sm">
-              {error}
-            </div>
-          )}
 
           <form onSubmit={handleSubmit}>
             {currentStep === 1 && (
@@ -291,6 +317,7 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
                     name="role"
                     value={formData.role}
                     onChange={handleChange}
+                    required
                     className="block w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
                   >
                     <option value="Agent">Agent</option>
@@ -316,7 +343,6 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
                         id="companyName"
                         name="companyName"
                         type="text"
-                        required
                         value={formData.companyName}
                         onChange={handleChange}
                         className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
@@ -353,7 +379,6 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
                       id="address"
                       name="address"
                       type="text"
-                      required
                       value={formData.address}
                       onChange={handleChange}
                       className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
@@ -374,11 +399,10 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
                       id="companyPhone"
                       name="companyPhone"
                       type="tel"
-                      required
                       value={formData.companyPhone}
                       onChange={handleChange}
                       className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
-                      placeholder="(555) 987-6543"
+                      placeholder="Company Phone Number"
                     />
                   </div>
                 </div>
@@ -392,7 +416,6 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
                       id="city"
                       name="city"
                       type="text"
-                      required
                       value={formData.city}
                       onChange={handleChange}
                       className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
@@ -408,7 +431,6 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
                       id="state"
                       name="state"
                       type="text"
-                      required
                       value={formData.state}
                       onChange={handleChange}
                       className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
@@ -424,7 +446,6 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
                       id="pinCode"
                       name="pinCode"
                       type="text"
-                      required
                       value={formData.pinCode}
                       onChange={handleChange}
                       className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
