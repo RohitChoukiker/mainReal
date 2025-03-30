@@ -4,23 +4,31 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dbConnect from "@/utils/dbConnect";
 
-const JWT_SECRET = process.env.JWT_SECRET || "your_secret_key";
+const JWT_SECRET = process.env.JWT_SECRET as string;
 
 export async function POST(req: NextRequest) {
   try {
     await dbConnect();
-    const { email, password } = await req.json();
+  
+    
+
+    const { email, password ,role} = await req.json();
 
     // Check if user exists
     const user = await UserModel.findOne({ email });
     if (!user) {
-      return NextResponse.json({ message: "Invalid email or password" }, { status: 401 });
+      return NextResponse.json({ message: "User is not Exist" }, { status: 401 });
     }
 
-    // Check password
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return NextResponse.json({ message: "Invalid email or password" }, { status: 401 });
+
+    // Check if password is correct
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return NextResponse.json({ message: "Wrong password" }, { status: 401 });
+    }
+    // Check if role is correct
+    if (user.role !== role) {
+      return NextResponse.json({ message: "Invalid role" }, { status: 401 });
     }
 
     // Generate JWT Token
@@ -30,7 +38,6 @@ export async function POST(req: NextRequest) {
       { expiresIn: "7d" } // Token valid for 7 days
     );
 
-    // Set token in HTTP-Only Cookie
     const response = NextResponse.json({
       message: "Login successful",
       user: {
@@ -38,6 +45,7 @@ export async function POST(req: NextRequest) {
         name: user.name,
         email: user.email,
         role: user.role,
+        token: token,
       },
     });
 
