@@ -1,10 +1,11 @@
 "use client";
 
 import type React from "react";
-
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { X, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 interface LoginModalProps {
   onClose: () => void;
@@ -20,13 +21,68 @@ export default function LoginModal({
   const [role, setRole] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+    role: "",
+    rememberMe: "",
+  });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle login logic here
-    console.log("Login with:", { email, password, rememberMe , role });
+    setIsLoading(true);
 
-   
+    try {
+      const response = await fetch("/api/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          role: formData.role,
+          rememberMe: formData.rememberMe,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success("Login successful!", {
+          position: "top-right",
+          autoClose: 3000,
+        });
+        // You might want to redirect or update app state here
+        setTimeout(() => {
+          onClose(); // Close modal after successful login
+        }, 1000);
+      } else {
+        toast.error(data.message || "Login failed!", {
+          position: "top-right",
+          autoClose: 3000,
+        });
+      }
+    } catch (error) {
+      toast.error("An error occurred. Please try again.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      console.error("Login error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+
+    // Update individual state values
+    if (name === "email") setEmail(value);
+    if (name === "password") setPassword(value);
+    if (name === "role") setRole(value);
   };
 
   return (
@@ -69,10 +125,11 @@ export default function LoginModal({
                   type="email"
                   autoComplete="email"
                   required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={formData.email}
+                  onChange={handleChange}
                   className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
                   placeholder="you@example.com"
+                  disabled={isLoading}
                 />
               </div>
             </div>
@@ -94,15 +151,17 @@ export default function LoginModal({
                   type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
                   required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  value={formData.password}
+                  onChange={handleChange}
                   className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
                   placeholder="••••••••"
+                  disabled={isLoading}
                 />
                 <button
                   type="button"
                   className="absolute inset-y-0 right-0 pr-3 flex items-center"
                   onClick={() => setShowPassword(!showPassword)}
+                  disabled={isLoading}
                 >
                   {showPassword ? (
                     <EyeOff className="h-5 w-5 text-gray-400" />
@@ -123,9 +182,10 @@ export default function LoginModal({
               <select
                 id="role"
                 name="role"
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
+                value={formData.role}
+                onChange={handleChange}
                 className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                disabled={isLoading}
               >
                 <option value="" disabled>
                   Select Role
@@ -140,11 +200,18 @@ export default function LoginModal({
               <div className="flex items-center">
                 <input
                   id="remember-me"
-                  name="remember-me"
+                  name="rememberMe"
                   type="checkbox"
                   checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
+                  onChange={(e) => {
+                    setRememberMe(e.target.checked);
+                    setFormData((prev) => ({
+                      ...prev,
+                      rememberMe: e.target.checked.toString(),
+                    }));
+                  }}
                   className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                  disabled={isLoading}
                 />
                 <label
                   htmlFor="remember-me"
@@ -167,14 +234,15 @@ export default function LoginModal({
             <div>
               <button
                 type="submit"
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                disabled={isLoading}
+                className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary ${
+                  isLoading ? "opacity-50 cursor-not-allowed" : ""
+                }`}
               >
-                Sign in
+                {isLoading ? "Signing in..." : "Sign in"}
               </button>
             </div>
           </form>
-
-          
 
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
@@ -183,6 +251,7 @@ export default function LoginModal({
                 type="button"
                 onClick={onSignupClick}
                 className="font-medium text-primary hover:text-primary/80"
+                disabled={isLoading}
               >
                 Sign up
               </button>
@@ -190,6 +259,7 @@ export default function LoginModal({
           </div>
         </div>
       </motion.div>
+      <ToastContainer />
     </div>
   );
 }

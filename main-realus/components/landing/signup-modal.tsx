@@ -59,7 +59,7 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
     if (formData.password !== formData.confirmPassword) {
       toast.error("Passwords do not match!", {
         position: "top-right",
-        autoClose: 3000,
+        autoClose: 1000,
       })
       return
     }
@@ -67,7 +67,7 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
     if (formData.password.length < 8) {
       toast.error("Password must be at least 8 characters long", {
         position: "top-right",
-        autoClose: 3000,
+        autoClose: 1000,
       })
       return
     }
@@ -86,12 +86,15 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
       const data = await response.json()
 
       if (response.ok) {
+        
+        
         toast.success("Account created successfully!", {
           position: "top-right",
-          autoClose: 3000,
-          onClose: () => {
-            setTimeout(() => onClose(), 1000)
-          },
+          autoClose: 1000,
+          
+         onClose: () => {
+            onClose()
+          }
         })
       } else {
         toast.error(data.message || "Failed to create account", {
