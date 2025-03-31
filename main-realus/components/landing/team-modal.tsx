@@ -14,13 +14,13 @@ export default function TeamModal({ onClose }: TeamModalProps) {
       name: "Rohit Choukiker",
       role: "Developer",
       // bio: "With over 15 years of experience in real estate and technology, John founded RealEstate Pro to streamline transaction management for agents and brokers.",
-      image: "/images/team-1.jpg",
+      image: "https://media.licdn.com/dms/image/v2/D5603AQHmEWlSaHZdLA/profile-displayphoto-shrink_800_800/B56ZW.htATHQAc-/0/1742658263861?e=1749081600&v=beta&t=mTRhjzGItzWf447ef8UT50nKBCx9dQVeG5DBholizdM",
     },
     {
       name: "Vibha Kushwaha",
       role: "Chief Documentaion Officer",
       // bio: "Sarah leads our engineering team, bringing 10+ years of experience building scalable software solutions for the real estate industry.",
-      image: "/images/team-2.jpg",
+      image: "https://media.licdn.com/dms/image/v2/D4E03AQGiF5Pnvti2yA/profile-displayphoto-shrink_800_800/profile-displayphoto-shrink_800_800/0/1731061456407?e=1749081600&v=beta&t=TQ6D1AtbiGKeropKivJve669y4BpO_fYZUpm2WTNCy8",
     },
   ];
 
