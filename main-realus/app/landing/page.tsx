@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 // import { Hexagon, Gem } from "lucide-react"
-import { Globe, Rocket, Sparkles } from "lucide-react"
+import { Globe, Rocket, Sparkles ,X } from "lucide-react"
 import {
   Home,
   Info,
