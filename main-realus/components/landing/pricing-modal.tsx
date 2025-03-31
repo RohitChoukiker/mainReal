@@ -34,10 +34,7 @@ export default function PricingModal({ onClose }: PricingModalProps) {
         "Email & SMS notifications",
         "Priority support",
         "Up to 5 user accounts",
-        "Team collaboration",
-        "Basic AI insights",
-        "Standard analytics",
-      ],
+        "Team collaboration"      ],
       limitations: [],
       cta: "Try Free for 14 Days",
       popular: true,
@@ -48,15 +45,11 @@ export default function PricingModal({ onClose }: PricingModalProps) {
       description: "For established brokerages",
       features: [
         "Unlimited active transactions",
-        "Complete document management",
         "All notification channels",
-        "24/7 dedicated support",
-        "Unlimited user accounts",
+         "Unlimited user accounts",
         "Advanced team collaboration",
         "Full AI-powered insights",
-        "Advanced analytics & reporting",
-        "Custom integrations",
-        "White-labeling options",
+        "Advanced analytics & reporting"
       ],
       limitations: [],
       cta: "Contact Sales",
@@ -65,7 +58,7 @@ export default function PricingModal({ onClose }: PricingModalProps) {
   ]
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center pt-96 overflow-y-auto">
       <motion.div
         className="bg-white rounded-xl shadow-xl w-full max-w-4xl relative my-8"
         initial={{ opacity: 0, scale: 0.9 }}
