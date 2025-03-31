@@ -102,7 +102,7 @@ export default function LandingPage() {
             <div className="flex items-center space-x-2">
               <Building className={`h-6 w-6 ${scrollY > 10 ? "text-primary" : "text-primary"}`} />
               <span className={`text-xl font-bold ${scrollY > 10 ? "text-gray-900" : "text-gray-900"}`}>
-                RealEstate Pro
+                Realus
               </span>
             </div>
             <div className="hidden md:flex space-x-8">
@@ -181,51 +181,85 @@ export default function LandingPage() {
       </AnimatePresence>
 
       {/* Hero Section */}
-      <section id="home" className="pt-28 pb-16 md:pt-32 md:pb-24 bg-gradient-to-br from-blue-50 to-indigo-50">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row items-center">
-            <motion.div
-              className="md:w-1/2 mb-8 md:mb-0"
-              initial={{ opacity: 0, x: -50 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              <h1 className="text-4xl md:text-5xl font-bold mb-4 leading-tight text-gray-900">
-                Streamline Your Real Estate Transactions
-              </h1>
-              <p className="text-lg text-gray-600 mb-6">
-                Our powerful platform helps agents, brokers, and transaction coordinators manage the entire real estate
-                transaction process efficiently.
-              </p>
-              <div className="flex space-x-4">
-                <button
-                  onClick={openLoginModal}
-                  className="bg-primary text-white px-6 py-3 rounded-md hover:bg-primary/90 transition-colors flex items-center shadow-lg"
-                >
-                  <span>Get Started</span>
-                  <ChevronRight className="h-5 w-5 ml-2" />
-                </button>
-                <button
-                  onClick={() => scrollToSection("services")}
-                  className="border border-primary text-primary px-6 py-3 rounded-md hover:bg-primary/10 transition-colors"
-                >
-                  Learn More
-                </button>
-              </div>
-            </motion.div>
-            <motion.div
-              className="md:w-1/2"
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-            >
-              <div className="relative h-64 md:h-96 rounded-xl overflow-hidden shadow-xl">
-                <Image src="/images/hero-image.jpg" alt="Real Estate Management" fill className="object-cover" />
-              </div>
-            </motion.div>
-          </div>
+      <section id="home" className="relative pt-28 pb-16 md:pt-32 md:pb-24 bg-gradient-to-br from-blue-50 to-indigo-50">
+  <div className="container mx-auto px-4">
+    <div className="flex flex-col md:flex-row items-center">
+      {/* Left Content */}
+      <motion.div
+        className="md:w-1/2 mb-8 md:mb-0"
+        initial={{ opacity: 0, x: -50 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <h1 className="text-4xl md:text-5xl font-bold mb-4 leading-tight text-gray-900">
+          Streamline Your Real Estate Transactions
+        </h1>
+        <p className="text-lg text-gray-600 mb-6">
+          Our powerful platform helps agents, brokers, and transaction coordinators manage the entire real estate
+          transaction process efficiently.
+        </p>
+        <div className="flex space-x-4">
+          <button
+            onClick={openLoginModal}
+            className="bg-primary text-white px-6 py-3 rounded-md hover:bg-primary/90 transition-colors flex items-center shadow-lg"
+          >
+            <span>Get Started</span>
+            <ChevronRight className="h-5 w-5 ml-2" />
+          </button>
+          <button
+            onClick={() => scrollToSection("services")}
+            className="border border-primary text-primary px-6 py-3 rounded-md hover:bg-primary/10 transition-colors"
+          >
+            Learn More
+          </button>
         </div>
-      </section>
+      </motion.div>
+
+      {/* Right Images Grid */}
+      <motion.div
+        className="md:w-1/2 relative"
+        initial={{ opacity: 0, x: 50 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+      >
+        <div className="relative grid grid-cols-2 gap-4">
+          <div className="space-y-4">
+            <img
+              src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80&w=600"
+              alt="Luxury Home"
+              className="rounded-2xl shadow-lg transform hover:scale-105 transition-transform duration-300"
+            />
+            <img
+              src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&q=80&w=600"
+              alt="Modern Interior"
+              className="rounded-2xl shadow-lg transform hover:scale-105 transition-transform duration-300"
+            />
+          </div>
+          <div className="space-y-4 pt-8">
+            <img
+              src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=600"
+              alt="Luxury Villa"
+              className="rounded-2xl shadow-lg transform hover:scale-105 transition-transform duration-300"
+            />
+            <img
+              src="https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&q=80&w=600"
+              alt="Modern House"
+              className="rounded-2xl shadow-lg transform hover:scale-105 transition-transform duration-300"
+            />
+          </div>
+
+          {/* Overlay Gradient */}
+          <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 to-purple-500/10 rounded-3xl"></div>
+        </div>
+      </motion.div>
+    </div>
+  </div>
+
+  {/* Background Decorations */}
+  <div className="absolute top-1/2 right-0 w-64 h-64 bg-orange-500/10 rounded-full blur-3xl"></div>
+  <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl"></div>
+</section>
+
 
       {/* About Section */}
       <section id="about" className="py-16 bg-white">
@@ -254,7 +288,7 @@ export default function LandingPage() {
               <div className="bg-primary/10 p-3 rounded-full w-14 h-14 flex items-center justify-center mb-4">
                 <Building className="h-7 w-7 text-primary" />
               </div>
-              <h3 className="text-xl font-semibold mb-2 text-gray-900">Established in 2015</h3>
+              <h3 className="text-xl font-semibold mb-2 text-gray-900">Established in 2025</h3>
               <p className="text-gray-600">
                 With years of experience in the real estate industry, we understand the challenges faced by
                 professionals.
@@ -304,12 +338,12 @@ export default function LandingPage() {
           >
             <div className="flex flex-col md:flex-row">
               <div className="md:w-1/2 relative h-64 md:h-auto">
-                <Image src="/images/about-image.jpg" alt="Our mission" fill className="object-cover" />
+                <Image src="https://images.unsplash.com/photo-1560520653-9e0e4c89eb11?auto=format&fit=crop&q=80&w=800" alt="Our mission" fill className="object-cover" />
               </div>
               <div className="md:w-1/2 p-6 md:p-8">
                 <h3 className="text-2xl font-bold mb-4 text-gray-900">Our Mission</h3>
                 <p className="text-gray-600 mb-4">
-                  At RealEstate Pro, our mission is to simplify the complex world of real estate transactions. We
+                  At Realus, our mission is to simplify the complex world of real estate transactions. We
                   believe that technology should make the lives of real estate professionals easier, not more
                   complicated.
                 </p>
@@ -362,40 +396,40 @@ export default function LandingPage() {
                 description:
                   "Track and manage all your real estate transactions in one place, from listing to closing.",
                 icon: <ClipboardCheck className="h-6 w-6 text-primary" />,
-                image: "/images/service-transaction.jpg",
+                image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
               },
               {
                 title: "Document Management",
                 description:
                   "Securely store, share, and e-sign all transaction documents with clients and team members.",
                 icon: <FileText className="h-6 w-6 text-primary" />,
-                image: "/images/service-document.jpg",
+                image: "https://images.unsplash.com/photo-1507925921958-8a62f3d1a50d?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
               },
               {
                 title: "Task Automation",
                 description:
                   "Automate routine tasks and workflows to save time and reduce errors in your transactions.",
                 icon: <CheckSquare className="h-6 w-6 text-primary" />,
-                image: "/images/service-task.jpg",
+                image: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
               },
               {
                 title: "Team Collaboration",
                 description:
                   "Collaborate seamlessly with agents, transaction coordinators, and brokers on transactions.",
                 icon: <Users className="h-6 w-6 text-primary" />,
-                image: "/images/service-team.jpg",
+                image: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
               },
               {
                 title: "Client Communication",
                 description: "Keep clients informed with automated updates and a client portal for transparency.",
                 icon: <MessageSquare className="h-6 w-6 text-primary" />,
-                image: "/images/service-client.jpg",
+                image: "https://images.unsplash.com/photo-1553484771-371a605b060b?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
               },
               {
                 title: "Analytics & Reporting",
                 description: "Gain insights into your business performance with detailed analytics and custom reports.",
                 icon: <BarChart className="h-6 w-6 text-primary" />,
-                image: "/images/service-analytics.jpg",
+                image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
               },
             ].map((service, index) => (
               <motion.div
@@ -608,22 +642,23 @@ export default function LandingPage() {
                     <MapPin className="h-5 w-5 text-primary mr-3 mt-0.5" />
                     <div>
                       <p className="font-medium text-gray-900">Address</p>
-                      <p className="text-gray-600">123 Real Estate Ave, Suite 100</p>
-                      <p className="text-gray-600">Austin, TX 78701</p>
+                      <p className="text-gray-600">Indore, Madhya Pradesh
+                      </p>
+                      <p className="text-gray-600">India</p>
                     </div>
                   </div>
                   <div className="flex items-start">
                     <Phone className="h-5 w-5 text-primary mr-3 mt-0.5" />
                     <div>
                       <p className="font-medium text-gray-900">Phone</p>
-                      <p className="text-gray-600">(555) 123-4567</p>
+                      <p className="text-gray-600">+91 123456789</p>
                     </div>
                   </div>
                   <div className="flex items-start">
                     <Mail className="h-5 w-5 text-primary mr-3 mt-0.5" />
                     <div>
                       <p className="font-medium text-gray-900">Email</p>
-                      <p className="text-gray-600">info@realestatepro.com</p>
+                      <p className="text-gray-600">info@realus.com</p>
                     </div>
                   </div>
                   <div className="flex items-start">
@@ -658,11 +693,7 @@ export default function LandingPage() {
                         />
                       </svg>
                     </a>
-                    <a href="#" className="text-gray-600 hover:text-primary">
-                      <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84" />
-                      </svg>
-                    </a>
+                    
                     <a href="#" className="text-gray-600 hover:text-primary">
                       <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path
@@ -698,7 +729,7 @@ export default function LandingPage() {
             <div>
               <div className="flex items-center space-x-2 mb-4">
                 <Building className="h-6 w-6 text-primary" />
-                <span className="text-xl font-bold">RealEstate Pro</span>
+                <span className="text-xl font-bold">Realus</span>
               </div>
               <p className="text-gray-400 mb-4">
                 Streamlining real estate transactions for professionals across the country.
@@ -835,7 +866,7 @@ export default function LandingPage() {
           </div>
 
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; {new Date().getFullYear()} RealEstate Pro. All rights reserved.</p>
+            <p>&copy; {new Date().getFullYear()} Realus. All rights reserved.</p>
           </div>
         </div>
       </footer>

@@ -1,22 +1,31 @@
-import { NextApiRequest, NextApiResponse } from "next";
-import { parse } from "cookie";
-import jwt from "jsonwebtoken";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
-const JWT_SECRET = process.env.JWT_SECRET as string;
+export function middleware(req: NextRequest) {
+  const token = req.cookies.get("token")?.value;
+  const role = req.cookies.get("role")?.value;
+  const url = req.nextUrl.pathname;
 
-export const authMiddleware = (handler: Function) => {
-  return async (req: NextApiRequest, res: NextApiResponse) => {
-    const cookies = parse(req.headers.cookie || "");
-    const token = cookies.authToken;
+  if (!token || !role) {
+    return NextResponse.redirect(new URL("/landing", req.url));
+  }
 
-    if (!token) return res.status(401).json({ message: "No token, authorization denied" });
-
-    try {
-      const decoded = jwt.verify(token, JWT_SECRET);
-      (req as any).user = decoded;
-      return handler(req, res);
-    } catch (error) {
-      return res.status(401).json({ message: "Invalid token" });
-    }
+  const roleBasedRoutes: Record<string, string[]> = {
+    Agent: ["/agent/dashboard"],
+    Broker: ["/Broker/dashboard"],
+    Tc: ["/tc/dashboard"],
   };
+
+  const allowedRoutes = roleBasedRoutes[role] || [];
+
+  if (!allowedRoutes.includes(url)) {
+    return NextResponse.redirect(new URL("/unauthorized", req.url));
+  }
+
+  return NextResponse.next();
+}
+
+// ✅ Matcher: Ye ensure karega ki sirf `/admin`, `/user`, aur `/moderator` routes pe middleware chale
+export const config = {
+  matcher: ["/admin/:path*", "/user/:path*", "/moderator/:path*"],
 };

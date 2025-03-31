@@ -4,7 +4,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dbConnect from "@/utils/dbConnect";
 
-const JWT_SECRET = process.env.JWT_SECRET as string;
+const JWT_SECRET = "123123123 "as string;
 
 export async function POST(req: NextRequest) {
   try {

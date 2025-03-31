@@ -5,7 +5,7 @@ import bcrypt from "bcrypt";
 export enum Role {
   Agent = "Agent",
   Broker = "Broker",
-  TransactionCoordinator = "TransactionCoordinator",
+  Tc = "TransactionCoordinator",
 }
 
 // User Interface

@@ -3,6 +3,7 @@
 import type React from "react";
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 import { X, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -29,6 +30,8 @@ export default function LoginModal({
     rememberMe: "",
   });
 
+  const router = useRouter();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -48,15 +51,36 @@ export default function LoginModal({
       });
 
       const data = await response.json();
+      console.log(data);
 
       if (response.ok) {
         toast.success("Login successful!", {
           position: "top-right",
           autoClose: 3000,
         });
-        // You might want to redirect or update app state here
+
+        localStorage.setItem("user", JSON.stringify(data.user));
+        localStorage.setItem("token", data.user.token);
+        localStorage.setItem("role", data.user.role);
+        localStorage.setItem("rememberMe", formData.rememberMe);
+
         setTimeout(() => {
-          onClose(); // Close modal after successful login
+          onClose();
+
+          switch (data.user.role) {
+            case "Agent":
+              router.push("/agent/dashboard");
+
+              break;
+            case "Broker":
+              router.push("/broker/dashboard");
+              break;
+            case "Tc":
+              router.push("/tc/dashboard");
+              break;
+            default:
+              router.push("/"); // Default route
+          }
         }, 1000);
       } else {
         toast.error(data.message || "Login failed!", {
@@ -75,7 +99,9 @@ export default function LoginModal({
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
 
@@ -190,9 +216,9 @@ export default function LoginModal({
                 <option value="" disabled>
                   Select Role
                 </option>
-                <option value="agent">Agent</option>
-                <option value="broker">Broker</option>
-                <option value="tc">Transaction Coordinator</option>
+                <option value="Agent">Agent</option>
+                <option value="Broker">Broker</option>
+                <option value="Tc">Transaction Coordinator</option>
               </select>
             </div>
 
