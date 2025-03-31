@@ -58,7 +58,7 @@ export default function PricingModal({ onClose }: PricingModalProps) {
   ]
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center pt-96 overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center pt-72 overflow-y-auto">
       <motion.div
         className="bg-white rounded-xl shadow-xl w-full max-w-4xl relative my-8"
         initial={{ opacity: 0, scale: 0.9 }}
