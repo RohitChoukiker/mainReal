@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   title: "Realus",
   description: "Manage real estate transactions efficiently",
   icons: {
-    icon: "https://media.licdn.com/dms/image/v2/D5603AQHmEWlSaHZdLA/profile-displayphoto-shrink_800_800/B56ZW.htATHQAc-/0/1742658263861?e=1749081600&v=beta&t=mTRhjzGItzWf447ef8UT50nKBCx9dQVeG5DBholizdM",
+    icon: "/images/logo.png",
   },
 }
 

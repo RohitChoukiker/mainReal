@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+// import { Hexagon, Gem } from "lucide-react"
+import { Globe, Rocket, Sparkles } from "lucide-react"
 import {
   Home,
   Info,
@@ -95,76 +97,65 @@ export default function LandingPage() {
     <div className="min-h-screen bg-white">
       {/* Navbar */}
       <nav
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrollY > 10 ? "bg-white shadow-md py-3" : "bg-transparent py-5"}`}
-      >
-        <div className="container mx-auto px-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-2">
-              <Building className={`h-6 w-6 ${scrollY > 10 ? "text-primary" : "text-primary"}`} />
-              <span className={`text-xl font-bold ${scrollY > 10 ? "text-gray-900" : "text-gray-900"}`}>
-                Realus
-              </span>
-            </div>
-            <div className="hidden md:flex space-x-8">
-              <button
-                onClick={() => scrollToSection("home")}
-                className={`flex items-center space-x-1 ${activeSection === "home" ? "text-primary font-medium" : "text-gray-600 hover:text-primary"}`}
-              >
-                <Home className="h-4 w-4" />
-                <span>Home</span>
-              </button>
-              <button
-                onClick={() => scrollToSection("about")}
-                className={`flex items-center space-x-1 ${activeSection === "about" ? "text-primary font-medium" : "text-gray-600 hover:text-primary"}`}
-              >
-                <Info className="h-4 w-4" />
-                <span>About</span>
-              </button>
-              <button
-                onClick={() => scrollToSection("services")}
-                className={`flex items-center space-x-1 ${activeSection === "services" ? "text-primary font-medium" : "text-gray-600 hover:text-primary"}`}
-              >
-                <Briefcase className="h-4 w-4" />
-                <span>Services</span>
-              </button>
-              <button
-                onClick={() => scrollToSection("contact")}
-                className={`flex items-center space-x-1 ${activeSection === "contact" ? "text-primary font-medium" : "text-gray-600 hover:text-primary"}`}
-              >
-                <Phone className="h-4 w-4" />
-                <span>Contact</span>
-              </button>
-              <button
-                onClick={() => setIsPricingModalOpen(true)}
-                className="flex items-center space-x-1 text-gray-600 hover:text-primary"
-              >
-                <DollarSign className="h-4 w-4" />
-                <span>Pricing</span>
-              </button>
-              <button
-                onClick={() => setIsTeamModalOpen(true)}
-                className="flex items-center space-x-1 text-gray-600 hover:text-primary"
-              >
-                <Users className="h-4 w-4" />
-                <span>Our Team</span>
-              </button>
-            </div>
-            <div className="hidden md:block">
-              <button
-                onClick={openLoginModal}
-                className="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 transition-colors"
-              >
-                Login
-              </button>
-            </div>
-            <div className="md:hidden">
-              <button className="text-gray-600 p-1" onClick={() => setIsMobileMenuOpen(true)}>
-                <Menu className="h-6 w-6" />
-              </button>
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrollY > 10 ? "bg-white shadow-md py-3" : "bg-transparent py-5"}`}
+    >
+      <div className="container mx-auto px-4">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center space-x-2">
+          <div className="relative">
+                  <Globe className="w-10 h-10 text-orange-500 animate-spin-slow" strokeWidth={1.5} />
+                  <Rocket className="w-6 h-6 text-orange-600 absolute -top-1 right-0 transform rotate-45" strokeWidth={1.5} />
+                  <Sparkles className="w-4 h-4 text-yellow-400 absolute bottom-0 left-0" strokeWidth={1.5} />
+                </div>
+            <div>
+              <span className="text-2xl font-bold bg-gradient-to-r from-orange-800 to-orange-500 text-transparent bg-clip-text">Real</span>
+              <span className="text-2xl font-bold">us</span>
             </div>
           </div>
+          <div className="hidden md:flex space-x-8">
+            {[
+              { id: "home", label: "Home", icon: <Home className="h-4 w-4" /> },
+              { id: "about", label: "About", icon: <Info className="h-4 w-4" /> },
+              { id: "services", label: "Services", icon: <Briefcase className="h-4 w-4" /> },
+              { id: "contact", label: "Contact", icon: <Phone className="h-4 w-4" /> },
+            ].map(({ id, label, icon }) => (
+              <button
+                key={id}
+                onClick={() => scrollToSection(id)}
+                className={`flex items-center space-x-1 ${activeSection === id ? "text-primary font-medium" : "text-gray-600 hover:text-primary"}`}
+              >
+                {icon}
+                <span>{label}</span>
+              </button>
+            ))}
+            <button
+              onClick={() => setIsPricingModalOpen(true)}
+              className="flex items-center space-x-1 text-gray-600 hover:text-primary"
+            >
+              <DollarSign className="h-4 w-4" />
+              <span>Pricing</span>
+            </button>
+            <button
+              onClick={() => setIsTeamModalOpen(true)}
+              className="flex items-center space-x-1 text-gray-600 hover:text-primary"
+            >
+              <Users className="h-4 w-4" />
+              <span>Our Team</span>
+            </button>
+          </div>
+          <div className="hidden md:block">
+            <button className="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 transition-colors">
+              Login
+            </button>
+          </div>
+          <div className="md:hidden">
+            <button className="text-gray-600 p-1" onClick={() => setIsMobileMenuOpen(true)}>
+              <Menu className="h-6 w-6" />
+            </button>
+          </div>
         </div>
-      </nav>
+      </div>
+    </nav>
 
       {/* Mobile Menu */}
       <AnimatePresence>
