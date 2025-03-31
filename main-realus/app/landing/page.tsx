@@ -211,7 +211,7 @@ export default function LandingPage() {
         </div>
       </div>
       {isMobileMenuOpen && (
-        <div className="absolute top-full left-0 w-full bg-white shadow-md py-4 flex flex-col space-y-4 items-center md:hidden">
+        <div className="absolute top-full left-0 max-w-fit bg-white shadow-md py-4 flex flex-col space-y-4 items-center md:hidden">
           {[
             { id: "home", label: "Home", icon: <Home className="h-4 w-4" /> },
             { id: "about", label: "About", icon: <Info className="h-4 w-4" /> },
