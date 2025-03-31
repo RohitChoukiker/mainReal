@@ -191,11 +191,11 @@ export default function LandingPage() {
                 <span>{label}</span>
               </button>
             ))}
-            <button onClick={() => setIsMobileMenuOpen(true)} className="flex items-center space-x-1 text-gray-600 hover:text-primary">
+            <button className="flex items-center space-x-1 text-gray-600 hover:text-primary">
               <DollarSign className="h-4 w-4" />
               <span>Pricing</span>
             </button>
-            <button onClick={() => setIsMobileMenuOpen(true)} className="flex items-center space-x-1 text-gray-600 hover:text-primary">
+            <button className="flex items-center space-x-1 text-gray-600 hover:text-primary">
               <Users className="h-4 w-4" />
               <span>Our Team</span>
             </button>
@@ -203,8 +203,8 @@ export default function LandingPage() {
           <div className="hidden md:block">
             <button className="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 transition-colors">Login</button>
           </div>
-          <div className="md:hidden">
-            <button className="text-gray-600 p-1" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+          <div className="md:hidden flex items-center">
+            <button className="text-gray-600 p-2 focus:outline-none" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
               {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
           </div>
