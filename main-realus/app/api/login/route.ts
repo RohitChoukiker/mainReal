@@ -21,17 +21,16 @@ export async function POST(req: NextRequest) {
     }
 
 
-    // Check if password is correct
+    
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return NextResponse.json({ message: "Wrong password" }, { status: 401 });
     }
-    // Check if role is correct
+    
     if (user.role !== role) {
       return NextResponse.json({ message: "Invalid role" }, { status: 401 });
     }
 
-    // Generate JWT Token
     const token = jwt.sign(
       { id: user._id, role: user.role },
       JWT_SECRET,

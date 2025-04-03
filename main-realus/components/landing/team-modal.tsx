@@ -44,7 +44,7 @@ export default function TeamModal({ onClose }: TeamModalProps) {
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold text-gray-900">Our Team</h2>
             <p className="text-gray-600 mt-2">
-              Meet the talented people behind RealEstate Pro
+              Meet the talented people behind Realus
             </p>
           </div>
 
