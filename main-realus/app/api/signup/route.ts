@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
         const { 
             name, email, password, confirmPassword, mobile, 
             companyName, teamName, address, companyPhone, 
-            city, state, pinCode, timeZone, role 
+            city, state, pinCode, timeZone, brokerId,role 
         } = body;
 
         
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
         const newUser = new User({ 
             name, email, password, confirmPassword, mobile, 
             companyName, teamName, address, companyPhone, 
-            city, state, pinCode, timeZone, role 
+            city, state, pinCode, timeZone,brokerId, role 
         });
 
         await newUser.save();

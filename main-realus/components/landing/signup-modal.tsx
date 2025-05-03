@@ -1,18 +1,33 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState } from "react"
-import { motion } from "framer-motion"
-import { ToastContainer, toast } from "react-toastify"
-import "react-toastify/dist/ReactToastify.css"
-import { X, Mail, Lock, User, Building, MapPin, Phone, Clock, Eye, EyeOff, CheckCircle } from "lucide-react"
+import type React from "react";
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import {
+  X,
+  Mail,
+  Lock,
+  User,
+  Building,
+  MapPin,
+  Phone,
+  Clock,
+  Eye,
+  EyeOff,
+  CheckCircle,
+} from "lucide-react";
 
 interface SignupModalProps {
-  onClose: () => void
-  onLoginClick: () => void
+  onClose: () => void;
+  onLoginClick: () => void;
 }
 
-export default function SignupModal({ onClose, onLoginClick }: SignupModalProps) {
+export default function SignupModal({
+  onClose,
+  onLoginClick,
+}: SignupModalProps) {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -27,52 +42,63 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
     state: "",
     pinCode: "",
     timeZone: "UTC",
+    brokerId: "",
     role: "Agent",
-  })
-  
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [currentStep, setCurrentStep] = useState(1)
-  const [loading, setLoading] = useState(false)
-  
-  const totalSteps = 2
+  });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-  }
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
+  const [loading, setLoading] = useState(false);
+
+  const totalSteps = 2;
+
+  const generateBrokerId = () => {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let id = "";
+    for (let i = 0; i < 11; i++) {
+      id += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setFormData((prev) => ({ ...prev, brokerId: id }));
+  };
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
+    e.preventDefault();
+
     if (currentStep < totalSteps) {
-      setCurrentStep(currentStep + 1)
-      return
+      setCurrentStep(currentStep + 1);
+      return;
     }
 
-    // Validation
     if (!formData.name || !formData.email || !formData.password) {
-      toast.error("Please fill all required fields")
-      return
+      toast.error("Please fill all required fields");
+      return;
     }
 
     if (formData.password !== formData.confirmPassword) {
       toast.error("Passwords do not match!", {
         position: "top-right",
         autoClose: 1000,
-      })
-      return
+      });
+      return;
     }
 
     if (formData.password.length < 8) {
       toast.error("Password must be at least 8 characters long", {
         position: "top-right",
         autoClose: 1000,
-      })
-      return
+      });
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
 
     try {
       const response = await fetch("/api/signup", {
@@ -81,46 +107,44 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
           "Content-Type": "application/json",
         },
         body: JSON.stringify(formData),
-      })
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (response.ok) {
-        
-        
         toast.success("Account created successfully!", {
           position: "top-right",
           autoClose: 1000,
-          
-         onClose: () => {
-            onClose()
-          }
-        })
+
+          onClose: () => {
+            onClose();
+          },
+        });
       } else {
         toast.error(data.message || "Failed to create account", {
           position: "top-right",
           autoClose: 3000,
-        })
+        });
       }
     } catch (err: any) {
       toast.error(err.message || "An error occurred during signup", {
         position: "top-right",
         autoClose: 3000,
-      })
-      console.error("Signup Error:", err.message)
+      });
+      console.error("Signup Error:", err.message);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const goToPreviousStep = () => {
     if (currentStep > 1) {
-      setCurrentStep(currentStep - 1)
+      setCurrentStep(currentStep - 1);
     }
-  }
+  };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center pt-20 overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center pt-56 overflow-y-auto">
       <ToastContainer
         position="top-right"
         autoClose={3000}
@@ -141,14 +165,21 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
         exit={{ opacity: 0, scale: 0.9 }}
         transition={{ duration: 0.3 }}
       >
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-gray-700">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+        >
           <X className="h-5 w-5" />
         </button>
 
         <div className="p-6">
           <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">Create an Account</h2>
-            <p className="text-gray-600">Join our platform to streamline your real estate transactions</p>
+            <h2 className="text-2xl font-bold text-gray-900">
+              Create an Account
+            </h2>
+            <p className="text-gray-600">
+              Join our platform to streamline your real estate transactions
+            </p>
           </div>
 
           <div className="mb-6">
@@ -160,14 +191,22 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
                       currentStep > index + 1
                         ? "bg-green-500 text-white"
                         : currentStep === index + 1
-                          ? "bg-primary text-white"
-                          : "bg-gray-200 text-gray-600"
+                        ? "bg-primary text-white"
+                        : "bg-gray-200 text-gray-600"
                     }`}
                   >
-                    {currentStep > index + 1 ? <CheckCircle className="h-5 w-5" /> : index + 1}
+                    {currentStep > index + 1 ? (
+                      <CheckCircle className="h-5 w-5" />
+                    ) : (
+                      index + 1
+                    )}
                   </div>
                   {index < totalSteps - 1 && (
-                    <div className={`flex-1 h-1 ${currentStep > index + 1 ? "bg-green-500" : "bg-gray-200"}`}></div>
+                    <div
+                      className={`flex-1 h-1 ${
+                        currentStep > index + 1 ? "bg-green-500" : "bg-gray-200"
+                      }`}
+                    ></div>
                   )}
                 </div>
               ))}
@@ -182,7 +221,10 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
             {currentStep === 1 && (
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="name"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Full Name
                   </label>
                   <div className="relative">
@@ -197,13 +239,16 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
                       value={formData.name}
                       onChange={handleChange}
                       className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
-                      placeholder="John Doe"
+                      placeholder="Enter Your Name"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="email"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Email
                   </label>
                   <div className="relative">
@@ -219,14 +264,17 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
                       value={formData.email}
                       onChange={handleChange}
                       className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
-                      placeholder="you@example.com"
+                      placeholder="Enter Your Email"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="password"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       Password
                     </label>
                     <div className="relative">
@@ -258,7 +306,10 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
                   </div>
 
                   <div className="space-y-2">
-                    <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="confirmPassword"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       Confirm Password
                     </label>
                     <div className="relative">
@@ -278,7 +329,9 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
                       <button
                         type="button"
                         className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        onClick={() =>
+                          setShowConfirmPassword(!showConfirmPassword)
+                        }
                       >
                         {showConfirmPassword ? (
                           <EyeOff className="h-5 w-5 text-gray-400" />
@@ -291,7 +344,10 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="mobile" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="mobile"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Mobile Number
                   </label>
                   <div className="relative">
@@ -312,7 +368,41 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="role" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="brokerId"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    Broker Id
+                  </label>
+                  <div className="relative flex items-center space-x-2">
+                    <input
+                      id="brokerId"
+                      name="brokerId"
+                      type="text"
+                      required
+                      maxLength={11}
+                      value={formData.brokerId}
+                      onChange={handleChange}
+                      className="block w-full pl-3 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                      placeholder="Enter Broker Id"
+                    />
+                    {formData.role === "Broker" && (
+                      <button
+                        type="button"
+                        onClick={generateBrokerId}
+                        className="px-3 py-2 bg-primary text-white text-sm rounded-md shadow-sm hover:bg-primary-dark"
+                      >
+                        Create
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label
+                    htmlFor="role"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Role
                   </label>
                   <select
@@ -325,7 +415,9 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
                   >
                     <option value="Agent">Agent</option>
                     <option value="Broker">Broker</option>
-                    <option value="Transaction Coordinator">Transaction Coordinator</option>
+                    <option value="Transaction Coordinator">
+                      Transaction Coordinator
+                    </option>
                   </select>
                 </div>
               </div>
@@ -335,7 +427,10 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label htmlFor="companyName" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="companyName"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       Company Name
                     </label>
                     <div className="relative">
@@ -355,7 +450,10 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
                   </div>
 
                   <div className="space-y-2">
-                    <label htmlFor="teamName" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="teamName"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       Team Name (Optional)
                     </label>
                     <input
@@ -371,7 +469,10 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="address" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="address"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Address
                   </label>
                   <div className="relative">
@@ -391,7 +492,10 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="companyPhone" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="companyPhone"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Company Phone
                   </label>
                   <div className="relative">
@@ -412,7 +516,10 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <label htmlFor="city" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="city"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       City
                     </label>
                     <input
@@ -427,7 +534,10 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
                   </div>
 
                   <div className="space-y-2">
-                    <label htmlFor="state" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="state"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       State
                     </label>
                     <input
@@ -442,7 +552,10 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
                   </div>
 
                   <div className="space-y-2">
-                    <label htmlFor="pinCode" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="pinCode"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       ZIP Code
                     </label>
                     <input
@@ -458,7 +571,10 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="timeZone" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="timeZone"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Time Zone
                   </label>
                   <div className="relative">
@@ -472,7 +588,9 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
                       onChange={handleChange}
                       className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
                     >
-                      <option value="UTC">UTC (Coordinated Universal Time)</option>
+                      <option value="UTC">
+                        UTC (Coordinated Universal Time)
+                      </option>
                       <option value="EST">EST (Eastern Standard Time)</option>
                       <option value="CST">CST (Central Standard Time)</option>
                       <option value="MST">MST (Mountain Standard Time)</option>
@@ -502,7 +620,11 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
                 disabled={loading}
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50"
               >
-                {loading ? "Processing..." : currentStep < totalSteps ? "Next" : "Create Account"}
+                {loading
+                  ? "Processing..."
+                  : currentStep < totalSteps
+                  ? "Next"
+                  : "Create Account"}
               </button>
             </div>
           </form>
@@ -510,7 +632,11 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
               Already have an account?{" "}
-              <button type="button" onClick={onLoginClick} className="font-medium text-primary hover:text-primary/80">
+              <button
+                type="button"
+                onClick={onLoginClick}
+                className="font-medium text-primary hover:text-primary/80"
+              >
                 Sign in
               </button>
             </p>
@@ -518,5 +644,5 @@ export default function SignupModal({ onClose, onLoginClick }: SignupModalProps)
         </div>
       </motion.div>
     </div>
-  )
+  );
 }
