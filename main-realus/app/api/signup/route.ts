@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '../../../utils/dbConnect';
-import User from '../../../models/userModel';
+import User, { Role } from '../../../models/userModel';
 
 export async function POST(req: NextRequest) {
     if (req.method !== "POST") {
@@ -14,8 +14,27 @@ export async function POST(req: NextRequest) {
         const { 
             name, email, password, confirmPassword, mobile, 
             companyName, teamName, address, companyPhone, 
-            city, state, pinCode, timeZone, brokerId,role 
+            city, state, pinCode, timeZone, brokerId, role 
         } = body;
+        
+        console.log("Received role:", role);
+        
+        // Convert the role string to the correct enum value
+        let validRole;
+        if (role === "Agent") {
+            validRole = Role.Agent;
+        } else if (role === "Broker") {
+            validRole = Role.Broker;
+        } else if (role === "TransactionCoordinator") {
+            validRole = Role.Tc;
+        } else {
+            console.log("Invalid role received:", role);
+            return NextResponse.json({ 
+                message: `Invalid role: ${role}. Valid roles are: Agent, Broker, TransactionCoordinator` 
+            }, { status: 400 });
+        }
+        
+        console.log("Converted to valid role:", validRole);
 
         
         if (!name || !email || !password || !confirmPassword || !mobile || !role) {
@@ -35,7 +54,8 @@ export async function POST(req: NextRequest) {
         const newUser = new User({ 
             name, email, password, confirmPassword, mobile, 
             companyName, teamName, address, companyPhone, 
-            city, state, pinCode, timeZone,brokerId, role 
+            city, state, pinCode, timeZone, brokerId, 
+            role: validRole // Use the validated role
         });
 
         await newUser.save();

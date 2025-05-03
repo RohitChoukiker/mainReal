@@ -43,7 +43,7 @@ export default function SignupModal({
     pinCode: "",
     timeZone: "UTC",
     brokerId: "",
-    role: "Agent",
+    role: "Agent", // Matches the Role enum in userModel.ts
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -79,6 +79,15 @@ export default function SignupModal({
 
     if (!formData.name || !formData.email || !formData.password) {
       toast.error("Please fill all required fields");
+      return;
+    }
+    
+    // Check if broker ID is required but not provided
+    if (formData.role !== "Broker" && !formData.brokerId) {
+      toast.error("Broker ID is required for your role", {
+        position: "top-right",
+        autoClose: 1000,
+      });
       return;
     }
 
@@ -372,19 +381,19 @@ export default function SignupModal({
                     htmlFor="brokerId"
                     className="block text-sm font-medium text-gray-700"
                   >
-                    Broker Id
+                    {formData.role === "TransactionCoordinator" ? "Your Broker's ID" : "Broker Id"}
                   </label>
                   <div className="relative flex items-center space-x-2">
                     <input
                       id="brokerId"
                       name="brokerId"
                       type="text"
-                      required
+                      required={formData.role !== "Broker" && formData.role !== ""}
                       maxLength={11}
                       value={formData.brokerId}
                       onChange={handleChange}
                       className="block w-full pl-3 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
-                      placeholder="Enter Broker Id"
+                      placeholder={formData.role === "TransactionCoordinator" ? "Enter your broker's ID" : "Enter Broker Id"}
                     />
                     {formData.role === "Broker" && (
                       <button
@@ -415,9 +424,7 @@ export default function SignupModal({
                   >
                     <option value="Agent">Agent</option>
                     <option value="Broker">Broker</option>
-                    <option value="Transaction Coordinator">
-                      Transaction Coordinator
-                    </option>
+                    <option value="TransactionCoordinator">Transaction Coordinator</option>
                   </select>
                 </div>
               </div>
