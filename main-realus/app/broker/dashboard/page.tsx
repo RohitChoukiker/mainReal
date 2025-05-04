@@ -6,6 +6,7 @@ import { AIInsightsCard } from "@/components/dashboard/ai-insights-card"
 import { QuickActionsPanel } from "@/components/dashboard/quick-actions-panel"
 import { LiveNotificationsPanel } from "@/components/dashboard/live-notifications-panel"
 import { TransactionListTable } from "@/components/dashboard/transaction-list-table"
+import BrokerIdCard from "@/components/broker/broker-id-card"
 import { FileText, UserPlus, AlertCircle, CheckCircle } from "lucide-react"
 
 export default function BrokerDashboard() {
@@ -154,6 +155,12 @@ export default function BrokerDashboard() {
         <TransactionOverviewCard title="Transactions" total={42} completed={18} pending={20} atRisk={4} />
         <LiveNotificationsPanel notifications={notificationsData} />
         <QuickActionsPanel actions={quickActionsData} />
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="md:col-span-1">
+          <BrokerIdCard />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

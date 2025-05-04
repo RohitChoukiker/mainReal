@@ -54,6 +54,7 @@
     "lucide-react": "^0.454.0",
     "mongoose": "^8.13.1",
     "next": "15.1.0",
+    "next-auth": "^4.24.11",
     "next-cookies": "^2.0.3",
     "next-themes": "latest",
     "react": "^18.3.1",

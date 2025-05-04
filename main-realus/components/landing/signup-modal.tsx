@@ -66,7 +66,19 @@ export default function SignupModal({
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    
+    // If changing role to Broker, generate a broker ID automatically
+    if (name === 'role' && value === 'Broker') {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+      generateBrokerId();
+    } 
+    // If changing from Broker to another role, clear the broker ID
+    else if (name === 'role' && formData.role === 'Broker') {
+      setFormData((prev) => ({ ...prev, [name]: value, brokerId: '' }));
+    }
+    else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

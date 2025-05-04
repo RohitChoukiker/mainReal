@@ -1,6 +1,11 @@
-import type React from "react"
-import { Sidebar } from "@/components/layout/sidebar"
-import { ClipboardCheck, ClipboardList, FileCheck, CheckSquare, AlertCircle, CheckCircle, Settings } from "lucide-react"
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Sidebar } from "@/components/layout/sidebar";
+import { ClipboardCheck, ClipboardList, FileCheck, CheckSquare, AlertCircle, CheckCircle, Settings } from "lucide-react";
+import ApprovalStatus from "@/components/approval-status";
+import { toast } from "react-toastify";
 
 const sidebarItems = [
   {
@@ -38,13 +43,72 @@ const sidebarItems = [
     href: "/tc/settings",
     icon: <Settings className="h-5 w-5" />,
   },
-]
+];
 
 export default function TCLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
+  const [isLoading, setIsLoading] = useState(true);
+  const [isApproved, setIsApproved] = useState<boolean | undefined>(undefined);
+  const router = useRouter();
+
+  useEffect(() => {
+    // Check if user is logged in and approved
+    const checkAuth = async () => {
+      try {
+        const response = await fetch("/api/user/status");
+        
+        if (!response.ok) {
+          // Not authenticated, redirect to login
+          router.push("/login");
+          return;
+        }
+        
+        const data = await response.json();
+        
+        // Check if user is a TC
+        if (data.role !== "TransactionCoordinator") {
+          toast.error("Unauthorized: You must be a Transaction Coordinator to access this page");
+          router.push("/login");
+          return;
+        }
+        
+        setIsApproved(data.isApproved);
+        setIsLoading(false);
+      } catch (error) {
+        console.error("Authentication error:", error);
+        router.push("/login");
+      }
+    };
+    
+    checkAuth();
+  }, [router]);
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/logout", { method: "POST" });
+      router.push("/login");
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // If not approved, show approval status screen
+  if (!isApproved) {
+    return <ApprovalStatus isApproved={isApproved} onLogout={handleLogout} />;
+  }
+
+  // If approved, show the TC dashboard
   return (
     <div className="min-h-screen bg-background">
       <Sidebar items={sidebarItems} title="TC Panel" icon={<ClipboardCheck className="h-5 w-5" />} />
@@ -52,6 +116,6 @@ export default function TCLayout({
         <main className="p-4 md:p-6">{children}</main>
       </div>
     </div>
-  )
+  );
 }
 

@@ -5,73 +5,170 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { CheckCircle, XCircle, Eye } from "lucide-react"
+import { CheckCircle, XCircle, Eye, Loader2 } from "lucide-react"
+import { useEffect, useState } from "react"
+import { toast } from "react-toastify"
+import { format } from "date-fns"
+
+interface Agent {
+  id: string
+  name: string
+  email: string
+  phone: string
+  role: string
+  status: string
+  appliedDate?: string
+  approvedDate?: string
+}
 
 export default function AgentApprovals() {
-  // Sample data for demonstration
-  const pendingAgents = [
-    {
-      id: "1",
-      name: "Emily Davis",
-      email: "emily.davis@example.com",
-      phone: "(512) 555-1234",
-      licenseNumber: "TX-12345",
-      experience: "5 years",
-      status: "pending",
-      appliedDate: "Apr 10, 2025",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-    {
-      id: "2",
-      name: "David Wilson",
-      email: "david.wilson@example.com",
-      phone: "(214) 555-5678",
-      licenseNumber: "TX-67890",
-      experience: "3 years",
-      status: "pending",
-      appliedDate: "Apr 12, 2025",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-  ]
+  const [pendingAgents, setPendingAgents] = useState<Agent[]>([])
+  const [approvedAgents, setApprovedAgents] = useState<Agent[]>([])
+  const [loading, setLoading] = useState(true)
+  const [processingId, setProcessingId] = useState<string | null>(null)
 
-  const approvedAgents = [
-    {
-      id: "3",
-      name: "John Smith",
-      email: "john.smith@example.com",
-      phone: "(713) 555-9012",
-      licenseNumber: "TX-23456",
-      experience: "8 years",
-      status: "active",
-      approvedDate: "Mar 15, 2025",
-      transactions: 24,
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-    {
-      id: "4",
-      name: "Sarah Johnson",
-      email: "sarah.johnson@example.com",
-      phone: "(817) 555-3456",
-      licenseNumber: "TX-34567",
-      experience: "6 years",
-      status: "active",
-      approvedDate: "Feb 28, 2025",
-      transactions: 18,
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-    {
-      id: "5",
-      name: "Michael Brown",
-      email: "michael.brown@example.com",
-      phone: "(210) 555-7890",
-      licenseNumber: "TX-45678",
-      experience: "4 years",
-      status: "active",
-      approvedDate: "Mar 5, 2025",
-      transactions: 15,
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-  ]
+  // Fetch agents on component mount
+  useEffect(() => {
+    fetchAgents()
+  }, [])
+
+  const fetchAgents = async () => {
+    try {
+      setLoading(true)
+      
+      // First try to get the broker ID from localStorage
+      const userData = localStorage.getItem('user')
+      let brokerId = ''
+      
+      if (userData) {
+        try {
+          const parsedData = JSON.parse(userData)
+          brokerId = parsedData.brokerId
+          console.log('Found broker ID in localStorage:', brokerId)
+        } catch (e) {
+          console.error('Error parsing user data from localStorage:', e)
+        }
+      }
+      
+      // If we don't have a broker ID from localStorage, try to get all brokers
+      // and use the first one for testing purposes
+      if (!brokerId) {
+        console.log('No broker ID found in localStorage, fetching all brokers')
+        const brokersResponse = await fetch('/api/debug-broker')
+        if (brokersResponse.ok) {
+          const brokersData = await brokersResponse.json()
+          if (brokersData.brokers && brokersData.brokers.length > 0) {
+            brokerId = brokersData.brokers[0].brokerId
+            console.log('Using first broker ID from list:', brokerId)
+          }
+        }
+      }
+      
+      // If we have a broker ID, use the direct-agents endpoint
+      let response
+      if (brokerId) {
+        console.log('Using direct-agents endpoint with broker ID:', brokerId)
+        response = await fetch(`/api/direct-agents?brokerId=${brokerId}`)
+      } else {
+        // Fall back to the authenticated endpoint
+        console.log('No broker ID found, using authenticated endpoint')
+        response = await fetch('/api/agents/list')
+      }
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch agents')
+      }
+      
+      const data = await response.json()
+      console.log('Agents data:', data)
+      
+      // Ensure we have the correct data structure for pending agents
+      const formattedPendingAgents = (data.pendingAgents || []).map(agent => ({
+        id: agent.id,
+        name: agent.name,
+        email: agent.email,
+        phone: agent.phone || 'N/A',
+        role: agent.role,
+        status: 'pending',
+        appliedDate: agent.appliedDate
+      }))
+      
+      // Ensure we have the correct data structure for approved agents
+      const formattedApprovedAgents = (data.approvedAgents || []).map(agent => ({
+        id: agent.id,
+        name: agent.name,
+        email: agent.email,
+        phone: agent.phone || 'N/A',
+        role: agent.role,
+        status: 'active',
+        approvedDate: agent.approvedDate
+      }))
+      
+      setPendingAgents(formattedPendingAgents)
+      setApprovedAgents(formattedApprovedAgents)
+      
+      console.log('Pending agents:', formattedPendingAgents)
+      console.log('Approved agents:', formattedApprovedAgents)
+    } catch (error) {
+      console.error('Error fetching agents:', error)
+      toast.error('Failed to load agents. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleApproveReject = async (agentId: string, approved: boolean) => {
+    try {
+      setProcessingId(agentId)
+      console.log(`Attempting to ${approved ? 'approve' : 'reject'} agent with ID:`, agentId)
+      
+      // Use the direct approval endpoint which now supports both approve and reject
+      const response = await fetch('/api/direct-approve', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ agentId, approved }),
+      })
+      
+      const data = await response.json()
+      console.log('Response data:', data)
+      
+      if (!response.ok) {
+        console.error('Error response:', data)
+        throw new Error(data.message || 'Failed to update agent status')
+      }
+      
+      // Update the local state
+      if (approved) {
+        // Move agent from pending to approved
+        const agentToMove = pendingAgents.find(agent => agent.id === agentId)
+        if (agentToMove) {
+          setPendingAgents(pendingAgents.filter(agent => agent.id !== agentId))
+          setApprovedAgents([...approvedAgents, {
+            ...agentToMove,
+            status: 'active',
+            approvedDate: new Date().toISOString()
+          }])
+        }
+        toast.success('Agent approved successfully')
+      } else {
+        // Remove agent from pending list
+        setPendingAgents(pendingAgents.filter(agent => agent.id !== agentId))
+        toast.success('Agent rejected successfully')
+      }
+      
+      // Refresh the agent list to ensure we have the latest data
+      setTimeout(() => {
+        fetchAgents()
+      }, 1000)
+    } catch (error: any) {
+      console.error('Error updating agent status:', error)
+      toast.error(error.message || 'Failed to update agent status')
+    } finally {
+      setProcessingId(null)
+    }
+  }
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -86,6 +183,24 @@ export default function AgentApprovals() {
     }
   }
 
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'N/A'
+    try {
+      return format(new Date(dateString), 'MMM dd, yyyy')
+    } catch (error) {
+      return dateString
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2">Loading agents...</span>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold tracking-tight">Agent Approvals</h1>
@@ -96,58 +211,77 @@ export default function AgentApprovals() {
           <CardDescription>New agent registrations awaiting your approval</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Agent</TableHead>
-                  <TableHead className="hidden md:table-cell">License</TableHead>
-                  <TableHead className="hidden md:table-cell">Experience</TableHead>
-                  <TableHead className="hidden md:table-cell">Applied</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {pendingAgents.map((agent) => (
-                  <TableRow key={agent.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-9 w-9">
-                          <AvatarImage src={agent.avatar} alt={agent.name} />
-                          <AvatarFallback>{agent.name.substring(0, 2).toUpperCase()}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <div className="font-medium">{agent.name}</div>
-                          <div className="text-sm text-muted-foreground">{agent.email}</div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">{agent.licenseNumber}</TableCell>
-                    <TableCell className="hidden md:table-cell">{agent.experience}</TableCell>
-                    <TableCell className="hidden md:table-cell">{agent.appliedDate}</TableCell>
-                    <TableCell>{getStatusBadge(agent.status)}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button variant="outline" size="icon">
-                          <Eye className="h-4 w-4" />
-                          <span className="sr-only">View details</span>
-                        </Button>
-                        <Button variant="outline" size="icon" className="text-green-500">
-                          <CheckCircle className="h-4 w-4" />
-                          <span className="sr-only">Approve</span>
-                        </Button>
-                        <Button variant="outline" size="icon" className="text-red-500">
-                          <XCircle className="h-4 w-4" />
-                          <span className="sr-only">Reject</span>
-                        </Button>
-                      </div>
-                    </TableCell>
+          {pendingAgents.length === 0 ? (
+            <div className="p-6 text-center text-muted-foreground">
+              No pending agent approvals at this time.
+            </div>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Agent</TableHead>
+                    <TableHead className="hidden md:table-cell">Phone</TableHead>
+                    <TableHead className="hidden md:table-cell">Role</TableHead>
+                    <TableHead className="hidden md:table-cell">Applied</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {pendingAgents.map((agent) => (
+                    <TableRow key={agent.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-9 w-9">
+                            <AvatarFallback>{agent.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="font-medium">{agent.name}</div>
+                            <div className="text-sm text-muted-foreground">{agent.email}</div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">{agent.phone}</TableCell>
+                      <TableCell className="hidden md:table-cell">{agent.role}</TableCell>
+                      <TableCell className="hidden md:table-cell">{formatDate(agent.appliedDate)}</TableCell>
+                      <TableCell>{getStatusBadge(agent.status)}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          {processingId === agent.id ? (
+                            <Button variant="outline" size="icon" disabled>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            </Button>
+                          ) : (
+                            <>
+                              <Button 
+                                variant="outline" 
+                                size="icon" 
+                                className="text-green-500"
+                                onClick={() => handleApproveReject(agent.id, true)}
+                              >
+                                <CheckCircle className="h-4 w-4" />
+                                <span className="sr-only">Approve</span>
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="icon" 
+                                className="text-red-500"
+                                onClick={() => handleApproveReject(agent.id, false)}
+                              >
+                                <XCircle className="h-4 w-4" />
+                                <span className="sr-only">Reject</span>
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -157,43 +291,46 @@ export default function AgentApprovals() {
           <CardDescription>Currently active agents in your brokerage</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Agent</TableHead>
-                  <TableHead className="hidden md:table-cell">License</TableHead>
-                  <TableHead className="hidden md:table-cell">Experience</TableHead>
-                  <TableHead className="hidden md:table-cell">Approved</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Transactions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {approvedAgents.map((agent) => (
-                  <TableRow key={agent.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-9 w-9">
-                          <AvatarImage src={agent.avatar} alt={agent.name} />
-                          <AvatarFallback>{agent.name.substring(0, 2).toUpperCase()}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <div className="font-medium">{agent.name}</div>
-                          <div className="text-sm text-muted-foreground">{agent.email}</div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">{agent.licenseNumber}</TableCell>
-                    <TableCell className="hidden md:table-cell">{agent.experience}</TableCell>
-                    <TableCell className="hidden md:table-cell">{agent.approvedDate}</TableCell>
-                    <TableCell>{getStatusBadge(agent.status)}</TableCell>
-                    <TableCell className="text-right font-medium">{agent.transactions}</TableCell>
+          {approvedAgents.length === 0 ? (
+            <div className="p-6 text-center text-muted-foreground">
+              No approved agents in your brokerage yet.
+            </div>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Agent</TableHead>
+                    <TableHead className="hidden md:table-cell">Phone</TableHead>
+                    <TableHead className="hidden md:table-cell">Role</TableHead>
+                    <TableHead className="hidden md:table-cell">Approved</TableHead>
+                    <TableHead>Status</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {approvedAgents.map((agent) => (
+                    <TableRow key={agent.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-9 w-9">
+                            <AvatarFallback>{agent.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="font-medium">{agent.name}</div>
+                            <div className="text-sm text-muted-foreground">{agent.email}</div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">{agent.phone}</TableCell>
+                      <TableCell className="hidden md:table-cell">{agent.role}</TableCell>
+                      <TableCell className="hidden md:table-cell">{formatDate(agent.approvedDate)}</TableCell>
+                      <TableCell>{getStatusBadge(agent.status)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

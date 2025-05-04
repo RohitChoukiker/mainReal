@@ -32,7 +32,11 @@ export async function POST(req: NextRequest) {
     }
 
     const token = jwt.sign(
-      { id: user._id, role: user.role },
+      { 
+        id: user._id, 
+        role: user.role,
+        isApproved: user.isApproved 
+      },
       JWT_SECRET,
       { expiresIn: "7d" } // Token valid for 7 days
     );
@@ -44,6 +48,8 @@ export async function POST(req: NextRequest) {
         name: user.name,
         email: user.email,
         role: user.role,
+        isApproved: user.isApproved,
+        brokerId: user.brokerId, // Include the broker ID
         token: token,
       },
     });
