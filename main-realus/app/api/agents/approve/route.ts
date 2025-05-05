@@ -60,11 +60,6 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ message: 'Only brokers can approve agents' }, { status: 403 });
         }
         
-        console.log('Broker found:', {
-            id: broker._id.toString(),
-            name: broker.name,
-            role: broker.role
-        });
         
         // Find the agent by ID
         const agent = await User.findById(agentId);

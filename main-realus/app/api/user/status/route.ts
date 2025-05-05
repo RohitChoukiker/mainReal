@@ -31,10 +31,16 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ message: 'User not found' }, { status: 404 });
         }
         
-        // Return the user's approval status
+        // Normalize the role for frontend consistency
+        let normalizedRole = user.role;
+        if (user.role === "TransactionCoordinator") {
+            normalizedRole = "Tc";
+        }
+        
+        // Return the user's approval status with normalized role
         return NextResponse.json({ 
             isApproved: user.isApproved,
-            role: user.role
+            role: normalizedRole
         }, { status: 200 });
         
     } catch (error: any) {

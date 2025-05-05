@@ -70,7 +70,6 @@ export default function LoginModal({
           switch (data.user.role) {
             case "Agent":
               router.push("/agent/dashboard");
-
               break;
             case "Broker":
               router.push("/broker/dashboard");
@@ -79,6 +78,7 @@ export default function LoginModal({
               router.push("/tc/dashboard");
               break;
             default:
+              console.log("Unknown role:", data.user.role);
               router.push("/"); // Default route
           }
         }, 1000);

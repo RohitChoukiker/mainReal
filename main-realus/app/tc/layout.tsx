@@ -69,7 +69,7 @@ export default function TCLayout({
         const data = await response.json();
         
         // Check if user is a TC
-        if (data.role !== "TransactionCoordinator") {
+        if (data.role !== "Tc") {
           toast.error("Unauthorized: You must be a Transaction Coordinator to access this page");
           router.push("/login");
           return;
