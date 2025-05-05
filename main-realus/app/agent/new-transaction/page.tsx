@@ -9,12 +9,27 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { CheckCircle, AlertCircle } from "lucide-react"
+import { CheckCircle, AlertCircle, Loader2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { toast } from "sonner"
 
 export default function NewTransaction() {
   const [transactionId, setTransactionId] = useState<string>("")
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false)
+  const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [formData, setFormData] = useState({
+    clientName: "",
+    clientEmail: "",
+    clientPhone: "",
+    transactionType: "",
+    propertyAddress: "",
+    city: "",
+    state: "",
+    zipCode: "",
+    price: "",
+    closingDate: "",
+    notes: ""
+  })
 
   // AI suggested documents based on transaction type
   const suggestedDocuments = [
@@ -28,14 +43,66 @@ export default function NewTransaction() {
     { name: "Lead-Based Paint Disclosure", required: false },
   ]
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    // Generate a random transaction ID
-    const randomId = "TR-" + Math.floor(10000 + Math.random() * 90000)
-    setTransactionId(randomId)
-    setIsSubmitted(true)
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { id, value } = e.target
+    setFormData(prev => ({
+      ...prev,
+      [id.replace('client-', '')]: value
+    }))
+  }
 
-    // In a real app, you would submit the form data to your backend here
+  const handleSelectChange = (value: string, field: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
+
+    try {
+      // Prepare data for API
+      const apiData = {
+        clientName: formData.clientName,
+        clientEmail: formData.clientEmail,
+        clientPhone: formData.clientPhone,
+        transactionType: formData.transactionType,
+        propertyAddress: formData.propertyAddress,
+        city: formData.city,
+        state: formData.state,
+        zipCode: formData.zipCode,
+        price: parseFloat(formData.price),
+        closingDate: formData.closingDate,
+        notes: formData.notes
+      }
+
+      // Call API to create transaction
+      const response = await fetch('/api/agent/transactions/add-db', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(apiData),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to create transaction')
+      }
+
+      // Set transaction ID from response
+      setTransactionId(data.transaction.transactionId)
+      setIsSubmitted(true)
+      toast.success('Transaction created successfully!')
+    } catch (error) {
+      console.error('Error creating transaction:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to create transaction')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -61,7 +128,7 @@ export default function NewTransaction() {
                 <a href="/agent/upload-documents">Upload Documents</a>
               </Button>
               <Button variant="outline" asChild>
-                <a href="/agent/transactions">View My Transactions</a>
+                <a href="/agent/view-transactions">View My Transactions</a>
               </Button>
             </div>
           </CardContent>
@@ -77,40 +144,59 @@ export default function NewTransaction() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="transaction-type">Transaction Type</Label>
-                  <Select required>
+                  <Select 
+                    required
+                    onValueChange={(value) => handleSelectChange(value, 'transactionType')}
+                    value={formData.transactionType}
+                  >
                     <SelectTrigger id="transaction-type">
                       <SelectValue placeholder="Select type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="purchase">Purchase</SelectItem>
-                      <SelectItem value="sale">Sale</SelectItem>
-                      <SelectItem value="lease">Lease</SelectItem>
-                      <SelectItem value="refinance">Refinance</SelectItem>
+                      <SelectItem value="Purchase">Purchase</SelectItem>
+                      <SelectItem value="Sale">Sale</SelectItem>
+                      <SelectItem value="Lease">Lease</SelectItem>
+                      <SelectItem value="Refinance">Refinance</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="property-address">Property Address</Label>
-                  <Input id="property-address" placeholder="Enter full property address" required />
+                  <Label htmlFor="propertyAddress">Property Address</Label>
+                  <Input 
+                    id="propertyAddress" 
+                    placeholder="Enter full property address" 
+                    required 
+                    value={formData.propertyAddress}
+                    onChange={handleChange}
+                  />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="city">City</Label>
-                    <Input id="city" required />
+                    <Input 
+                      id="city" 
+                      required 
+                      value={formData.city}
+                      onChange={handleChange}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="state">State</Label>
-                    <Select required>
+                    <Select 
+                      required
+                      onValueChange={(value) => handleSelectChange(value, 'state')}
+                      value={formData.state}
+                    >
                       <SelectTrigger id="state">
                         <SelectValue placeholder="State" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="tx">Texas</SelectItem>
-                        <SelectItem value="ca">California</SelectItem>
-                        <SelectItem value="ny">New York</SelectItem>
-                        <SelectItem value="fl">Florida</SelectItem>
+                        <SelectItem value="TX">Texas</SelectItem>
+                        <SelectItem value="CA">California</SelectItem>
+                        <SelectItem value="NY">New York</SelectItem>
+                        <SelectItem value="FL">Florida</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -118,18 +204,36 @@ export default function NewTransaction() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="zip">ZIP Code</Label>
-                    <Input id="zip" required />
+                    <Label htmlFor="zipCode">ZIP Code</Label>
+                    <Input 
+                      id="zipCode" 
+                      required 
+                      value={formData.zipCode}
+                      onChange={handleChange}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="price">Price</Label>
-                    <Input id="price" type="number" placeholder="$" required />
+                    <Input 
+                      id="price" 
+                      type="number" 
+                      placeholder="$" 
+                      required 
+                      value={formData.price}
+                      onChange={handleChange}
+                    />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="closing-date">Estimated Closing Date</Label>
-                  <Input id="closing-date" type="date" required />
+                  <Label htmlFor="closingDate">Estimated Closing Date</Label>
+                  <Input 
+                    id="closingDate" 
+                    type="date" 
+                    required 
+                    value={formData.closingDate}
+                    onChange={handleChange}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -143,23 +247,45 @@ export default function NewTransaction() {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="client-name">Client Name</Label>
-                    <Input id="client-name" required />
+                    <Input 
+                      id="client-name" 
+                      required 
+                      value={formData.clientName}
+                      onChange={(e) => setFormData(prev => ({ ...prev, clientName: e.target.value }))}
+                    />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="client-email">Email</Label>
-                      <Input id="client-email" type="email" required />
+                      <Input 
+                        id="client-email" 
+                        type="email" 
+                        required 
+                        value={formData.clientEmail}
+                        onChange={(e) => setFormData(prev => ({ ...prev, clientEmail: e.target.value }))}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="client-phone">Phone</Label>
-                      <Input id="client-phone" type="tel" required />
+                      <Input 
+                        id="client-phone" 
+                        type="tel" 
+                        required 
+                        value={formData.clientPhone}
+                        onChange={(e) => setFormData(prev => ({ ...prev, clientPhone: e.target.value }))}
+                      />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="client-notes">Additional Notes</Label>
-                    <Textarea id="client-notes" placeholder="Any special requirements or notes about the client" />
+                    <Label htmlFor="notes">Additional Notes</Label>
+                    <Textarea 
+                      id="notes" 
+                      placeholder="Any special requirements or notes about the client" 
+                      value={formData.notes}
+                      onChange={handleChange}
+                    />
                   </div>
                 </CardContent>
               </Card>
@@ -197,10 +323,19 @@ export default function NewTransaction() {
           </div>
 
           <div className="mt-6 flex justify-end gap-4">
-            <Button variant="outline" type="button">
+            <Button variant="outline" type="button" disabled={isLoading}>
               Cancel
             </Button>
-            <Button type="submit">Create Transaction</Button>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                'Create Transaction'
+              )}
+            </Button>
           </div>
         </form>
       )}

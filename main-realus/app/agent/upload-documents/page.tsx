@@ -2,14 +2,16 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Upload, FileText, CheckCircle, AlertTriangle, X, Clock, RefreshCw } from "lucide-react"
+import { Upload, FileText, CheckCircle, AlertTriangle, X, Clock, RefreshCw, Loader2, AlertCircle } from "lucide-react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 interface Document {
   id: string
@@ -24,60 +26,91 @@ interface Document {
   fileSize?: string
 }
 
-export default function UploadDocuments() {
-  const [selectedTransaction, setSelectedTransaction] = useState<string>("")
-  const [documents, setDocuments] = useState<Document[]>([
-    {
-      id: "doc-1",
-      name: "Purchase Agreement",
-      transactionId: "TR-7829",
-      property: "123 Main St, Austin, TX",
-      uploadDate: "Apr 12, 2025",
-      status: "verified",
-      aiVerified: true,
-      aiScore: 95,
-      fileSize: "2.4 MB",
-    },
-    {
-      id: "doc-2",
-      name: "Property Disclosure",
-      transactionId: "TR-7829",
-      property: "123 Main St, Austin, TX",
-      uploadDate: "Apr 12, 2025",
-      status: "verifying",
-      aiVerified: false,
-      fileSize: "1.8 MB",
-    },
-    {
-      id: "doc-3",
-      name: "Inspection Report",
-      transactionId: "TR-7829",
-      property: "123 Main St, Austin, TX",
-      uploadDate: "Apr 11, 2025",
-      status: "rejected",
-      aiVerified: false,
-      aiScore: 45,
-      issues: ["Missing signature on page 3", "Incomplete section on property condition"],
-      fileSize: "3.2 MB",
-    },
-    {
-      id: "doc-4",
-      name: "Title Report",
-      transactionId: "TR-6543",
-      property: "456 Oak Ave, Dallas, TX",
-      uploadDate: "Apr 10, 2025",
-      status: "pending",
-      aiVerified: false,
-      fileSize: "1.5 MB",
-    },
-  ])
+interface Transaction {
+  _id: string
+  transactionId: string
+  clientName: string
+  propertyAddress: string
+  city: string
+  state: string
+  zipCode: string
+}
 
-  // Sample transactions for the dropdown
-  const transactions = [
-    { id: "TR-7829", property: "123 Main St, Austin, TX" },
-    { id: "TR-6543", property: "456 Oak Ave, Dallas, TX" },
-    { id: "TR-9021", property: "789 Pine Rd, Houston, TX" },
-  ]
+export default function UploadDocuments() {
+  const searchParams = useSearchParams()
+  const transactionIdParam = searchParams.get("transactionId")
+  
+  const [selectedTransaction, setSelectedTransaction] = useState<string>(transactionIdParam || "")
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [fileName, setFileName] = useState("")
+  const [documentType, setDocumentType] = useState("")
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadSuccess, setUploadSuccess] = useState(false)
+  
+  const [documents, setDocuments] = useState<Document[]>([])
+  
+  // Fetch transactions from API
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      try {
+        setIsLoading(true)
+        const response = await fetch('/api/agent/transactions/list')
+        const data = await response.json()
+        
+        if (!response.ok) {
+          throw new Error(data.message || 'Failed to fetch transactions')
+        }
+        
+        setTransactions(data.transactions || [])
+      } catch (error) {
+        console.error('Error fetching transactions:', error)
+        setError(error instanceof Error ? error.message : 'Failed to fetch transactions')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    
+    fetchTransactions()
+  }, [])
+  
+  // Fetch documents from API
+  useEffect(() => {
+    const fetchDocuments = async () => {
+      try {
+        const url = selectedTransaction 
+          ? `/api/agent/documents/list?transactionId=${selectedTransaction}`
+          : '/api/agent/documents/list'
+          
+        const response = await fetch(url)
+        const data = await response.json()
+        
+        if (!response.ok) {
+          throw new Error(data.message || 'Failed to fetch documents')
+        }
+        
+        // Add property field to each document
+        const docsWithProperty = data.documents.map((doc: any) => {
+          const transaction = transactions.find(t => t.transactionId === doc.transactionId)
+          return {
+            ...doc,
+            property: transaction ? `${transaction.propertyAddress}, ${transaction.city}` : 'Unknown property'
+          }
+        })
+        
+        setDocuments(docsWithProperty || [])
+      } catch (error) {
+        console.error('Error fetching documents:', error)
+        // Don't show error for documents, just log it
+      }
+    }
+    
+    if (!isLoading && transactions.length > 0) {
+      fetchDocuments()
+    }
+  }, [isLoading, transactions, selectedTransaction])
 
   // Required documents based on transaction type
   const requiredDocuments = [
@@ -135,13 +168,163 @@ export default function UploadDocuments() {
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
-    // In a real app, you would handle file uploads here
-    console.log("File dropped")
+    const files = e.dataTransfer.files
+    if (files && files.length > 0) {
+      const file = files[0]
+      
+      // Check file size (limit to 10MB)
+      const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
+      if (file.size > MAX_FILE_SIZE) {
+        setError("File size exceeds the 10MB limit")
+        return
+      }
+      
+      // Check file type
+      const allowedTypes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'image/jpeg',
+        'image/png'
+      ]
+      
+      if (!allowedTypes.includes(file.type)) {
+        setError("File type not supported. Please upload PDF, DOCX, JPG, or PNG files.")
+        return
+      }
+      
+      setSelectedFile(file)
+      setFileName(file.name)
+      setError(null) // Clear any previous errors
+    }
+  }
+  
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (files && files.length > 0) {
+      const file = files[0]
+      
+      // Check file size (limit to 10MB)
+      const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
+      if (file.size > MAX_FILE_SIZE) {
+        setError("File size exceeds the 10MB limit")
+        return
+      }
+      
+      // Check file type
+      const allowedTypes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'image/jpeg',
+        'image/png'
+      ]
+      
+      if (!allowedTypes.includes(file.type)) {
+        setError("File type not supported. Please upload PDF, DOCX, JPG, or PNG files.")
+        return
+      }
+      
+      setSelectedFile(file)
+      setFileName(file.name)
+      setError(null) // Clear any previous errors
+    }
+  }
+  
+  const handleUpload = async () => {
+    if (!selectedFile) {
+      setError("Please select a file to upload")
+      return
+    }
+    
+    if (!documentType) {
+      setError("Please select a document type")
+      return
+    }
+    
+    if (!selectedTransaction) {
+      setError("Please select a transaction")
+      return
+    }
+    
+    try {
+      setIsUploading(true)
+      setError(null)
+      
+      // Create form data for the file upload
+      const formData = new FormData()
+      formData.append("file", selectedFile)
+      formData.append("documentType", documentType)
+      formData.append("transactionId", selectedTransaction)
+      
+      // Upload the file to the server
+      console.log("Uploading file:", selectedFile.name);
+      console.log("Transaction ID:", selectedTransaction);
+      console.log("Document Type:", documentType);
+      
+      const response = await fetch("/api/agent/documents/upload", {
+        method: "POST",
+        body: formData,
+      })
+      
+      const data = await response.json()
+      
+      if (!response.ok) {
+        console.error("Upload error response:", data);
+        throw new Error(data.message || data.error || "Failed to upload document")
+      }
+      
+      console.log("Upload successful:", data);
+      
+      // Add the new document to the list with property information
+      const transaction = transactions.find(t => t.transactionId === selectedTransaction)
+      const property = transaction ? `${transaction.propertyAddress}, ${transaction.city}` : "Unknown property"
+      
+      const newDocument: Document = {
+        ...data.document,
+        property,
+      }
+      
+      setDocuments([newDocument, ...documents])
+      
+      // Reset form
+      setSelectedFile(null)
+      setFileName("")
+      setDocumentType("")
+      setUploadSuccess(true)
+      
+      // Hide success message after 3 seconds
+      setTimeout(() => {
+        setUploadSuccess(false)
+      }, 3000)
+      
+    } catch (error) {
+      console.error("Error uploading document:", error)
+      setError(error instanceof Error ? error.message : "Failed to upload document")
+    } finally {
+      setIsUploading(false)
+    }
   }
 
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold tracking-tight">Upload Documents</h1>
+      
+      {error && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      
+      {uploadSuccess && (
+        <Alert className="mb-6 bg-green-50 border-green-200">
+          <CheckCircle className="h-4 w-4 text-green-600" />
+          <AlertTitle className="text-green-600">Success</AlertTitle>
+          <AlertDescription>Document uploaded successfully!</AlertDescription>
+        </Alert>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2 space-y-6">
@@ -151,23 +334,30 @@ export default function UploadDocuments() {
               <CardDescription>Choose a transaction to upload documents for</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="transaction">Transaction</Label>
-                  <Select value={selectedTransaction} onValueChange={setSelectedTransaction}>
-                    <SelectTrigger id="transaction">
-                      <SelectValue placeholder="Select a transaction" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {transactions.map((transaction) => (
-                        <SelectItem key={transaction.id} value={transaction.id}>
-                          {transaction.id} - {transaction.property}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              {isLoading ? (
+                <div className="flex justify-center items-center py-4">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
+                  <span>Loading transactions...</span>
                 </div>
-              </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="transaction">Transaction</Label>
+                    <Select value={selectedTransaction} onValueChange={setSelectedTransaction}>
+                      <SelectTrigger id="transaction">
+                        <SelectValue placeholder="Select a transaction" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {transactions.map((transaction) => (
+                          <SelectItem key={transaction._id} value={transaction.transactionId}>
+                            {transaction.transactionId} - {transaction.propertyAddress}, {transaction.city}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -185,16 +375,24 @@ export default function UploadDocuments() {
               >
                 <div className="flex flex-col items-center">
                   <Upload className="h-10 w-10 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-medium mb-1">Drag files here or click to browse</h3>
+                  <h3 className="text-lg font-medium mb-1">
+                    {fileName ? `Selected: ${fileName}` : "Drag files here or click to browse"}
+                  </h3>
                   <p className="text-sm text-muted-foreground mb-4">Support for PDF, DOCX, JPG, PNG (max 10MB)</p>
                   <Button>Select File</Button>
-                  <input id="file-upload" type="file" className="hidden" />
+                  <input 
+                    id="file-upload" 
+                    type="file" 
+                    className="hidden" 
+                    onChange={handleFileChange}
+                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                  />
                 </div>
               </div>
 
               <div className="mt-4">
                 <div className="text-sm font-medium mb-2">Document Type</div>
-                <Select>
+                <Select value={documentType} onValueChange={setDocumentType}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select document type" />
                   </SelectTrigger>
@@ -207,13 +405,37 @@ export default function UploadDocuments() {
                   </SelectContent>
                 </Select>
               </div>
+              
+              <div className="mt-6">
+                <Button 
+                  className="w-full" 
+                  onClick={handleUpload}
+                  disabled={isUploading || !selectedFile || !documentType || !selectedTransaction}
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="mr-2 h-4 w-4" />
+                      Upload Document
+                    </>
+                  )}
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
               <CardTitle>Uploaded Documents</CardTitle>
-              <CardDescription>Documents you have uploaded for your transactions</CardDescription>
+              <CardDescription>
+                {selectedTransaction 
+                  ? `Documents for transaction ${selectedTransaction}` 
+                  : "Documents you have uploaded for your transactions"}
+              </CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               <div className="rounded-md border">
@@ -229,34 +451,60 @@ export default function UploadDocuments() {
                   </TableHeader>
                   <TableBody>
                     {documents.length > 0 ? (
-                      documents.map((doc) => (
-                        <TableRow key={doc.id}>
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <FileText className="h-5 w-5 text-muted-foreground" />
-                              <div>
-                                <div className="font-medium">{doc.name}</div>
-                                <div className="text-xs text-muted-foreground hidden md:block">{doc.property}</div>
+                      documents
+                        .filter(doc => !selectedTransaction || doc.transactionId === selectedTransaction)
+                        .map((doc) => (
+                          <TableRow key={doc.id}>
+                            <TableCell>
+                              <div className="flex items-center gap-3">
+                                <FileText className="h-5 w-5 text-muted-foreground" />
+                                <div>
+                                  <div className="font-medium">
+                                    {doc.fileUrl ? (
+                                      <a 
+                                        href={doc.fileUrl} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="hover:underline text-blue-600 dark:text-blue-400"
+                                      >
+                                        {doc.name}
+                                      </a>
+                                    ) : (
+                                      doc.name
+                                    )}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground hidden md:block">
+                                    {doc.property}
+                                    {doc.fileName && <span className="ml-1">({doc.fileName})</span>}
+                                  </div>
+                                </div>
                               </div>
-                            </div>
-                          </TableCell>
-                          <TableCell className="hidden md:table-cell">{doc.transactionId}</TableCell>
-                          <TableCell className="hidden md:table-cell">{doc.uploadDate}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              {getStatusBadge(doc.status)}
-                              {doc.issues && doc.issues.length > 0 && (
-                                <AlertTriangle className="h-4 w-4 text-amber-500" />
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right">{doc.fileSize}</TableCell>
-                        </TableRow>
-                      ))
+                            </TableCell>
+                            <TableCell className="hidden md:table-cell">{doc.transactionId}</TableCell>
+                            <TableCell className="hidden md:table-cell">{doc.uploadDate}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                {getStatusBadge(doc.status)}
+                                {doc.issues && doc.issues.length > 0 && (
+                                  <AlertTriangle className="h-4 w-4 text-amber-500" />
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right">{doc.fileSize}</TableCell>
+                          </TableRow>
+                        ))
                     ) : (
                       <TableRow>
                         <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
                           No documents uploaded yet
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    {documents.length > 0 && 
+                     documents.filter(doc => !selectedTransaction || doc.transactionId === selectedTransaction).length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
+                          No documents for this transaction
                         </TableCell>
                       </TableRow>
                     )}
@@ -319,23 +567,33 @@ export default function UploadDocuments() {
           <Card>
             <CardHeader>
               <CardTitle>Required Documents</CardTitle>
-              <CardDescription>Documents needed for transaction completion</CardDescription>
+              <CardDescription>
+                {selectedTransaction 
+                  ? `Documents needed for transaction ${selectedTransaction}` 
+                  : "Documents needed for transaction completion"}
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                {requiredDocuments.map((doc, index) => {
-                  const uploaded = documents.find((d) => d.name === doc)
-                  return (
-                    <div key={index} className="flex items-center justify-between p-2 rounded-md border">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-muted-foreground" />
-                        <span>{doc}</span>
+              {!selectedTransaction ? (
+                <div className="text-center py-4 text-muted-foreground">
+                  Please select a transaction to see required documents
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {requiredDocuments.map((doc, index) => {
+                    const uploaded = documents.find((d) => d.name === doc && d.transactionId === selectedTransaction)
+                    return (
+                      <div key={index} className="flex items-center justify-between p-2 rounded-md border">
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-4 w-4 text-muted-foreground" />
+                          <span>{doc}</span>
+                        </div>
+                        {uploaded ? getStatusBadge(uploaded.status) : <Badge variant="outline">Not Uploaded</Badge>}
                       </div>
-                      {uploaded ? getStatusBadge(uploaded.status) : <Badge variant="outline">Not Uploaded</Badge>}
-                    </div>
-                  )
-                })}
-              </div>
+                    )
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
