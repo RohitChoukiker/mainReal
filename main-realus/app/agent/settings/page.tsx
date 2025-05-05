@@ -1,20 +1,8 @@
 "use client"
 
 import { Badge } from "@/components/ui/badge"
-
-import { TableCell } from "@/components/ui/table"
-
-import { TableBody } from "@/components/ui/table"
-
-import { TableHead } from "@/components/ui/table"
-
-import { TableRow } from "@/components/ui/table"
-
-import { TableHeader } from "@/components/ui/table"
-
-import { Table } from "@/components/ui/table"
-
-import { useState } from "react"
+import { TableCell, TableBody, TableHead, TableRow, TableHeader, Table } from "@/components/ui/table"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -23,12 +11,307 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { User, Bell, Shield, Upload } from "lucide-react"
+import { User, Bell, Shield, Upload, Loader2 } from "lucide-react"
+import { toast } from "sonner"
 
 export default function AgentSettings() {
+  // Profile state
+  const [profileData, setProfileData] = useState({
+    name: '',
+    email: '',
+    mobile: '',
+    companyName: '',
+    teamName: '',
+    address: '',
+    companyPhone: '',
+    city: '',
+    state: '',
+    pinCode: '',
+    timeZone: ''
+  })
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true)
+  const [isSavingProfile, setIsSavingProfile] = useState(false)
+
+  // Notification state
   const [notificationsEnabled, setNotificationsEnabled] = useState(true)
   const [emailNotifications, setEmailNotifications] = useState(true)
   const [smsNotifications, setSmsNotifications] = useState(false)
+  const [notificationTypes, setNotificationTypes] = useState({
+    newTaskAssignments: true,
+    documentVerification: true,
+    transactionStatusChanges: true,
+    complaintResponses: true,
+    closingDateReminders: true
+  })
+  const [isLoadingNotifications, setIsLoadingNotifications] = useState(true)
+  const [isSavingNotifications, setIsSavingNotifications] = useState(false)
+
+  // Security state
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false)
+  const [recoveryCodes, setRecoveryCodes] = useState<string[]>([])
+  const [loginHistory, setLoginHistory] = useState<any[]>([])
+  const [isLoadingSecurity, setIsLoadingSecurity] = useState(true)
+  const [isSavingPassword, setIsSavingPassword] = useState(false)
+  const [isSavingSecurity, setIsSavingSecurity] = useState(false)
+
+  // Fetch profile data
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      try {
+        setIsLoadingProfile(true)
+        const response = await fetch('/api/agent/settings/profile')
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch profile data')
+        }
+        
+        const data = await response.json()
+        
+        if (data.success && data.data) {
+          setProfileData({
+            name: data.data.name || '',
+            email: data.data.email || '',
+            mobile: data.data.mobile || '',
+            companyName: data.data.companyName || '',
+            teamName: data.data.teamName || '',
+            address: data.data.address || '',
+            companyPhone: data.data.companyPhone || '',
+            city: data.data.city || '',
+            state: data.data.state || '',
+            pinCode: data.data.pinCode || '',
+            timeZone: data.data.timeZone || ''
+          })
+        }
+      } catch (error) {
+        console.error('Error fetching profile data:', error)
+        toast.error('Failed to load profile data')
+      } finally {
+        setIsLoadingProfile(false)
+      }
+    }
+    
+    fetchProfileData()
+  }, [])
+
+  // Fetch notification preferences
+  useEffect(() => {
+    const fetchNotificationPreferences = async () => {
+      try {
+        setIsLoadingNotifications(true)
+        const response = await fetch('/api/agent/settings/notifications')
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch notification preferences')
+        }
+        
+        const data = await response.json()
+        
+        if (data.success && data.data) {
+          setNotificationsEnabled(data.data.enableNotifications)
+          setEmailNotifications(data.data.emailNotifications)
+          setSmsNotifications(data.data.smsNotifications)
+          
+          if (data.data.notificationTypes) {
+            setNotificationTypes({
+              newTaskAssignments: data.data.notificationTypes.newTaskAssignments,
+              documentVerification: data.data.notificationTypes.documentVerification,
+              transactionStatusChanges: data.data.notificationTypes.transactionStatusChanges,
+              complaintResponses: data.data.notificationTypes.complaintResponses,
+              closingDateReminders: data.data.notificationTypes.closingDateReminders
+            })
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching notification preferences:', error)
+        toast.error('Failed to load notification preferences')
+      } finally {
+        setIsLoadingNotifications(false)
+      }
+    }
+    
+    fetchNotificationPreferences()
+  }, [])
+
+  // Fetch security settings
+  useEffect(() => {
+    const fetchSecuritySettings = async () => {
+      try {
+        setIsLoadingSecurity(true)
+        const response = await fetch('/api/agent/settings/security')
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch security settings')
+        }
+        
+        const data = await response.json()
+        
+        if (data.success && data.data) {
+          setTwoFactorEnabled(data.data.twoFactorEnabled)
+          setLoginHistory(data.data.loginHistory || [])
+        }
+      } catch (error) {
+        console.error('Error fetching security settings:', error)
+        toast.error('Failed to load security settings')
+      } finally {
+        setIsLoadingSecurity(false)
+      }
+    }
+    
+    fetchSecuritySettings()
+  }, [])
+
+  // Handle profile update
+  const handleProfileUpdate = async () => {
+    try {
+      setIsSavingProfile(true)
+      const response = await fetch('/api/agent/settings/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(profileData)
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to update profile')
+      }
+      
+      const data = await response.json()
+      
+      if (data.success) {
+        toast.success('Profile updated successfully')
+      } else {
+        throw new Error(data.message || 'Failed to update profile')
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error)
+      toast.error('Failed to update profile')
+    } finally {
+      setIsSavingProfile(false)
+    }
+  }
+
+  // Handle notification preferences update
+  const handleNotificationUpdate = async () => {
+    try {
+      setIsSavingNotifications(true)
+      const response = await fetch('/api/agent/settings/notifications', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          enableNotifications: notificationsEnabled,
+          emailNotifications: emailNotifications,
+          smsNotifications: smsNotifications,
+          notificationTypes: notificationTypes
+        })
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to update notification preferences')
+      }
+      
+      const data = await response.json()
+      
+      if (data.success) {
+        toast.success('Notification preferences updated successfully')
+      } else {
+        throw new Error(data.message || 'Failed to update notification preferences')
+      }
+    } catch (error) {
+      console.error('Error updating notification preferences:', error)
+      toast.error('Failed to update notification preferences')
+    } finally {
+      setIsSavingNotifications(false)
+    }
+  }
+
+  // Handle password update
+  const handlePasswordUpdate = async () => {
+    try {
+      if (newPassword !== confirmPassword) {
+        toast.error('New passwords do not match')
+        return
+      }
+      
+      setIsSavingPassword(true)
+      const response = await fetch('/api/agent/settings/security', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          currentPassword,
+          newPassword
+        })
+      })
+      
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.message || 'Failed to update password')
+      }
+      
+      const data = await response.json()
+      
+      if (data.success) {
+        toast.success('Password updated successfully')
+        setCurrentPassword('')
+        setNewPassword('')
+        setConfirmPassword('')
+      } else {
+        throw new Error(data.message || 'Failed to update password')
+      }
+    } catch (error: any) {
+      console.error('Error updating password:', error)
+      toast.error(error.message || 'Failed to update password')
+    } finally {
+      setIsSavingPassword(false)
+    }
+  }
+
+  // Handle 2FA toggle
+  const handleTwoFactorToggle = async (enabled: boolean) => {
+    try {
+      setIsSavingSecurity(true)
+      const response = await fetch('/api/agent/settings/security', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          twoFactorEnabled: enabled,
+          generateRecoveryCodes: enabled
+        })
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to update security settings')
+      }
+      
+      const data = await response.json()
+      
+      if (data.success) {
+        setTwoFactorEnabled(enabled)
+        
+        if (data.data && data.data.recoveryCodes) {
+          setRecoveryCodes(data.data.recoveryCodes)
+        }
+        
+        toast.success('Security settings updated successfully')
+      } else {
+        throw new Error(data.message || 'Failed to update security settings')
+      }
+    } catch (error) {
+      console.error('Error updating security settings:', error)
+      toast.error('Failed to update security settings')
+    } finally {
+      setIsSavingSecurity(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -72,35 +355,76 @@ export default function AgentSettings() {
                 <div className="flex-1 space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="first-name">First Name</Label>
-                      <Input id="first-name" defaultValue="John" />
+                      <Label htmlFor="name">Full Name</Label>
+                      <Input 
+                        id="name" 
+                        value={profileData.name} 
+                        onChange={(e) => setProfileData({...profileData, name: e.target.value})}
+                        disabled={isLoadingProfile}
+                      />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="last-name">Last Name</Label>
-                      <Input id="last-name" defaultValue="Smith" />
+                      <Label htmlFor="mobile">Phone</Label>
+                      <Input 
+                        id="mobile" 
+                        value={profileData.mobile} 
+                        onChange={(e) => setProfileData({...profileData, mobile: e.target.value})}
+                        disabled={isLoadingProfile}
+                      />
                     </div>
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" defaultValue="john.smith@example.com" />
+                    <Input 
+                      id="email" 
+                      type="email" 
+                      value={profileData.email} 
+                      disabled={true} // Email should not be editable
+                    />
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="phone">Phone</Label>
-                      <Input id="phone" defaultValue="(555) 123-4567" />
+                      <Label htmlFor="companyName">Company Name</Label>
+                      <Input 
+                        id="companyName" 
+                        value={profileData.companyName} 
+                        onChange={(e) => setProfileData({...profileData, companyName: e.target.value})}
+                        disabled={isLoadingProfile}
+                      />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="license">Agent License #</Label>
-                      <Input id="license" defaultValue="TX-98765432" />
+                      <Label htmlFor="teamName">Team Name</Label>
+                      <Input 
+                        id="teamName" 
+                        value={profileData.teamName} 
+                        onChange={(e) => setProfileData({...profileData, teamName: e.target.value})}
+                        disabled={isLoadingProfile}
+                      />
                     </div>
                   </div>
                 </div>
               </div>
             </CardContent>
             <CardFooter className="flex justify-end">
-              <Button>Save Changes</Button>
+              {isLoadingProfile ? (
+                <Button disabled>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Loading...
+                </Button>
+              ) : (
+                <Button onClick={handleProfileUpdate} disabled={isSavingProfile}>
+                  {isSavingProfile ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    'Save Changes'
+                  )}
+                </Button>
+              )}
             </CardFooter>
           </Card>
 
@@ -168,68 +492,112 @@ export default function AgentSettings() {
               <CardDescription>Configure how you receive notifications</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="notifications">Enable Notifications</Label>
-                  <p className="text-sm text-muted-foreground">Receive notifications about important updates</p>
+              {isLoadingNotifications ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
-                <Switch id="notifications" checked={notificationsEnabled} onCheckedChange={setNotificationsEnabled} />
-              </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="notifications">Enable Notifications</Label>
+                      <p className="text-sm text-muted-foreground">Receive notifications about important updates</p>
+                    </div>
+                    <Switch 
+                      id="notifications" 
+                      checked={notificationsEnabled} 
+                      onCheckedChange={setNotificationsEnabled} 
+                    />
+                  </div>
 
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="email-notifications">Email Notifications</Label>
-                  <p className="text-sm text-muted-foreground">Receive notifications via email</p>
-                </div>
-                <Switch
-                  id="email-notifications"
-                  checked={emailNotifications}
-                  onCheckedChange={setEmailNotifications}
-                  disabled={!notificationsEnabled}
-                />
-              </div>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="email-notifications">Email Notifications</Label>
+                      <p className="text-sm text-muted-foreground">Receive notifications via email</p>
+                    </div>
+                    <Switch
+                      id="email-notifications"
+                      checked={emailNotifications}
+                      onCheckedChange={setEmailNotifications}
+                      disabled={!notificationsEnabled}
+                    />
+                  </div>
 
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="sms-notifications">SMS Notifications</Label>
-                  <p className="text-sm text-muted-foreground">Receive notifications via text message</p>
-                </div>
-                <Switch
-                  id="sms-notifications"
-                  checked={smsNotifications}
-                  onCheckedChange={setSmsNotifications}
-                  disabled={!notificationsEnabled}
-                />
-              </div>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="sms-notifications">SMS Notifications</Label>
+                      <p className="text-sm text-muted-foreground">Receive notifications via text message</p>
+                    </div>
+                    <Switch
+                      id="sms-notifications"
+                      checked={smsNotifications}
+                      onCheckedChange={setSmsNotifications}
+                      disabled={!notificationsEnabled}
+                    />
+                  </div>
 
-              <div className="space-y-2">
-                <Label>Notification Types</Label>
-                <div className="space-y-2 p-4 border rounded-md">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">New task assignments</span>
-                    <Switch defaultChecked />
+                  <div className="space-y-2">
+                    <Label>Notification Types</Label>
+                    <div className="space-y-2 p-4 border rounded-md">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">New task assignments</span>
+                        <Switch 
+                          checked={notificationTypes.newTaskAssignments} 
+                          onCheckedChange={(checked) => setNotificationTypes({...notificationTypes, newTaskAssignments: checked})}
+                          disabled={!notificationsEnabled}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Document verification status</span>
+                        <Switch 
+                          checked={notificationTypes.documentVerification} 
+                          onCheckedChange={(checked) => setNotificationTypes({...notificationTypes, documentVerification: checked})}
+                          disabled={!notificationsEnabled}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Transaction status changes</span>
+                        <Switch 
+                          checked={notificationTypes.transactionStatusChanges} 
+                          onCheckedChange={(checked) => setNotificationTypes({...notificationTypes, transactionStatusChanges: checked})}
+                          disabled={!notificationsEnabled}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Complaint responses</span>
+                        <Switch 
+                          checked={notificationTypes.complaintResponses} 
+                          onCheckedChange={(checked) => setNotificationTypes({...notificationTypes, complaintResponses: checked})}
+                          disabled={!notificationsEnabled}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Closing date reminders</span>
+                        <Switch 
+                          checked={notificationTypes.closingDateReminders} 
+                          onCheckedChange={(checked) => setNotificationTypes({...notificationTypes, closingDateReminders: checked})}
+                          disabled={!notificationsEnabled}
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Document verification status</span>
-                    <Switch defaultChecked />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Transaction status changes</span>
-                    <Switch defaultChecked />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Complaint responses</span>
-                    <Switch defaultChecked />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Closing date reminders</span>
-                    <Switch defaultChecked />
-                  </div>
-                </div>
-              </div>
+                </>
+              )}
             </CardContent>
             <CardFooter className="flex justify-end">
-              <Button>Save Preferences</Button>
+              <Button 
+                onClick={handleNotificationUpdate} 
+                disabled={isLoadingNotifications || isSavingNotifications}
+              >
+                {isSavingNotifications ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save Preferences'
+                )}
+              </Button>
             </CardFooter>
           </Card>
         </TabsContent>
@@ -241,23 +609,58 @@ export default function AgentSettings() {
               <CardDescription>Change your password</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="current-password">Current Password</Label>
-                <Input id="current-password" type="password" />
-              </div>
+              {isLoadingSecurity ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="current-password">Current Password</Label>
+                    <Input 
+                      id="current-password" 
+                      type="password" 
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                    />
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="new-password">New Password</Label>
-                <Input id="new-password" type="password" />
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="new-password">New Password</Label>
+                    <Input 
+                      id="new-password" 
+                      type="password" 
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                    />
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="confirm-password">Confirm New Password</Label>
-                <Input id="confirm-password" type="password" />
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirm-password">Confirm New Password</Label>
+                    <Input 
+                      id="confirm-password" 
+                      type="password" 
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                    />
+                  </div>
+                </>
+              )}
             </CardContent>
             <CardFooter className="flex justify-end">
-              <Button>Update Password</Button>
+              <Button 
+                onClick={handlePasswordUpdate} 
+                disabled={isLoadingSecurity || isSavingPassword || !currentPassword || !newPassword || !confirmPassword}
+              >
+                {isSavingPassword ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  'Update Password'
+                )}
+              </Button>
             </CardFooter>
           </Card>
 
@@ -267,37 +670,69 @@ export default function AgentSettings() {
               <CardDescription>Add an extra layer of security to your account</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Two-Factor Authentication</Label>
-                  <p className="text-sm text-muted-foreground">Require a verification code when logging in</p>
+              {isLoadingSecurity ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
-                <Switch defaultChecked />
-              </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Two-Factor Authentication</Label>
+                      <p className="text-sm text-muted-foreground">Require a verification code when logging in</p>
+                    </div>
+                    <Switch 
+                      checked={twoFactorEnabled} 
+                      onCheckedChange={handleTwoFactorToggle}
+                      disabled={isSavingSecurity}
+                    />
+                  </div>
 
-              <div className="space-y-2">
-                <Label>Recovery Codes</Label>
-                <p className="text-sm text-muted-foreground">
-                  Save these recovery codes in a secure place to use if you lose access to your authentication app.
-                </p>
-                <div className="p-4 bg-muted rounded-md font-mono text-sm">
-                  1234-5678-9012
-                  <br />
-                  2345-6789-0123
-                  <br />
-                  3456-7890-1234
-                  <br />
-                  4567-8901-2345
-                  <br />
-                  5678-9012-3456
-                </div>
-                <Button variant="outline" size="sm">
-                  Download Recovery Codes
-                </Button>
-              </div>
+                  {twoFactorEnabled && recoveryCodes.length > 0 && (
+                    <div className="space-y-2">
+                      <Label>Recovery Codes</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Save these recovery codes in a secure place to use if you lose access to your authentication app.
+                      </p>
+                      <div className="p-4 bg-muted rounded-md font-mono text-sm">
+                        {recoveryCodes.map((code, index) => (
+                          <div key={index}>
+                            {code}
+                            {index < recoveryCodes.length - 1 && <br />}
+                          </div>
+                        ))}
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          // Create a text file with recovery codes
+                          const text = recoveryCodes.join('\n');
+                          const blob = new Blob([text], { type: 'text/plain' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = 'recovery-codes.txt';
+                          document.body.appendChild(a);
+                          a.click();
+                          document.body.removeChild(a);
+                          URL.revokeObjectURL(url);
+                        }}
+                      >
+                        Download Recovery Codes
+                      </Button>
+                    </div>
+                  )}
+                </>
+              )}
             </CardContent>
             <CardFooter className="flex justify-end">
-              <Button>Save Settings</Button>
+              {isSavingSecurity && (
+                <Button disabled>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </Button>
+              )}
             </CardFooter>
           </Card>
 
@@ -307,59 +742,47 @@ export default function AgentSettings() {
               <CardDescription>Recent login activity for your account</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date & Time</TableHead>
-                      <TableHead>IP Address</TableHead>
-                      <TableHead>Device</TableHead>
-                      <TableHead>Location</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {[
-                      {
-                        date: "Apr 12, 2025 09:45 AM",
-                        ip: "192.168.1.1",
-                        device: "Chrome on Windows",
-                        location: "Austin, TX",
-                        status: "Success",
-                      },
-                      {
-                        date: "Apr 10, 2025 03:22 PM",
-                        ip: "192.168.1.1",
-                        device: "Safari on iPhone",
-                        location: "Austin, TX",
-                        status: "Success",
-                      },
-                      {
-                        date: "Apr 8, 2025 11:15 AM",
-                        ip: "192.168.1.1",
-                        device: "Chrome on Windows",
-                        location: "Austin, TX",
-                        status: "Success",
-                      },
-                    ].map((login, index) => (
-                      <TableRow key={index}>
-                        <TableCell>{login.date}</TableCell>
-                        <TableCell>{login.ip}</TableCell>
-                        <TableCell>{login.device}</TableCell>
-                        <TableCell>{login.location}</TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="outline"
-                            className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
-                          >
-                            {login.status}
-                          </Badge>
-                        </TableCell>
+              {isLoadingSecurity ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : loginHistory.length > 0 ? (
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date & Time</TableHead>
+                        <TableHead>IP Address</TableHead>
+                        <TableHead>Device</TableHead>
+                        <TableHead>Location</TableHead>
+                        <TableHead>Status</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {loginHistory.map((login, index) => (
+                        <TableRow key={index}>
+                          <TableCell>{new Date(login.date).toLocaleString()}</TableCell>
+                          <TableCell>{login.ipAddress}</TableCell>
+                          <TableCell>{login.device}</TableCell>
+                          <TableCell>{login.location || 'Unknown'}</TableCell>
+                          <TableCell>
+                            <Badge
+                              variant="outline"
+                              className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+                            >
+                              Success
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  No login history available
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
