@@ -68,10 +68,10 @@ export async function POST(req: NextRequest) {
     });
 
     response.cookies.set("token", token, {
-      httpOnly: true, // Prevents client-side access
-      sameSite: "strict", // Prevents CSRF attacks
-      maxAge: 7 * 24 * 60 * 60, // 7 days expiry
-      path: "/", // Available across entire site
+      httpOnly: true, 
+      sameSite: "strict", 
+      maxAge: 7 * 24 * 60 * 60, 
+      path: "/", 
     });
 
     return response;
