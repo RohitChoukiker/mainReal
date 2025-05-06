@@ -1,0 +1,25 @@
+<svg width="400" height="300" viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background elements -->
+  <circle cx="200" cy="150" r="120" fill="#F3F4F6" />
+  
+  <!-- 404 Text -->
+  <path d="M130 100H150V180H130V100ZM130 180H190V200H130V180Z" fill="#D1D5DB" />
+  <circle cx="200" cy="150" r="40" fill="#D1D5DB" />
+  <circle cx="200" cy="150" r="20" fill="#F3F4F6" />
+  <path d="M250 100H270V180H250V100ZM250 180H310V200H250V180Z" fill="#D1D5DB" />
+  
+  <!-- Decorative elements -->
+  <circle cx="100" cy="80" r="8" fill="#E5E7EB" />
+  <circle cx="320" cy="90" r="12" fill="#E5E7EB" />
+  <circle cx="80" cy="200" r="15" fill="#E5E7EB" />
+  <circle cx="300" cy="220" r="10" fill="#E5E7EB" />
+  
+  <!-- Compass needle -->
+  <line x1="200" y1="130" x2="200" y2="100" stroke="#6B7280" stroke-width="3" />
+  <line x1="200" y1="170" x2="200" y2="200" stroke="#6B7280" stroke-width="3" />
+  <line x1="180" y1="150" x2="150" y2="150" stroke="#6B7280" stroke-width="3" />
+  <line x1="220" y1="150" x2="250" y2="150" stroke="#6B7280" stroke-width="3" />
+  
+  <!-- North marker -->
+  <path d="M198 90L202 90L200 80L198 90Z" fill="#EF4444" />
+</svg>

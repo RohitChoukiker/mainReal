@@ -1,6 +1,10 @@
+"use client"
+
 import type React from "react"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Building2, Users, ClipboardList, AlertCircle, CheckSquare, BarChart3, Settings } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useToast } from "@/hooks/use-toast"
 
 const sidebarItems = [
   {
@@ -45,9 +49,45 @@ export default function BrokerLayout({
 }: {
   children: React.ReactNode
 }) {
+  const router = useRouter()
+  const { toast } = useToast()
+
+  const handleLogout = async () => {
+    try {
+      const response = await fetch("/api/logout", { method: "POST" })
+      
+      if (response.ok) {
+        // Show success toast
+        toast({
+          title: "Successfully logged out",
+          description: "You have been logged out successfully",
+        })
+        
+        // Redirect immediately
+        router.push("/")
+      } else {
+        throw new Error("Logout failed")
+      }
+    } catch (error) {
+      console.error("Logout error:", error)
+      
+      // Show error toast
+      toast({
+        title: "Logout failed",
+        description: "There was a problem logging out. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background">
-      <Sidebar items={sidebarItems} title="Broker Panel" icon={<Building2 className="h-5 w-5" />} />
+      <Sidebar 
+        items={sidebarItems} 
+        title="Broker Panel" 
+        icon={<Building2 className="h-5 w-5" />} 
+        onLogout={handleLogout}
+      />
       <div className="md:ml-64 min-h-screen">
         <main className="p-4 md:p-6">{children}</main>
       </div>

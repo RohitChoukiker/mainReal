@@ -6,11 +6,19 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
-import { Menu, X } from "lucide-react"
+import { Menu, X, LogOut } from "lucide-react"
 import { useState, useEffect } from "react"
 import { ModeToggle } from "@/components/mode-toggle"
+import dynamic from "next/dynamic"
+import { useToast } from "@/hooks/use-toast"
+
+// Dynamically import the TransactionPanel to avoid SSR issues with real-time data
+const TransactionPanel = dynamic(
+  () => import("@/components/broker/transaction-panel").then(mod => mod.default),
+  { ssr: false }
+)
 
 interface SidebarProps {
   items: {
@@ -20,16 +28,53 @@ interface SidebarProps {
   }[]
   title: string
   icon: React.ReactNode
+  onLogout?: () => Promise<void>
 }
 
-export function Sidebar({ items, title, icon }: SidebarProps) {
+export function Sidebar({ items, title, icon, onLogout }: SidebarProps) {
   const pathname = usePathname()
+  const router = useRouter()
   const [open, setOpen] = useState(false)
+  const isBrokerPanel = title === "Broker Panel"
+  const { toast } = useToast()
 
   // Close the mobile sidebar when the route changes
   useEffect(() => {
     setOpen(false)
   }, [pathname])
+  
+  // Default logout handler if none is provided
+  const handleLogout = async () => {
+    if (onLogout) {
+      await onLogout()
+    } else {
+      try {
+        const response = await fetch("/api/logout", { method: "POST" })
+        
+        if (response.ok) {
+          // Show success toast
+          toast({
+            title: "Successfully logged out",
+            description: "You have been logged out successfully",
+          })
+          
+          // Redirect immediately
+          router.push("/")
+        } else {
+          throw new Error("Logout failed")
+        }
+      } catch (error) {
+        console.error("Logout error:", error)
+        
+        // Show error toast
+        toast({
+          title: "Logout failed",
+          description: "There was a problem logging out. Please try again.",
+          variant: "destructive",
+        })
+      }
+    }
+  }
 
   return (
     <>
@@ -70,9 +115,25 @@ export function Sidebar({ items, title, icon }: SidebarProps) {
                     </Link>
                   ))}
                 </nav>
+                
+                {/* Transaction Panel for Broker */}
+                {isBrokerPanel && (
+                  <div className="mt-6">
+                    <TransactionPanel />
+                  </div>
+                )}
               </div>
             </ScrollArea>
-            <div className="p-4 border-t flex justify-end">
+            <div className="p-4 border-t flex justify-between items-center">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleLogout}
+                className="text-red-500 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/20"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </Button>
               <ModeToggle />
             </div>
           </div>
@@ -102,9 +163,25 @@ export function Sidebar({ items, title, icon }: SidebarProps) {
                 </Link>
               ))}
             </nav>
+            
+            {/* Transaction Panel for Broker */}
+            {isBrokerPanel && (
+              <div className="mt-6">
+                <TransactionPanel />
+              </div>
+            )}
           </div>
         </ScrollArea>
-        <div className="p-4 border-t flex justify-end">
+        <div className="p-4 border-t flex justify-between items-center">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleLogout}
+            className="text-red-500 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/20"
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Logout
+          </Button>
           <ModeToggle />
         </div>
       </div>

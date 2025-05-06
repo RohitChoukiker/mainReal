@@ -6,26 +6,41 @@ export function middleware(req: NextRequest) {
   const role = req.cookies.get("role")?.value;
   const url = req.nextUrl.pathname;
 
+  // If no token or role, redirect to landing page
   if (!token || !role) {
     return NextResponse.redirect(new URL("/landing", req.url));
   }
 
-  const roleBasedRoutes: Record<string, string[]> = {
-    Agent: ["/agent/dashboard"],
-    Broker: ["/Broker/dashboard"],
-    Tc: ["/tc/dashboard"],
+  // Define which route prefixes are allowed for each role
+  const roleBasedRoutePrefixes: Record<string, string[]> = {
+    Agent: ["/agent"],
+    Broker: ["/broker"],
+    Tc: ["/tc"],
+    Admin: ["/admin"],
   };
 
-  const allowedRoutes = roleBasedRoutes[role] || [];
+  // Get allowed route prefixes for the user's role
+  const allowedPrefixes = roleBasedRoutePrefixes[role] || [];
 
-  if (!allowedRoutes.includes(url)) {
+  // Check if the current URL starts with any of the allowed prefixes
+  const isAllowed = allowedPrefixes.some(prefix => url.startsWith(prefix));
+
+  // If not allowed, redirect to unauthorized page
+  if (!isAllowed) {
     return NextResponse.redirect(new URL("/unauthorized", req.url));
   }
 
   return NextResponse.next();
 }
 
-// ✅ Matcher: Ye ensure karega ki sirf `/admin`, `/user`, aur `/moderator` routes pe middleware chale
+// ✅ Matcher: Ye ensure karega ki sirf authorized routes pe middleware chale
 export const config = {
-  matcher: ["/admin/:path*", "/user/:path*", "/moderator/:path*"],
+  matcher: [
+    "/admin/:path*", 
+    "/user/:path*", 
+    "/moderator/:path*",
+    "/agent/:path*",
+    "/broker/:path*",
+    "/tc/:path*"
+  ],
 };

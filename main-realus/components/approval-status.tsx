@@ -21,20 +21,53 @@ export default function ApprovalStatus({ isApproved, onLogout }: ApprovalStatusP
     // Check approval status
     if (isApproved === true) {
       setStatus("approved");
+      
+      // Get user role from the URL path
+      const path = window.location.pathname;
+      let role = '';
+      
+      if (path.startsWith('/agent')) {
+        role = 'Agent';
+      } else if (path.startsWith('/broker')) {
+        role = 'Broker';
+      } else if (path.startsWith('/tc')) {
+        role = 'Tc';
+      }
+      
+      // Store user data in localStorage
+      if (role) {
+        const userData = {
+          role: role,
+          isApproved: true
+        };
+        localStorage.setItem('userData', JSON.stringify(userData));
+      }
     } else if (isApproved === false) {
       setStatus("pending");
     }
-
+  }, [isApproved]);
+  
+  // Separate useEffect for polling to avoid dependency cycle
+  useEffect(() => {
     // Poll for status updates every 10 seconds if pending
-    let interval: NodeJS.Timeout;
+    let interval: NodeJS.Timeout | undefined;
+    
     if (status === "pending") {
-      interval = setInterval(checkApprovalStatus, 10000);
+      // Clear any existing interval first to prevent multiple intervals
+      if (interval) clearInterval(interval);
+      
+      // Set new interval
+      interval = setInterval(() => {
+        // Use a function reference to avoid closure issues
+        checkApprovalStatus();
+      }, 10000);
     }
 
+    // Cleanup function
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isApproved, status]);
+  }, [status]);
 
   const checkApprovalStatus = async () => {
     try {
@@ -45,22 +78,61 @@ export default function ApprovalStatus({ isApproved, onLogout }: ApprovalStatusP
         const data = await response.json();
         console.log('Approval status response:', data);
         
+        // Store user data in localStorage for later use
+        if (data.role) {
+          const userData = {
+            role: data.role,
+            isApproved: data.isApproved
+          };
+          localStorage.setItem('userData', JSON.stringify(userData));
+        }
+        
+        // Use a safe way to update state to avoid race conditions
         if (data.isApproved) {
-          console.log('User is approved, updating status and reloading');
-          setStatus("approved");
-          // Refresh the page to load the dashboard
-          window.location.reload();
+          console.log('User is approved, updating status');
+          // Use functional update to ensure we're working with the latest state
+          setStatus(() => "approved");
         } else if (data.isRejected) {
           console.log('User is rejected');
-          setStatus("rejected");
+          setStatus(() => "rejected");
         } else {
           console.log('User is still pending');
+          // No need to update state if still pending
         }
       } else {
         console.error('Error response from status API:', response.status);
       }
     } catch (error) {
       console.error("Error checking approval status:", error);
+    }
+  };
+
+  // Function to determine the correct dashboard URL based on user role
+  const getDashboardUrl = () => {
+    // Get the role from localStorage or sessionStorage if available
+    const userDataStr = localStorage.getItem('userData');
+    let role = '';
+    
+    if (userDataStr) {
+      try {
+        const userData = JSON.parse(userDataStr);
+        role = userData.role;
+      } catch (e) {
+        console.error('Error parsing user data:', e);
+      }
+    }
+    
+    // Return the appropriate dashboard URL based on role
+    switch (role) {
+      case 'Agent':
+        return '/agent/dashboard';
+      case 'Broker':
+        return '/broker/dashboard';
+      case 'Tc':
+        return '/tc/dashboard';
+      default:
+        // Default to agent dashboard if role can't be determined
+        return '/agent/dashboard';
     }
   };
 
@@ -108,7 +180,11 @@ export default function ApprovalStatus({ isApproved, onLogout }: ApprovalStatusP
 
           <div className="flex flex-col space-y-3">
             {status === "approved" && (
-              <Button onClick={() => router.push("/dashboard")}>
+              <Button onClick={() => {
+                const dashboardUrl = getDashboardUrl();
+                console.log("Redirecting to dashboard:", dashboardUrl);
+                router.push(dashboardUrl);
+              }}>
                 Go to Dashboard
               </Button>
             )}

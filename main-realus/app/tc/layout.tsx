@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { ClipboardCheck, ClipboardList, FileCheck, CheckSquare, AlertCircle, CheckCircle, Settings } from "lucide-react";
 import ApprovalStatus from "@/components/approval-status";
-import { toast } from "react-toastify";
+import { toast as reactToastify } from "react-toastify";
+import { useToast } from "@/hooks/use-toast";
 
 const sidebarItems = [
   {
@@ -53,6 +54,7 @@ export default function TCLayout({
   const [isLoading, setIsLoading] = useState(true);
   const [isApproved, setIsApproved] = useState<boolean | undefined>(undefined);
   const router = useRouter();
+  const { toast } = useToast();
 
   useEffect(() => {
     // Check if user is logged in and approved
@@ -70,7 +72,7 @@ export default function TCLayout({
         
         // Check if user is a TC
         if (data.role !== "Tc") {
-          toast.error("Unauthorized: You must be a Transaction Coordinator to access this page");
+          reactToastify.error("Unauthorized: You must be a Transaction Coordinator to access this page");
           router.push("/login");
           return;
         }
@@ -88,10 +90,29 @@ export default function TCLayout({
 
   const handleLogout = async () => {
     try {
-      await fetch("/api/logout", { method: "POST" });
-      router.push("/login");
+      const response = await fetch("/api/logout", { method: "POST" });
+      
+      if (response.ok) {
+        // Show success toast
+        toast({
+          title: "Successfully logged out",
+          description: "You have been logged out successfully",
+        });
+        
+        // Redirect immediately
+        router.push("/");
+      } else {
+        throw new Error("Logout failed");
+      }
     } catch (error) {
       console.error("Logout error:", error);
+      
+      // Show error toast
+      toast({
+        title: "Logout failed",
+        description: "There was a problem logging out. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -111,7 +132,12 @@ export default function TCLayout({
   // If approved, show the TC dashboard
   return (
     <div className="min-h-screen bg-background">
-      <Sidebar items={sidebarItems} title="TC Panel" icon={<ClipboardCheck className="h-5 w-5" />} />
+      <Sidebar 
+        items={sidebarItems} 
+        title="TC Panel" 
+        icon={<ClipboardCheck className="h-5 w-5" />} 
+        onLogout={handleLogout}
+      />
       <div className="md:ml-64 min-h-screen">
         <main className="p-4 md:p-6">{children}</main>
       </div>
