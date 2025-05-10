@@ -7,8 +7,10 @@ import { AIInsightsCard } from "@/components/dashboard/ai-insights-card"
 import { QuickActionsPanel } from "@/components/dashboard/quick-actions-panel"
 import { LiveNotificationsPanel } from "@/components/dashboard/live-notifications-panel"
 import { TransactionListTable } from "@/components/dashboard/transaction-list-table"
+import { TransactionDetailsModal } from "@/components/dashboard/transaction-details-modal"
 import BrokerIdCard from "@/components/broker/broker-id-card"
 import { FileText, UserPlus, AlertCircle, CheckCircle } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { TransactionStatus } from "@/models/transactionModel"
 
 export default function BrokerDashboard() {
@@ -26,6 +28,17 @@ export default function BrokerDashboard() {
   
   // State for loading
   const [isLoading, setIsLoading] = useState(true);
+  
+  // State for transaction details modal
+  const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  
+  // Function to handle opening the modal
+  const openTransactionModal = (transaction: any) => {
+    console.log("Opening modal for transaction:", transaction);
+    setSelectedTransaction(transaction);
+    setIsDetailsModalOpen(true);
+  };
   
   // Fetch transaction data
   useEffect(() => {
@@ -87,14 +100,34 @@ export default function BrokerDashboard() {
             }
             
             // Create a formatted transaction object for display
+            // Include both the UI-specific fields and the original transaction data
             return {
+              // UI-specific fields for the table
               id: transaction.transactionId || `TR-${Math.floor(Math.random() * 10000)}`,
               property: transaction.propertyAddress + (transaction.city ? `, ${transaction.city}` : ''),
               client: transaction.clientName || "Unknown Client",
               agent: transaction.agentName || "Agent", // We'll update this when we have agent names
               status: uiStatus,
               dueDate: formattedDate,
-              riskLevel: uiStatus === "at_risk" ? "high" : undefined
+              riskLevel: uiStatus === "at_risk" ? "high" : undefined,
+              
+              // Include all original transaction data for the modal
+              transactionId: transaction.transactionId,
+              agentId: transaction.agentId,
+              brokerId: transaction.brokerId,
+              clientName: transaction.clientName,
+              clientEmail: transaction.clientEmail,
+              clientPhone: transaction.clientPhone,
+              transactionType: transaction.transactionType,
+              propertyAddress: transaction.propertyAddress,
+              city: transaction.city,
+              state: transaction.state,
+              zipCode: transaction.zipCode,
+              price: transaction.price,
+              closingDate: transaction.closingDate,
+              notes: transaction.notes,
+              createdAt: transaction.createdAt,
+              updatedAt: transaction.updatedAt
             };
           });
           
@@ -260,6 +293,24 @@ export default function BrokerDashboard() {
       status: "at_risk",
       dueDate: "Apr 15, 2025",
       riskLevel: "high",
+      
+      // Additional fields for the modal
+      transactionId: "TR-7829",
+      agentId: "agent-123",
+      brokerId: "broker-456",
+      clientName: "Robert Johnson",
+      clientEmail: "robert@example.com",
+      clientPhone: "555-123-4567",
+      transactionType: "Purchase",
+      propertyAddress: "123 Main St",
+      city: "Austin",
+      state: "TX",
+      zipCode: "78701",
+      price: 450000,
+      closingDate: "2025-04-15",
+      notes: "Client is concerned about inspection results. Need to follow up urgently.",
+      createdAt: "2025-03-01T12:00:00Z",
+      updatedAt: "2025-03-15T14:30:00Z"
     },
     {
       id: "TR-6543",
@@ -268,6 +319,24 @@ export default function BrokerDashboard() {
       agent: "John Smith",
       status: "in_progress",
       dueDate: "Apr 22, 2025",
+      
+      // Additional fields for the modal
+      transactionId: "TR-6543",
+      agentId: "agent-456",
+      brokerId: "broker-456",
+      clientName: "Jennifer Williams",
+      clientEmail: "jennifer@example.com",
+      clientPhone: "555-234-5678",
+      transactionType: "Sale",
+      propertyAddress: "456 Oak Ave",
+      city: "Dallas",
+      state: "TX",
+      zipCode: "75201",
+      price: 375000,
+      closingDate: "2025-04-22",
+      notes: "All documents submitted, waiting for lender approval.",
+      createdAt: "2025-03-05T10:15:00Z",
+      updatedAt: "2025-03-18T09:45:00Z"
     },
     {
       id: "TR-9021",
@@ -276,6 +345,24 @@ export default function BrokerDashboard() {
       agent: "Michael Brown",
       status: "pending",
       dueDate: "May 3, 2025",
+      
+      // Additional fields for the modal
+      transactionId: "TR-9021",
+      agentId: "agent-789",
+      brokerId: "broker-456",
+      clientName: "Michael Davis",
+      clientEmail: "michael@example.com",
+      clientPhone: "555-345-6789",
+      transactionType: "Purchase",
+      propertyAddress: "789 Pine Rd",
+      city: "Houston",
+      state: "TX",
+      zipCode: "77002",
+      price: 525000,
+      closingDate: "2025-05-03",
+      notes: "Client is a first-time homebuyer. Extra guidance needed.",
+      createdAt: "2025-03-10T14:20:00Z",
+      updatedAt: "2025-03-20T11:30:00Z"
     },
     {
       id: "TR-5432",
@@ -284,6 +371,24 @@ export default function BrokerDashboard() {
       agent: "John Smith",
       status: "completed",
       dueDate: "Apr 5, 2025",
+      
+      // Additional fields for the modal
+      transactionId: "TR-5432",
+      agentId: "agent-456",
+      brokerId: "broker-456",
+      clientName: "Lisa Martinez",
+      clientEmail: "lisa@example.com",
+      clientPhone: "555-456-7890",
+      transactionType: "Sale",
+      propertyAddress: "321 Elm St",
+      city: "San Antonio",
+      state: "TX",
+      zipCode: "78205",
+      price: 410000,
+      closingDate: "2025-04-05",
+      notes: "Transaction completed successfully. All documents finalized.",
+      createdAt: "2025-02-15T09:30:00Z",
+      updatedAt: "2025-04-05T16:00:00Z"
     },
   ];
 
@@ -345,6 +450,20 @@ export default function BrokerDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-1">
           <BrokerIdCard />
+          
+          {/* Test button for modal */}
+          {process.env.NODE_ENV === 'development' && (
+            <Button 
+              className="mt-4 w-full" 
+              onClick={() => {
+                if (displayTransactions.length > 0) {
+                  openTransactionModal(displayTransactions[0]);
+                }
+              }}
+            >
+              Test Transaction Modal
+            </Button>
+          )}
         </div>
       </div>
 
@@ -353,7 +472,17 @@ export default function BrokerDashboard() {
           <TransactionListTable
             transactions={displayTransactions}
             title={isLoading ? "Loading Transactions..." : "Recent Transactions"}
-            onViewDetails={(id) => console.log(`View details for transaction ${id}`)}
+            onViewDetails={(id) => {
+              console.log(`View details for transaction ${id}`);
+              // Find the transaction by ID
+              const transaction = displayTransactions.find(t => t.id === id || t.transactionId === id);
+              if (transaction) {
+                console.log("Found transaction:", transaction);
+                openTransactionModal(transaction);
+              } else {
+                console.error("Transaction not found with ID:", id);
+              }
+            }}
           />
         </div>
         <div className="space-y-6">
@@ -361,6 +490,18 @@ export default function BrokerDashboard() {
           <AIInsightsCard insights={aiInsightsData} />
         </div>
       </div>
+      
+      {/* Transaction Details Modal */}
+      {isDetailsModalOpen && (
+        <TransactionDetailsModal
+          isOpen={isDetailsModalOpen}
+          onClose={() => {
+            console.log("Closing modal...");
+            setIsDetailsModalOpen(false);
+          }}
+          transaction={selectedTransaction}
+        />
+      )}
     </div>
   )
 }

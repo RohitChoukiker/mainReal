@@ -1,16 +1,31 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { FileText, Eye, CheckSquare, AlertTriangle, CheckCircle, Search, Filter, Calendar } from "lucide-react"
+import { FileText, Eye, CheckSquare, AlertTriangle, CheckCircle, Search, Filter, Calendar, Loader2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { TransactionStatusBadge } from "@/components/dashboard/transaction-status-badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Progress } from "@/components/ui/progress"
+import { toast } from "sonner"
+import { TransactionDetailsModal } from "@/components/dashboard/transaction-details-modal"
+
+interface ApiTransaction {
+  transactionId: string;
+  propertyAddress: string;
+  city: string;
+  state: string;
+  clientName: string;
+  agentId: string;
+  status: string;
+  createdAt: string;
+  closingDate: string;
+  price: number;
+}
 
 interface Transaction {
   id: string
@@ -20,9 +35,10 @@ interface Transaction {
     name: string
     avatar: string
   }
-  status: "pending" | "in_progress" | "at_risk" | "completed" | "cancelled"
+  status: "pending" | "in_progress" | "at_risk" | "completed" | "cancelled" | "New" | "new"
   createdDate: string
   closingDate: string
+  price?: string
   documents: {
     total: number
     verified: number
@@ -38,136 +54,166 @@ interface Transaction {
 export default function TCTransactions() {
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [isLoading, setIsLoading] = useState(true)
+  const [apiTransactions, setApiTransactions] = useState<ApiTransaction[]>([])
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
 
-  const [transactions, setTransactions] = useState<Transaction[]>([
-    {
-      id: "TR-7829",
-      property: "123 Main St, Austin, TX",
-      client: "Robert Johnson",
-      agent: {
-        name: "Sarah Johnson",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      status: "at_risk",
-      createdDate: "Apr 1, 2025",
-      closingDate: "Apr 15, 2025",
-      documents: {
-        total: 8,
-        verified: 5,
-      },
-      tasks: {
-        total: 12,
-        completed: 7,
-      },
-      riskLevel: "high",
-      completionPercentage: 60,
-    },
-    {
-      id: "TR-6543",
-      property: "456 Oak Ave, Dallas, TX",
-      client: "Jennifer Williams",
-      agent: {
-        name: "John Smith",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      status: "in_progress",
-      createdDate: "Mar 25, 2025",
-      closingDate: "Apr 22, 2025",
-      documents: {
-        total: 8,
-        verified: 6,
-      },
-      tasks: {
-        total: 10,
-        completed: 6,
-      },
-      completionPercentage: 75,
-    },
-    {
-      id: "TR-9021",
-      property: "789 Pine Rd, Houston, TX",
-      client: "Michael Davis",
-      agent: {
-        name: "Michael Brown",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      status: "pending",
-      createdDate: "Apr 3, 2025",
-      closingDate: "May 3, 2025",
-      documents: {
-        total: 8,
-        verified: 2,
-      },
-      tasks: {
-        total: 12,
-        completed: 3,
-      },
-      completionPercentage: 25,
-    },
-    {
-      id: "TR-5432",
-      property: "321 Elm St, San Antonio, TX",
-      client: "Lisa Martinez",
-      agent: {
-        name: "John Smith",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      status: "completed",
-      createdDate: "Mar 5, 2025",
-      closingDate: "Apr 5, 2025",
-      documents: {
-        total: 8,
-        verified: 8,
-      },
-      tasks: {
-        total: 12,
-        completed: 12,
-      },
-      completionPercentage: 100,
-    },
-    {
-      id: "TR-8765",
-      property: "654 Birch Blvd, Fort Worth, TX",
-      client: "David Wilson",
-      agent: {
-        name: "Sarah Johnson",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      status: "cancelled",
-      createdDate: "Feb 15, 2025",
-      closingDate: "Mar 20, 2025",
-      documents: {
-        total: 8,
-        verified: 4,
-      },
-      tasks: {
-        total: 10,
-        completed: 5,
-      },
-      completionPercentage: 45,
-    },
-    {
-      id: "TR-3456",
-      property: "890 Cedar Ln, Houston, TX",
-      client: "Amanda Garcia",
-      agent: {
-        name: "Michael Brown",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      status: "in_progress",
-      createdDate: "Mar 28, 2025",
-      closingDate: "Apr 28, 2025",
-      documents: {
-        total: 8,
-        verified: 5,
-      },
-      tasks: {
-        total: 14,
-        completed: 8,
-      },
-      completionPercentage: 65,
-    },
-  ])
+  // Function to open transaction details modal
+  const openTransactionModal = (transaction: Transaction) => {
+    console.log("Opening modal for transaction:", transaction)
+    setSelectedTransaction(transaction)
+    setIsDetailsModalOpen(true)
+  }
+
+  // Fetch real transactions from the API
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      try {
+        console.log('Fetching transactions from API...')
+        setIsLoading(true)
+        const response = await fetch('/api/tc/transactions')
+        
+        if (!response.ok) {
+          console.error('API response not OK:', response.status, response.statusText)
+          throw new Error(`Failed to fetch transactions: ${response.status} ${response.statusText}`)
+        }
+        
+        let data
+        try {
+          data = await response.json()
+          console.log('Fetched transactions:', data)
+        } catch (parseError) {
+          console.error('Error parsing JSON response:', parseError)
+          throw new Error('Failed to parse API response')
+        }
+        
+        if (data && data.transactions && Array.isArray(data.transactions)) {
+          console.log(`Successfully loaded ${data.transactions.length} transactions`)
+          setApiTransactions(data.transactions)
+        } else {
+          console.warn('API returned no transactions or invalid format:', data)
+          // Set empty array to avoid undefined errors
+          setApiTransactions([])
+        }
+      } catch (error) {
+        console.error('Error fetching transactions:', error)
+        toast.error('Failed to load transactions. Please try again later.')
+        // Set empty array to avoid undefined errors
+        setApiTransactions([])
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    
+    fetchTransactions()
+  }, [])
+
+  // Convert API transactions to the format expected by the UI with useEffect
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  
+  // Convert API transactions to the format expected by the UI
+  useEffect(() => {
+    if (isLoading) return;
+    
+    try {
+      console.log('Converting and setting transactions from API data');
+      
+      const convertedTransactions: Transaction[] = apiTransactions.map(t => {
+        try {
+          // Safely format dates with fallbacks
+          let createdDate = "N/A";
+          let closingDate = "N/A";
+          
+          try {
+            if (t.createdAt) {
+              createdDate = new Date(t.createdAt).toLocaleDateString();
+            }
+          } catch (e) {
+            console.error("Error formatting createdAt date:", e);
+          }
+          
+          try {
+            if (t.closingDate) {
+              closingDate = new Date(t.closingDate).toLocaleDateString();
+            }
+          } catch (e) {
+            console.error("Error formatting closingDate date:", e);
+          }
+          
+          // Format price with fallback
+          let formattedPrice = "$0";
+          try {
+            if (t.price) {
+              formattedPrice = `$${t.price.toLocaleString()}`;
+            }
+          } catch (e) {
+            console.error("Error formatting price:", e);
+          }
+          
+          // Calculate completion percentage (random for now)
+          const completionPercentage = Math.floor(Math.random() * 100);
+          
+          return {
+            id: t.transactionId || `TR-${Math.floor(Math.random() * 10000)}`,
+            property: t.propertyAddress ? 
+              `${t.propertyAddress}${t.city ? `, ${t.city}` : ''}${t.state ? `, ${t.state}` : ''}` : 
+              "Address not available",
+            client: t.clientName || "Unknown Client",
+            agent: {
+              name: t.agentId || "Unknown Agent",
+              avatar: "/placeholder.svg?height=40&width=40",
+            },
+            status: (t.status || "pending") as any,
+            createdDate,
+            closingDate,
+            price: formattedPrice,
+            documents: {
+              total: 8,
+              verified: Math.floor(Math.random() * 9),
+            },
+            tasks: {
+              total: 12,
+              completed: Math.floor(Math.random() * 13),
+            },
+            completionPercentage,
+          };
+        } catch (error) {
+          console.error("Error converting transaction:", error, t);
+          // Return a fallback transaction object if conversion fails
+          return {
+            id: `TR-${Math.floor(Math.random() * 10000)}`,
+            property: "Error loading property details",
+            client: "Unknown",
+            agent: {
+              name: "Unknown Agent",
+              avatar: "/placeholder.svg?height=40&width=40",
+            },
+            status: "pending" as any,
+            createdDate: "N/A",
+            closingDate: "N/A",
+            price: "$0",
+            documents: {
+              total: 0,
+              verified: 0,
+            },
+            tasks: {
+              total: 0,
+              completed: 0,
+            },
+            completionPercentage: 0,
+          };
+        }
+      });
+      
+      console.log(`Setting ${convertedTransactions.length} transactions`);
+      setTransactions(convertedTransactions || []);
+    } catch (error) {
+      console.error('Error setting transactions:', error);
+      // Set empty array as fallback
+      setTransactions([]);
+    }
+  }, [apiTransactions, isLoading]);
 
   const activeTransactions = transactions.filter((t) => t.status !== "completed" && t.status !== "cancelled")
   const atRiskTransactions = transactions.filter((t) => t.status === "at_risk")
@@ -207,7 +253,16 @@ export default function TCTransactions() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {transactionList.length > 0 ? (
+          {isLoading ? (
+            <TableRow>
+              <TableCell colSpan={7} className="text-center py-6">
+                <div className="flex items-center justify-center">
+                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                  <span>Loading transactions...</span>
+                </div>
+              </TableCell>
+            </TableRow>
+          ) : transactionList.length > 0 ? (
             transactionList.map((transaction) => (
               <TableRow key={transaction.id}>
                 <TableCell>
@@ -265,7 +320,11 @@ export default function TCTransactions() {
                         <span className="sr-only">Manage tasks</span>
                       </a>
                     </Button>
-                    <Button variant="ghost" size="icon">
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => openTransactionModal(transaction)}
+                    >
                       <Eye className="h-4 w-4" />
                       <span className="sr-only">View details</span>
                     </Button>
@@ -478,6 +537,18 @@ export default function TCTransactions() {
           </div>
         </CardContent>
       </Card>
+      
+      {/* Transaction Details Modal */}
+      {isDetailsModalOpen && selectedTransaction && (
+        <TransactionDetailsModal
+          isOpen={isDetailsModalOpen}
+          onClose={() => {
+            console.log("Closing modal...");
+            setIsDetailsModalOpen(false);
+          }}
+          transaction={selectedTransaction}
+        />
+      )}
     </div>
   )
 }

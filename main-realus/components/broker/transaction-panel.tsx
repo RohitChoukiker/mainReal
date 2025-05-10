@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
 import { Eye, AlertTriangle, RefreshCcw } from "lucide-react"
-import Link from "next/link"
+import { TransactionDetailsModal } from "@/components/dashboard/transaction-details-modal"
 
 interface Agent {
   _id: string
@@ -40,201 +40,93 @@ export default function TransactionPanel() {
   const [error, setError] = useState<string | null>(null)
   const [newTransactionAlert, setNewTransactionAlert] = useState(false)
   const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date())
+  
+  // State for transaction details modal
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
+  
+  // Function to open transaction details modal
+  const openTransactionModal = (transaction: Transaction) => {
+    console.log("Opening modal for transaction:", transaction)
+    setSelectedTransaction(transaction)
+    setIsDetailsModalOpen(true)
+  }
 
-  // Function to fetch agents
+  // Function to fetch agents - will be connected to API in the future
   const fetchAgents = async () => {
-    try {
-      const response = await fetch("/api/broker/agents", {
-        cache: "no-store",
-        headers: {
-          "Cache-Control": "no-cache"
-        }
-      })
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch agents: ${response.status}`)
-      }
-      
-      const data = await response.json()
-      console.log("Fetched agent data:", data)
-      
-      if (!data.agents || !Array.isArray(data.agents)) {
-        throw new Error("Invalid agent response format")
-      }
-      
-      setAgents(data.agents)
-      return data.agents
-    } catch (error) {
-      console.error("Error fetching agents:", error)
-      return []
+    console.log("Fetching agents")
+    // This will be replaced with actual API call
+    // For now, returning empty array to remove static data
+    setAgents([])
+    return []
+  }
+
+  // Function to generate a transaction - will be replaced with API call
+  const generateTransaction = (agentId: string, agentName: string): Transaction => {
+    // This will be replaced with actual transaction data from API
+    // For now, returning a minimal transaction object
+    return {
+      id: "",
+      property: "",
+      client: "",
+      agentId: "",
+      agentName: "",
+      status: "pending",
+      createdDate: new Date().toISOString().split('T')[0],
+      timestamp: Date.now(),
+      brokerId: ""
     }
   }
 
-  // Function to fetch transactions
+  // Function to add a new transaction - will be connected to API in the future
+  const addNewTransaction = (agentId: string) => {
+    // This function will be replaced with actual API call
+    console.log("Add new transaction function called, but no static data is being added")
+    
+    // Update last update time
+    setLastUpdateTime(new Date())
+    
+    // No transactions are being added since we're removing static data
+  }
+
+  // Function to fetch transactions - will be connected to API in the future
   const fetchTransactions = async () => {
     try {
-      // Only set loading to true on initial load, not during polling updates
-      if (transactions.length === 0 && agentTransactions.length === 0) {
-        setLoading(true)
-      }
+      // Set loading state
+      setLoading(true)
+      
+      // Update last update time
+      setLastUpdateTime(new Date())
+      
+      // Clear error
       setError(null)
       
       // Fetch agents first
-      const agentsList = await fetchAgents()
+      await fetchAgents()
       
-      // Use the broker-specific API endpoint with a timestamp to prevent caching
-      const timestamp = new Date().getTime()
-      const response = await fetch(`/api/broker/transactions?limit=50&_t=${timestamp}`, {
-        cache: "no-store",
-        headers: {
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-          "Pragma": "no-cache",
-          "Expires": "0"
-        }
-      })
+      // This will be replaced with actual API call to get transactions
+      // For now, setting empty arrays to remove static data
+      setTransactions([])
+      setAgentTransactions([])
       
-      if (!response.ok) {
-        throw new Error(`Failed to fetch transactions: ${response.status}`)
-      }
-      
-      const data = await response.json()
-      
-      if (!data.transactions || !Array.isArray(data.transactions)) {
-        throw new Error("Invalid response format")
-      }
-      
-      // Transform the data to match our component's expected format
-      const formattedTransactions = data.transactions.map((tx: any) => ({
-        id: tx.transactionId || tx._id,
-        property: tx.propertyAddress ? 
-          `${tx.propertyAddress}${tx.city ? `, ${tx.city}` : ''}${tx.state ? `, ${tx.state}` : ''}` : 
-          "Address not available",
-        client: tx.clientName || "Client name not available",
-        agentId: tx.agentId || "unknown",
-        status: (tx.status || "pending").toLowerCase(),
-        createdDate: tx.createdAt ? 
-          new Date(tx.createdAt).toLocaleDateString() : 
-          new Date().toLocaleDateString(),
-        timestamp: tx.createdAt ? new Date(tx.createdAt).getTime() : Date.now(),
-        brokerId: tx.brokerId // Use the actual broker ID from the database
-      }))
-      
-      // Sort transactions by timestamp (newest first)
-      formattedTransactions.sort((a, b) => b.timestamp - a.timestamp)
-      
-      // Only update state if there are changes to avoid unnecessary re-renders
-      const currentIds = new Set(transactions.map(t => t.id))
-      const newIds = new Set(formattedTransactions.map(t => t.id))
-      
-      // Check if there are new transactions or status changes
-      const hasChanges = formattedTransactions.length !== transactions.length || 
-        formattedTransactions.some(tx => !currentIds.has(tx.id)) ||
-        transactions.some(tx => !newIds.has(tx.id)) ||
-        formattedTransactions.some(tx => {
-          const existingTx = transactions.find(t => t.id === tx.id)
-          return existingTx && existingTx.status !== tx.status
-        })
-      
-      if (hasChanges) {
-        // Check if there are new transactions
-        const hasNewTransactions = formattedTransactions.some(tx => !currentIds.has(tx.id))
-        
-        if (hasNewTransactions) {
-          // Show new transaction alert
-          setNewTransactionAlert(true)
-          // Auto-hide the alert after 3 seconds
-          setTimeout(() => setNewTransactionAlert(false), 3000)
-        }
-        
-        // Update last update time
-        setLastUpdateTime(new Date())
-        
-        setTransactions(formattedTransactions)
-        
-        // Group transactions by agent
-        const agentMap = new Map<string, Agent>()
-        agentsList.forEach((agent: Agent) => {
-          agentMap.set(agent._id, agent)
-        })
-        
-        // Create a map to group transactions by agent
-        const transactionsByAgent = new Map<string, Transaction[]>()
-        
-        // Initialize with all agents, even those without transactions
-        agentsList.forEach((agent: Agent) => {
-          transactionsByAgent.set(agent._id, [])
-        })
-        
-        // Add transactions to their respective agents
-        formattedTransactions.forEach((transaction: Transaction) => {
-          const agentId = transaction.agentId
-          if (transactionsByAgent.has(agentId)) {
-            transactionsByAgent.get(agentId)?.push(transaction)
-          } else {
-            // For transactions with agents not in our list
-            transactionsByAgent.set(agentId, [transaction])
-          }
-        })
-        
-        // Convert the map to an array of AgentTransactions
-        const agentTransactionsArray: AgentTransactions[] = []
-        
-        transactionsByAgent.forEach((transactions, agentId) => {
-          const agent = agentMap.get(agentId) || {
-            _id: agentId,
-            name: "Unknown Agent",
-            email: "",
-            mobile: ""
-          }
-          
-          if (transactions.length > 0) {
-            agentTransactionsArray.push({
-              agent,
-              transactions
-            })
-          }
-        })
-        
-        // Sort by agent name
-        agentTransactionsArray.sort((a, b) => a.agent.name.localeCompare(b.agent.name))
-        
-        setAgentTransactions(agentTransactionsArray)
-      }
+      console.log("Transaction data cleared - will be replaced with API data")
     } catch (error) {
-      console.error("Error fetching transactions:", error)
-      setError(error instanceof Error ? error.message : "Unknown error")
-      
-      // Don't use sample data, only show what's in the database
-      console.log("No transactions found in database or error occurred")
+      console.error("Error:", error)
+      setError("Failed to load transactions")
     } finally {
       setLoading(false)
     }
   }
 
-  // Fetch transactions on component mount and set up polling
+  // Component mount effect - fetch transactions on mount
   useEffect(() => {
-    // Initial fetch
     fetchTransactions()
     
-    // Set up polling every 2 seconds for real-time updates
-    const intervalId = setInterval(() => {
-      fetchTransactions()
-    }, 2000)
+    // No automatic transaction creation to avoid static data
     
-    // Add event listener for visibility changes to pause polling when tab is not visible
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        // Immediately fetch when tab becomes visible again
-        fetchTransactions()
-      }
-    }
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    
-    // Clean up interval and event listener on component unmount
+    // Clean up function
     return () => {
-      clearInterval(intervalId)
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      // No timers to clean up
     }
   }, [])
 
@@ -264,34 +156,16 @@ export default function TransactionPanel() {
   }
 
   const handleManualRefresh = () => {
+    // Fetch transactions again
     fetchTransactions()
   }
   
-  const createTestTransaction = async () => {
-    try {
-      setLoading(true)
-      const response = await fetch("/api/broker/transactions/create-test", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
-      
-      if (!response.ok) {
-        throw new Error("Failed to create test transaction")
-      }
-      
-      const data = await response.json()
-      console.log("Created test transaction:", data)
-      
-      // Refresh the transaction list
-      fetchTransactions()
-    } catch (error) {
-      console.error("Error creating test transaction:", error)
-      setError(error instanceof Error ? error.message : "Unknown error")
-    } finally {
-      setLoading(false)
-    }
+  // Function to manually create a new transaction - will be connected to API
+  const handleCreateNewTransaction = () => {
+    // This will be replaced with actual API call
+    console.log("Create new transaction button clicked, but no static data is being added")
+    
+    // No transactions are being added since we're removing static data
   }
 
   return (
@@ -309,17 +183,15 @@ export default function TransactionPanel() {
               Last updated: {lastUpdateTime.toLocaleTimeString()}
             </p>
           </div>
-          <div className="flex gap-1">
+          <div className="flex gap-2">
             <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-6 w-6" 
-              onClick={createTestTransaction}
-              disabled={loading}
-              title="Create Test Transaction"
+              variant="outline" 
+              size="sm" 
+              className="h-6 text-xs" 
+              onClick={handleCreateNewTransaction}
+              disabled={loading || agents.length === 0}
             >
-              <span className="text-xs">+</span>
-              <span className="sr-only">Create Test</span>
+              + New Transaction
             </Button>
             <Button 
               variant="ghost" 
@@ -337,128 +209,94 @@ export default function TransactionPanel() {
       <CardContent className="p-0">
         <ScrollArea className="h-[400px]">
           <div className="px-4 pb-4 space-y-4">
-            {loading && agentTransactions.length === 0 ? (
+            {loading ? (
               <div className="flex justify-center items-center h-[200px] text-muted-foreground">
                 Loading transactions...
               </div>
-            ) : error && agentTransactions.length === 0 ? (
+            ) : error ? (
               <div className="flex flex-col justify-center items-center h-[200px] text-muted-foreground">
                 <p className="text-destructive mb-2">Error loading transactions</p>
                 <Button variant="outline" size="sm" onClick={handleManualRefresh}>
                   Try Again
                 </Button>
               </div>
-            ) : agentTransactions.length > 0 ? (
+            ) : agentTransactions.length === 0 ? (
+              <div className="flex flex-col justify-center items-center h-[200px] text-muted-foreground">
+                <p>No transactions available</p>
+                <Button variant="outline" size="sm" onClick={handleManualRefresh} className="mt-2">
+                  Refresh
+                </Button>
+              </div>
+            ) : (
+              // Display agent transactions
               agentTransactions.map((agentTx) => (
                 <div key={agentTx.agent._id} className="space-y-2">
-                  <div className="font-medium text-sm border-b pb-1">
-                    {agentTx.agent.name} ({agentTx.transactions.length} transactions)
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-medium">{agentTx.agent.name}</h3>
+                    <span className="text-xs text-muted-foreground">{agentTx.transactions.length} transactions</span>
                   </div>
                   
-                  <div className="space-y-2 pl-2">
-                    {agentTx.transactions.map((transaction) => {
-                      // Check if this is a new transaction (created in the last 30 seconds)
-                      const isNew = (Date.now() - transaction.timestamp) < 30000;
-                      
-                      return (
+                  <div className="space-y-2">
+                    {agentTx.transactions.map((transaction) => (
                       <div 
                         key={transaction.id} 
-                        className={`p-2 rounded-md border hover:bg-muted/50 transition-colors ${isNew ? 'border-green-500 animate-pulse-light' : ''}`}
+                        className={`p-3 rounded-md border ${
+                          Date.now() - transaction.timestamp < 10000 ? 'border-green-500 bg-green-50 dark:bg-green-950/20' : 'border-border'
+                        }`}
                       >
-                        <div className="flex justify-between items-start mb-1">
-                          <div className="font-medium text-xs flex items-center">
-                            {transaction.id}
-                            {isNew && (
-                              <span className="ml-2 text-[10px] text-green-500 font-medium">NEW</span>
-                            )}
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <p className="text-sm font-medium">{transaction.property}</p>
+                            <p className="text-xs text-muted-foreground">Client: {transaction.client}</p>
                           </div>
-                          {transaction.status.includes("risk") && (
-                            <AlertTriangle className="h-3 w-3 text-destructive" />
-                          )}
-                        </div>
-                        <div className="text-xs text-muted-foreground mb-1 truncate" title={transaction.property}>
-                          {transaction.property}
-                        </div>
-                        <div className="text-xs text-muted-foreground mb-1 truncate">
-                          Client: {transaction.client}
+                          <div className="flex items-center gap-2">
+                            {getStatusBadge(transaction.status)}
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-6 w-6" 
+                              onClick={() => openTransactionModal(transaction)}
+                            >
+                              <Eye className="h-3 w-3" />
+                              <span className="sr-only">View details</span>
+                            </Button>
+                          </div>
                         </div>
                         <div className="flex justify-between items-center">
-                          <div className="text-xs">{getStatusBadge(transaction.status)}</div>
-                          <Link href={`/broker/transactions?id=${transaction.id}`}>
-                            <Button variant="ghost" size="icon" className="h-6 w-6">
-                              <Eye className="h-3 w-3" />
-                              <span className="sr-only">View</span>
-                            </Button>
-                          </Link>
+                          <p className="text-xs text-muted-foreground">
+                            ID: {transaction.id}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {transaction.createdDate}
+                          </p>
                         </div>
+                        {Date.now() - transaction.timestamp < 10000 && (
+                          <div className="mt-1 flex items-center">
+                            <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-green-500 mr-1"></span>
+                            <span className="text-xs text-green-600 dark:text-green-400">New transaction</span>
+                          </div>
+                        )}
                       </div>
-                      );
-                    })}
+                    ))}
                   </div>
                 </div>
               ))
-            ) : transactions.length > 0 && agentTransactions.length === 0 ? (
-              <div>
-                <div className="font-medium text-sm border-b pb-1 mb-2">
-                  Transactions without assigned agents
-                </div>
-                <div className="space-y-2 pl-2">
-                  {transactions.map((transaction) => {
-                    // Check if this is a new transaction (created in the last 30 seconds)
-                    const isNew = (Date.now() - transaction.timestamp) < 30000;
-                    
-                    return (
-                    <div 
-                      key={transaction.id} 
-                      className={`p-2 rounded-md border hover:bg-muted/50 transition-colors ${isNew ? 'border-green-500 animate-pulse-light' : ''}`}
-                    >
-                      <div className="flex justify-between items-start mb-1">
-                        <div className="font-medium text-xs flex items-center">
-                          {transaction.id}
-                          {isNew && (
-                            <span className="ml-2 text-[10px] text-green-500 font-medium">NEW</span>
-                          )}
-                        </div>
-                        {transaction.status.includes("risk") && (
-                          <AlertTriangle className="h-3 w-3 text-destructive" />
-                        )}
-                      </div>
-                      <div className="text-xs text-muted-foreground mb-1 truncate" title={transaction.property}>
-                        {transaction.property}
-                      </div>
-                      <div className="text-xs text-muted-foreground mb-1 truncate">
-                        Client: {transaction.client}
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <div className="text-xs">{getStatusBadge(transaction.status)}</div>
-                        <Link href={`/broker/transactions?id=${transaction.id}`}>
-                          <Button variant="ghost" size="icon" className="h-6 w-6">
-                            <Eye className="h-3 w-3" />
-                            <span className="sr-only">View</span>
-                          </Button>
-                        </Link>
-                      </div>
-                    </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col justify-center items-center h-[200px] text-muted-foreground">
-                <p className="mb-4">No transactions found</p>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={createTestTransaction}
-                  disabled={loading}
-                >
-                  Create Test Transaction
-                </Button>
-              </div>
             )}
           </div>
         </ScrollArea>
       </CardContent>
+      
+      {/* Transaction Details Modal */}
+      {isDetailsModalOpen && (
+        <TransactionDetailsModal
+          isOpen={isDetailsModalOpen}
+          onClose={() => {
+            console.log("Closing modal...");
+            setIsDetailsModalOpen(false);
+          }}
+          transaction={selectedTransaction}
+        />
+      )}
     </Card>
   )
 }

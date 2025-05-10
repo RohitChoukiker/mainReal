@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { TransactionOverviewCard } from "@/components/dashboard/transaction-overview-card"
 import { AIInsightsCard } from "@/components/dashboard/ai-insights-card"
 import { QuickActionsPanel } from "@/components/dashboard/quick-actions-panel"
@@ -7,8 +8,137 @@ import { LiveNotificationsPanel } from "@/components/dashboard/live-notification
 import { TransactionListTable } from "@/components/dashboard/transaction-list-table"
 import { AIDelayPredictionWidget } from "@/components/dashboard/ai-delay-prediction-widget"
 import { FileCheck, CheckSquare, AlertCircle, CheckCircle } from "lucide-react"
+import { toast } from "sonner"
+import { TransactionDetailsModal } from "@/components/dashboard/transaction-details-modal"
+
+interface ApiTransaction {
+  transactionId: string;
+  propertyAddress: string;
+  city: string;
+  state: string;
+  clientName: string;
+  agentId: string;
+  status: string;
+  createdAt: string;
+  closingDate: string;
+  price: number;
+}
 
 export default function TCDashboard() {
+  const [isLoading, setIsLoading] = useState(true)
+  const [apiTransactions, setApiTransactions] = useState<ApiTransaction[]>([])
+  const [transactionsData, setTransactionsData] = useState<any[]>([])
+  const [transactionStats, setTransactionStats] = useState({
+    total: 0,
+    completed: 0,
+    pending: 0,
+    atRisk: 0
+  })
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
+  const [selectedTransaction, setSelectedTransaction] = useState<any | null>(null)
+
+  // Function to open transaction details modal
+  const handleViewDetails = (id: string) => {
+    console.log(`View details for transaction ${id}`)
+    const transaction = transactionsData.find(t => t.id === id)
+    if (transaction) {
+      setSelectedTransaction(transaction)
+      setIsDetailsModalOpen(true)
+    }
+  }
+
+  // Fetch real transactions from the API
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      try {
+        console.log('Fetching transactions from API...')
+        setIsLoading(true)
+        const response = await fetch('/api/tc/transactions')
+        
+        if (!response.ok) {
+          console.error('API response not OK:', response.status, response.statusText)
+          throw new Error(`Failed to fetch transactions: ${response.status} ${response.statusText}`)
+        }
+        
+        let data
+        try {
+          data = await response.json()
+          console.log('Fetched transactions:', data)
+        } catch (parseError) {
+          console.error('Error parsing JSON response:', parseError)
+          throw new Error('Failed to parse API response')
+        }
+        
+        if (data && data.transactions && Array.isArray(data.transactions)) {
+          console.log(`Successfully loaded ${data.transactions.length} transactions`)
+          setApiTransactions(data.transactions)
+          
+          // Process transactions for the dashboard
+          const processed = data.transactions.map((t: ApiTransaction) => {
+            // Format property address
+            const property = t.propertyAddress ? 
+              `${t.propertyAddress}${t.city ? `, ${t.city}` : ''}${t.state ? `, ${t.state}` : ''}` : 
+              "Address not available"
+            
+            // Format closing date
+            let dueDate = "N/A"
+            try {
+              if (t.closingDate) {
+                dueDate = new Date(t.closingDate).toLocaleDateString()
+              }
+            } catch (e) {
+              console.error("Error formatting closingDate:", e)
+            }
+            
+            // Map status
+            let status = t.status?.toLowerCase() || "pending"
+            if (status === "new") status = "pending"
+            if (status === "inprogress") status = "in_progress"
+            
+            return {
+              id: t.transactionId || `TR-${Math.floor(Math.random() * 10000)}`,
+              property,
+              client: t.clientName || "Unknown Client",
+              agent: t.agentId || "Unknown Agent",
+              status,
+              dueDate,
+              // Random risk level for demo purposes
+              riskLevel: status === "at_risk" ? "high" : undefined
+            }
+          })
+          
+          setTransactionsData(processed)
+          
+          // Calculate stats
+          const total = processed.length
+          const completed = processed.filter(t => t.status === "completed").length
+          const atRisk = processed.filter(t => t.status === "at_risk").length
+          const pending = total - completed - atRisk
+          
+          setTransactionStats({
+            total,
+            completed,
+            pending,
+            atRisk
+          })
+        } else {
+          console.warn('API returned no transactions or invalid format:', data)
+          setApiTransactions([])
+          setTransactionsData([])
+        }
+      } catch (error) {
+        console.error('Error fetching transactions:', error)
+        toast.error('Failed to load transactions. Please try again later.')
+        setApiTransactions([])
+        setTransactionsData([])
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    
+    fetchTransactions()
+  }, [])
+
   // Sample data for demonstration
   const aiInsightsData = [
     {
@@ -79,42 +209,6 @@ export default function TCDashboard() {
     },
   ]
 
-  const transactionsData = [
-    {
-      id: "TR-7829",
-      property: "123 Main St, Austin, TX",
-      client: "Robert Johnson",
-      agent: "Sarah Johnson",
-      status: "at_risk",
-      dueDate: "Apr 15, 2025",
-      riskLevel: "high",
-    },
-    {
-      id: "TR-6543",
-      property: "456 Oak Ave, Dallas, TX",
-      client: "Jennifer Williams",
-      agent: "John Smith",
-      status: "in_progress",
-      dueDate: "Apr 22, 2025",
-    },
-    {
-      id: "TR-9021",
-      property: "789 Pine Rd, Houston, TX",
-      client: "Michael Davis",
-      agent: "Michael Brown",
-      status: "pending",
-      dueDate: "May 3, 2025",
-    },
-    {
-      id: "TR-5432",
-      property: "321 Elm St, San Antonio, TX",
-      client: "Lisa Martinez",
-      agent: "John Smith",
-      status: "completed",
-      dueDate: "Apr 5, 2025",
-    },
-  ]
-
   const delayPredictions = [
     {
       transactionId: "TR-7829",
@@ -147,7 +241,14 @@ export default function TCDashboard() {
       <h1 className="text-3xl font-bold tracking-tight">Transaction Coordinator Dashboard</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <TransactionOverviewCard title="Assigned Transactions" total={18} completed={7} pending={9} atRisk={2} />
+        <TransactionOverviewCard 
+          title="Assigned Transactions" 
+          total={transactionStats.total} 
+          completed={transactionStats.completed} 
+          pending={transactionStats.pending} 
+          atRisk={transactionStats.atRisk}
+          isLoading={isLoading}
+        />
         <LiveNotificationsPanel notifications={notificationsData} />
         <QuickActionsPanel actions={quickActionsData} />
       </div>
@@ -158,7 +259,8 @@ export default function TCDashboard() {
             transactions={transactionsData}
             title="Active Transactions"
             description="Transactions currently assigned to you"
-            onViewDetails={(id) => console.log(`View details for transaction ${id}`)}
+            onViewDetails={handleViewDetails}
+            isLoading={isLoading}
           />
         </div>
         <div className="space-y-6">
@@ -166,6 +268,18 @@ export default function TCDashboard() {
           <AIInsightsCard insights={aiInsightsData} />
         </div>
       </div>
+      
+      {/* Transaction Details Modal */}
+      {isDetailsModalOpen && selectedTransaction && (
+        <TransactionDetailsModal
+          isOpen={isDetailsModalOpen}
+          onClose={() => {
+            console.log("Closing modal...");
+            setIsDetailsModalOpen(false);
+          }}
+          transaction={selectedTransaction}
+        />
+      )}
     </div>
   )
 }
