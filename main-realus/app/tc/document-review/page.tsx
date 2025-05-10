@@ -1,13 +1,34 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { FileText, CheckCircle, XCircle, AlertTriangle, Eye, Download, MessageSquare } from "lucide-react"
+import { FileText, CheckCircle, XCircle, AlertTriangle, Eye, Download, MessageSquare, Loader2 } from "lucide-react"
+import { toast } from "sonner"
+
+interface ApiTransaction {
+  transactionId: string;
+  propertyAddress: string;
+  city: string;
+  state: string;
+  clientName: string;
+  agentId: string;
+  status: string;
+  createdAt: string;
+  closingDate: string;
+  price: number;
+  documents?: Array<{
+    name: string;
+    url: string;
+    uploadedAt: string;
+    required: boolean;
+    approved: boolean;
+  }>;
+}
 
 interface Document {
   id: string
@@ -26,95 +47,170 @@ interface Document {
 }
 
 export default function DocumentReview() {
-  const [documents, setDocuments] = useState<Document[]>([
-    {
-      id: "doc-1",
-      name: "Purchase Agreement",
-      transactionId: "TR-7829",
-      property: "123 Main St, Austin, TX",
-      agent: {
-        name: "Sarah Johnson",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      uploadDate: "Apr 12, 2025",
-      status: "pending",
-      aiVerified: true,
-      aiScore: 95,
-    },
-    {
-      id: "doc-2",
-      name: "Property Disclosure",
-      transactionId: "TR-7829",
-      property: "123 Main St, Austin, TX",
-      agent: {
-        name: "Sarah Johnson",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      uploadDate: "Apr 12, 2025",
-      status: "pending",
-      aiVerified: true,
-      aiScore: 98,
-    },
-    {
-      id: "doc-3",
-      name: "Inspection Report",
-      transactionId: "TR-6543",
-      property: "456 Oak Ave, Dallas, TX",
-      agent: {
-        name: "John Smith",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      uploadDate: "Apr 11, 2025",
-      status: "pending",
-      aiVerified: false,
-      aiScore: 65,
-      issues: ["Missing signature on page 3", "Incomplete section on property condition"],
-    },
-    {
-      id: "doc-4",
-      name: "Title Report",
-      transactionId: "TR-9021",
-      property: "789 Pine Rd, Houston, TX",
-      agent: {
-        name: "Michael Brown",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      uploadDate: "Apr 10, 2025",
-      status: "pending",
-      aiVerified: false,
-      aiScore: 45,
-      issues: ["Document appears to be outdated", "Missing key property information"],
-    },
-    {
-      id: "doc-5",
-      name: "Financing Pre-Approval",
-      transactionId: "TR-6543",
-      property: "456 Oak Ave, Dallas, TX",
-      agent: {
-        name: "John Smith",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      uploadDate: "Apr 9, 2025",
-      status: "approved",
-      aiVerified: true,
-      aiScore: 100,
-    },
-    {
-      id: "doc-6",
-      name: "HOA Documents",
-      transactionId: "TR-7829",
-      property: "123 Main St, Austin, TX",
-      agent: {
-        name: "Sarah Johnson",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      uploadDate: "Apr 8, 2025",
-      status: "rejected",
-      aiVerified: false,
-      aiScore: 30,
-      issues: ["Incorrect HOA information", "Missing HOA contact details", "Outdated fee schedule"],
-    },
-  ])
+  const [isLoading, setIsLoading] = useState(true)
+  const [apiTransactions, setApiTransactions] = useState<ApiTransaction[]>([])
+  const [documents, setDocuments] = useState<Document[]>([])
+
+  // Fetch real transactions from the API
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      try {
+        console.log('Fetching transactions from API...')
+        setIsLoading(true)
+        const response = await fetch('/api/tc/transactions')
+        
+        if (!response.ok) {
+          console.error('API response not OK:', response.status, response.statusText)
+          throw new Error(`Failed to fetch transactions: ${response.status} ${response.statusText}`)
+        }
+        
+        let data
+        try {
+          data = await response.json()
+          console.log('Fetched transactions:', data)
+        } catch (parseError) {
+          console.error('Error parsing JSON response:', parseError)
+          throw new Error('Failed to parse API response')
+        }
+        
+        if (data && data.transactions && Array.isArray(data.transactions)) {
+          console.log(`Successfully loaded ${data.transactions.length} transactions`)
+          setApiTransactions(data.transactions)
+          
+          // Generate documents from transactions
+          const generatedDocs: Document[] = []
+          
+          // Process each transaction to extract documents
+          data.transactions.forEach((transaction: ApiTransaction) => {
+            // Format property address
+            const property = transaction.propertyAddress ? 
+              `${transaction.propertyAddress}${transaction.city ? `, ${transaction.city}` : ''}${transaction.state ? `, ${transaction.state}` : ''}` : 
+              "Address not available"
+            
+            // If the transaction has documents, add them
+            if (transaction.documents && transaction.documents.length > 0) {
+              transaction.documents.forEach((doc, index) => {
+                generatedDocs.push({
+                  id: `doc-${transaction.transactionId}-${index}`,
+                  name: doc.name || `Document ${index + 1}`,
+                  transactionId: transaction.transactionId,
+                  property,
+                  agent: {
+                    name: transaction.agentId || "Unknown Agent",
+                    avatar: "/placeholder.svg?height=40&width=40",
+                  },
+                  uploadDate: doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString() : "Unknown date",
+                  status: doc.approved ? "approved" : "pending",
+                  aiVerified: Math.random() > 0.3, // Random AI verification for demo
+                  aiScore: Math.floor(Math.random() * 100), // Random AI score for demo
+                })
+              })
+            } else {
+              // If no documents, generate some random ones for demo purposes
+              const docTypes = [
+                "Purchase Agreement", 
+                "Property Disclosure", 
+                "Inspection Report", 
+                "Title Report", 
+                "Financing Pre-Approval", 
+                "HOA Documents"
+              ]
+              
+              // Generate 1-3 random documents per transaction
+              const numDocs = Math.floor(Math.random() * 3) + 1
+              for (let i = 0; i < numDocs; i++) {
+                const docType = docTypes[Math.floor(Math.random() * docTypes.length)]
+                const aiVerified = Math.random() > 0.3
+                const aiScore = aiVerified ? Math.floor(Math.random() * 30) + 70 : Math.floor(Math.random() * 70)
+                const status = Math.random() > 0.7 ? (Math.random() > 0.5 ? "approved" : "rejected") : "pending"
+                
+                generatedDocs.push({
+                  id: `doc-${transaction.transactionId}-${i}`,
+                  name: docType,
+                  transactionId: transaction.transactionId,
+                  property,
+                  agent: {
+                    name: transaction.agentId || "Unknown Agent",
+                    avatar: "/placeholder.svg?height=40&width=40",
+                  },
+                  uploadDate: new Date(Date.now() - Math.floor(Math.random() * 10) * 24 * 60 * 60 * 1000).toLocaleDateString(),
+                  status: status as "pending" | "approved" | "rejected",
+                  aiVerified,
+                  aiScore,
+                  issues: !aiVerified ? [
+                    "Missing signature",
+                    "Incomplete information",
+                    "Outdated document"
+                  ].slice(0, Math.floor(Math.random() * 3) + 1) : undefined
+                })
+              }
+            }
+          })
+          
+          setDocuments(generatedDocs)
+        } else {
+          console.warn('API returned no transactions or invalid format:', data)
+          setApiTransactions([])
+          // Set some demo documents if no transactions are found
+          setDocuments([
+            {
+              id: "doc-1",
+              name: "Purchase Agreement",
+              transactionId: "TR-7829",
+              property: "123 Main St, Austin, TX",
+              agent: {
+                name: "Sarah Johnson",
+                avatar: "/placeholder.svg?height=40&width=40",
+              },
+              uploadDate: "Apr 12, 2025",
+              status: "pending",
+              aiVerified: true,
+              aiScore: 95,
+            },
+            {
+              id: "doc-2",
+              name: "Property Disclosure",
+              transactionId: "TR-7829",
+              property: "123 Main St, Austin, TX",
+              agent: {
+                name: "Sarah Johnson",
+                avatar: "/placeholder.svg?height=40&width=40",
+              },
+              uploadDate: "Apr 12, 2025",
+              status: "pending",
+              aiVerified: true,
+              aiScore: 98,
+            }
+          ])
+        }
+      } catch (error) {
+        console.error('Error fetching transactions:', error)
+        toast.error('Failed to load transactions. Please try again later.')
+        setApiTransactions([])
+        // Set some demo documents if there's an error
+        setDocuments([
+          {
+            id: "doc-1",
+            name: "Purchase Agreement",
+            transactionId: "TR-7829",
+            property: "123 Main St, Austin, TX",
+            agent: {
+              name: "Sarah Johnson",
+              avatar: "/placeholder.svg?height=40&width=40",
+            },
+            uploadDate: "Apr 12, 2025",
+            status: "pending",
+            aiVerified: true,
+            aiScore: 95,
+          }
+        ])
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    
+    fetchTransactions()
+  }, [])
 
   const pendingDocuments = documents.filter((doc) => doc.status === "pending")
   const approvedDocuments = documents.filter((doc) => doc.status === "approved")
@@ -170,7 +266,16 @@ export default function DocumentReview() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {docs.length > 0 ? (
+          {isLoading ? (
+            <TableRow>
+              <TableCell colSpan={6} className="text-center py-6">
+                <div className="flex items-center justify-center">
+                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                  <span>Loading documents...</span>
+                </div>
+              </TableCell>
+            </TableRow>
+          ) : docs.length > 0 ? (
             docs.map((doc) => (
               <TableRow key={doc.id}>
                 <TableCell>
@@ -263,37 +368,44 @@ export default function DocumentReview() {
           <CardDescription>AI-powered document verification results</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex items-center p-4 rounded-lg bg-muted/50">
-              <div className="mr-4 h-12 w-12 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
-                <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-300" />
-              </div>
-              <div>
-                <div className="text-sm font-medium">Verified Documents</div>
-                <div className="text-2xl font-bold">{documents.filter((d) => d.aiVerified).length}</div>
-              </div>
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-6">
+              <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+              <p className="text-sm text-muted-foreground">Loading document statistics...</p>
             </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="flex items-center p-4 rounded-lg bg-muted/50">
+                <div className="mr-4 h-12 w-12 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
+                  <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-300" />
+                </div>
+                <div>
+                  <div className="text-sm font-medium">Verified Documents</div>
+                  <div className="text-2xl font-bold">{documents.filter((d) => d.aiVerified).length}</div>
+                </div>
+              </div>
 
-            <div className="flex items-center p-4 rounded-lg bg-muted/50">
-              <div className="mr-4 h-12 w-12 rounded-full bg-amber-100 dark:bg-amber-900 flex items-center justify-center">
-                <AlertTriangle className="h-6 w-6 text-amber-600 dark:text-amber-300" />
+              <div className="flex items-center p-4 rounded-lg bg-muted/50">
+                <div className="mr-4 h-12 w-12 rounded-full bg-amber-100 dark:bg-amber-900 flex items-center justify-center">
+                  <AlertTriangle className="h-6 w-6 text-amber-600 dark:text-amber-300" />
+                </div>
+                <div>
+                  <div className="text-sm font-medium">Flagged Documents</div>
+                  <div className="text-2xl font-bold">{documents.filter((d) => !d.aiVerified).length}</div>
+                </div>
               </div>
-              <div>
-                <div className="text-sm font-medium">Flagged Documents</div>
-                <div className="text-2xl font-bold">{documents.filter((d) => !d.aiVerified).length}</div>
-              </div>
-            </div>
 
-            <div className="flex items-center p-4 rounded-lg bg-muted/50">
-              <div className="mr-4 h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                <FileText className="h-6 w-6 text-blue-600 dark:text-blue-300" />
-              </div>
-              <div>
-                <div className="text-sm font-medium">Pending Review</div>
-                <div className="text-2xl font-bold">{pendingDocuments.length}</div>
+              <div className="flex items-center p-4 rounded-lg bg-muted/50">
+                <div className="mr-4 h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                  <FileText className="h-6 w-6 text-blue-600 dark:text-blue-300" />
+                </div>
+                <div>
+                  <div className="text-sm font-medium">Pending Review</div>
+                  <div className="text-2xl font-bold">{pendingDocuments.length}</div>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </CardContent>
       </Card>
 
