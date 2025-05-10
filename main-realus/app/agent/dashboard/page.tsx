@@ -6,6 +6,7 @@ import { QuickActionsPanel } from "@/components/dashboard/quick-actions-panel"
 import { LiveNotificationsPanel } from "@/components/dashboard/live-notifications-panel"
 import { TransactionListTable } from "@/components/dashboard/transaction-list-table"
 import { AIDelayPredictionWidget } from "@/components/dashboard/ai-delay-prediction-widget"
+import AgentTaskPanel from "@/components/agent/task-panel"
 import { PlusCircle, Upload, CheckSquare, AlertCircle } from "lucide-react"
 
 export default function AgentDashboard() {
@@ -162,6 +163,7 @@ export default function AgentDashboard() {
           />
         </div>
         <div className="space-y-6">
+          <AgentTaskPanel />
           <AIDelayPredictionWidget predictions={delayPredictions} />
           <AIInsightsCard insights={aiInsightsData} />
         </div>

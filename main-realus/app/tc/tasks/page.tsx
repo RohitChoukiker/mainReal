@@ -1,17 +1,70 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { CheckSquare, Clock, AlertTriangle, CheckCircle, PlusCircle, Calendar, MessageSquare } from "lucide-react"
+import { CheckSquare, Clock, AlertTriangle, CheckCircle, PlusCircle, Calendar, MessageSquare, Loader2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { toast } from "sonner"
+
+interface ApiTask {
+  _id: string;
+  title: string;
+  transactionId: string;
+  propertyAddress?: string;
+  agentId?: string;
+  dueDate: string;
+  status: "pending" | "completed" | "overdue" | "in_progress";
+  priority: "low" | "medium" | "high";
+  description?: string;
+  aiReminder: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface ApiTransaction {
+  transactionId: string;
+  propertyAddress: string;
+  city: string;
+  state: string;
+  clientName: string;
+  agentId: string;
+  status: string;
+  createdAt: string;
+  closingDate: string;
+  price: number;
+}
+
+interface Transaction {
+  id: string
+  property: string
+  client: string
+  agent: {
+    name: string
+    avatar: string
+  }
+  status: "pending" | "in_progress" | "at_risk" | "completed" | "cancelled" | "New" | "new"
+  createdDate: string
+  closingDate: string
+  price?: string
+  documents: {
+    total: number
+    verified: number
+  }
+  tasks: {
+    total: number
+    completed: number
+  }
+  riskLevel?: "low" | "medium" | "high"
+  completionPercentage: number
+}
 
 interface Task {
   id: string
@@ -27,97 +80,260 @@ interface Task {
   priority: "low" | "medium" | "high"
   description?: string
   aiReminder?: boolean
+  transaction?: Transaction // Add transaction information to task
 }
 
 export default function TaskManagement() {
-  const [tasks, setTasks] = useState<Task[]>([
-    {
-      id: "task-1",
-      title: "Schedule home inspection",
-      transactionId: "TR-7829",
-      property: "123 Main St, Austin, TX",
-      agent: {
-        name: "Sarah Johnson",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      dueDate: "Apr 15, 2025",
-      status: "pending",
-      priority: "high",
-      description: "Contact the inspector and schedule a home inspection as soon as possible.",
-      aiReminder: true,
-    },
-    {
-      id: "task-2",
-      title: "Collect HOA documents",
-      transactionId: "TR-7829",
-      property: "123 Main St, Austin, TX",
-      agent: {
-        name: "Sarah Johnson",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      dueDate: "Apr 18, 2025",
-      status: "in_progress",
-      priority: "medium",
-      description: "Obtain all HOA documents including bylaws, financials, and meeting minutes.",
-    },
-    {
-      id: "task-3",
-      title: "Submit financing application",
-      transactionId: "TR-6543",
-      property: "456 Oak Ave, Dallas, TX",
-      agent: {
-        name: "John Smith",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      dueDate: "Apr 10, 2025",
-      status: "overdue",
-      priority: "high",
-      description: "Complete and submit the mortgage application with all required documentation.",
-      aiReminder: true,
-    },
-    {
-      id: "task-4",
-      title: "Review title report",
-      transactionId: "TR-9021",
-      property: "789 Pine Rd, Houston, TX",
-      agent: {
-        name: "Michael Brown",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      dueDate: "Apr 20, 2025",
-      status: "pending",
-      priority: "medium",
-      description: "Review the preliminary title report and note any issues or concerns.",
-    },
-    {
-      id: "task-5",
-      title: "Coordinate final walkthrough",
-      transactionId: "TR-6543",
-      property: "456 Oak Ave, Dallas, TX",
-      agent: {
-        name: "John Smith",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      dueDate: "Apr 25, 2025",
-      status: "pending",
-      priority: "low",
-      description: "Schedule and coordinate the final walkthrough with the buyer and seller.",
-    },
-    {
-      id: "task-6",
-      title: "Verify property disclosure",
-      transactionId: "TR-5432",
-      property: "321 Elm St, San Antonio, TX",
-      agent: {
-        name: "John Smith",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      dueDate: "Apr 5, 2025",
-      status: "completed",
-      priority: "high",
-      description: "Verify that all property disclosures are complete and accurate.",
-    },
-  ])
+  const [isLoading, setIsLoading] = useState(true)
+  const [apiTasks, setApiTasks] = useState<ApiTask[]>([])
+  const [apiTransactions, setApiTransactions] = useState<ApiTransaction[]>([])
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+
+  // Fetch real tasks and transactions from the API
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        console.log('Fetching tasks and transactions from API...')
+        setIsLoading(true)
+        
+        // Fetch tasks
+        const tasksResponse = await fetch('/api/tc/tasks')
+        
+        if (!tasksResponse.ok) {
+          console.error('Tasks API response not OK:', tasksResponse.status, tasksResponse.statusText)
+          throw new Error(`Failed to fetch tasks: ${tasksResponse.status} ${tasksResponse.statusText}`)
+        }
+        
+        let tasksData
+        try {
+          tasksData = await tasksResponse.json()
+          console.log('Fetched tasks:', tasksData)
+        } catch (parseError) {
+          console.error('Error parsing tasks JSON response:', parseError)
+          throw new Error('Failed to parse tasks API response')
+        }
+        
+        // Fetch transactions
+        const transactionsResponse = await fetch('/api/tc/transactions')
+        
+        if (!transactionsResponse.ok) {
+          console.error('Transactions API response not OK:', transactionsResponse.status, transactionsResponse.statusText)
+          throw new Error(`Failed to fetch transactions: ${transactionsResponse.status} ${transactionsResponse.statusText}`)
+        }
+        
+        let transactionsData
+        try {
+          transactionsData = await transactionsResponse.json()
+          console.log('Fetched transactions:', transactionsData)
+        } catch (parseError) {
+          console.error('Error parsing transactions JSON response:', parseError)
+          throw new Error('Failed to parse transactions API response')
+        }
+        
+        // Process transactions data
+        if (transactionsData && transactionsData.transactions && Array.isArray(transactionsData.transactions)) {
+          console.log(`Successfully loaded ${transactionsData.transactions.length} transactions`)
+          setApiTransactions(transactionsData.transactions)
+          
+          // Convert API transactions to the format expected by the UI
+          const formattedTransactions: Transaction[] = transactionsData.transactions.map((t: ApiTransaction) => {
+            try {
+              // Safely format dates with fallbacks
+              let createdDate = "N/A";
+              let closingDate = "N/A";
+              
+              try {
+                if (t.createdAt) {
+                  createdDate = new Date(t.createdAt).toLocaleDateString();
+                }
+              } catch (e) {
+                console.error("Error formatting createdAt date:", e);
+              }
+              
+              try {
+                if (t.closingDate) {
+                  closingDate = new Date(t.closingDate).toLocaleDateString();
+                }
+              } catch (e) {
+                console.error("Error formatting closingDate date:", e);
+              }
+              
+              // Format price with fallback
+              let formattedPrice = "$0";
+              try {
+                if (t.price) {
+                  formattedPrice = `$${t.price.toLocaleString()}`;
+                }
+              } catch (e) {
+                console.error("Error formatting price:", e);
+              }
+              
+              // Calculate completion percentage (random for now)
+              const completionPercentage = Math.floor(Math.random() * 100);
+              
+              return {
+                id: t.transactionId || `TR-${Math.floor(Math.random() * 10000)}`,
+                property: t.propertyAddress ? 
+                  `${t.propertyAddress}${t.city ? `, ${t.city}` : ''}${t.state ? `, ${t.state}` : ''}` : 
+                  "Address not available",
+                client: t.clientName || "Unknown Client",
+                agent: {
+                  name: t.agentId || "Unknown Agent",
+                  avatar: "/placeholder.svg?height=40&width=40",
+                },
+                status: (t.status || "pending") as any,
+                createdDate,
+                closingDate,
+                price: formattedPrice,
+                documents: {
+                  total: 8,
+                  verified: Math.floor(Math.random() * 9),
+                },
+                tasks: {
+                  total: 12,
+                  completed: Math.floor(Math.random() * 13),
+                },
+                completionPercentage,
+              };
+            } catch (error) {
+              console.error("Error converting transaction:", error, t);
+              // Return a fallback transaction object if conversion fails
+              return {
+                id: `TR-${Math.floor(Math.random() * 10000)}`,
+                property: "Error loading property details",
+                client: "Unknown",
+                agent: {
+                  name: "Unknown Agent",
+                  avatar: "/placeholder.svg?height=40&width=40",
+                },
+                status: "pending" as any,
+                createdDate: "N/A",
+                closingDate: "N/A",
+                price: "$0",
+                documents: {
+                  total: 0,
+                  verified: 0,
+                },
+                tasks: {
+                  total: 0,
+                  completed: 0,
+                },
+                completionPercentage: 0,
+              };
+            }
+          });
+          
+          setTransactions(formattedTransactions || []);
+        } else {
+          console.warn('API returned no transactions or invalid format:', transactionsData)
+          setApiTransactions([])
+          setTransactions([])
+        }
+        
+        // Process tasks data
+        if (tasksData && tasksData.tasks && Array.isArray(tasksData.tasks)) {
+          console.log(`Successfully loaded ${tasksData.tasks.length} tasks`)
+          setApiTasks(tasksData.tasks)
+          
+          // Create a map of transactions by ID for quick lookup
+          const transactionMap = new Map<string, Transaction>();
+          if (transactionsData && transactionsData.transactions) {
+            formattedTransactions.forEach(transaction => {
+              transactionMap.set(transaction.id, transaction);
+            });
+          }
+          
+          // Convert API tasks to the format expected by the UI and associate with transactions
+          const formattedTasks: Task[] = tasksData.tasks.map((apiTask: ApiTask) => {
+            // Find the associated transaction
+            const associatedTransaction = transactionMap.get(apiTask.transactionId);
+            
+            return {
+              id: apiTask._id,
+              title: apiTask.title,
+              transactionId: apiTask.transactionId,
+              property: apiTask.propertyAddress || "Address not available",
+              agent: {
+                name: apiTask.agentId || "Unknown Agent",
+                avatar: "/placeholder.svg?height=40&width=40",
+              },
+              dueDate: new Date(apiTask.dueDate).toLocaleDateString(),
+              status: apiTask.status,
+              priority: apiTask.priority,
+              description: apiTask.description,
+              aiReminder: apiTask.aiReminder,
+              transaction: associatedTransaction // Link the transaction to the task
+            };
+          });
+          
+          setTasks(formattedTasks)
+        } else {
+          console.warn('API returned no tasks or invalid format:', tasksData)
+          setApiTasks([])
+          // Set some demo tasks if no tasks are found
+          setTasks([
+            {
+              id: "task-1",
+              title: "Schedule home inspection",
+              transactionId: "TR-7829",
+              property: "123 Main St, Austin, TX",
+              agent: {
+                name: "Sarah Johnson",
+                avatar: "/placeholder.svg?height=40&width=40",
+              },
+              dueDate: "Apr 15, 2025",
+              status: "pending",
+              priority: "high",
+              description: "Contact the inspector and schedule a home inspection as soon as possible.",
+              aiReminder: true,
+            },
+            {
+              id: "task-2",
+              title: "Collect HOA documents",
+              transactionId: "TR-7829",
+              property: "123 Main St, Austin, TX",
+              agent: {
+                name: "Sarah Johnson",
+                avatar: "/placeholder.svg?height=40&width=40",
+              },
+              dueDate: "Apr 18, 2025",
+              status: "in_progress",
+              priority: "medium",
+              description: "Obtain all HOA documents including bylaws, financials, and meeting minutes.",
+            }
+          ])
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error)
+        toast.error('Failed to load data. Please try again later.')
+        setApiTasks([])
+        setApiTransactions([])
+        // Set some demo tasks if there's an error
+        setTasks([
+          {
+            id: "task-1",
+            title: "Schedule home inspection",
+            transactionId: "TR-7829",
+            property: "123 Main St, Austin, TX",
+            agent: {
+              name: "Sarah Johnson",
+              avatar: "/placeholder.svg?height=40&width=40",
+            },
+            dueDate: "Apr 15, 2025",
+            status: "pending",
+            priority: "high",
+            description: "Contact the inspector and schedule a home inspection as soon as possible.",
+            aiReminder: true,
+          }
+        ])
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    
+    fetchData()
+  }, [])
 
   const pendingTasks = tasks.filter((task) => task.status === "pending" || task.status === "in_progress")
   const overdueTasks = tasks.filter((task) => task.status === "overdue")
@@ -183,6 +399,45 @@ export default function TaskManagement() {
     }
   }
 
+  // Function to render transaction status badge
+  const getTransactionStatusBadge = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case "pending":
+      case "in_progress":
+        return (
+          <Badge variant="outline" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+            In Progress
+          </Badge>
+        )
+      case "at_risk":
+        return (
+          <Badge variant="outline" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
+            At Risk
+          </Badge>
+        )
+      case "completed":
+        return (
+          <Badge variant="outline" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+            Completed
+          </Badge>
+        )
+      case "cancelled":
+        return (
+          <Badge variant="outline" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
+            Cancelled
+          </Badge>
+        )
+      case "new":
+        return (
+          <Badge variant="outline" className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300">
+            New
+          </Badge>
+        )
+      default:
+        return <Badge variant="outline">{status || "Unknown"}</Badge>
+    }
+  }
+
   const renderTaskTable = (taskList: Task[]) => (
     <div className="rounded-md border">
       <Table>
@@ -190,6 +445,7 @@ export default function TaskManagement() {
           <TableRow>
             <TableHead>Task</TableHead>
             <TableHead className="hidden md:table-cell">Transaction</TableHead>
+            <TableHead className="hidden md:table-cell">Client</TableHead>
             <TableHead className="hidden md:table-cell">Agent</TableHead>
             <TableHead>Due Date</TableHead>
             <TableHead>Priority</TableHead>
@@ -197,7 +453,16 @@ export default function TaskManagement() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {taskList.length > 0 ? (
+          {isLoading ? (
+            <TableRow>
+              <TableCell colSpan={7} className="text-center py-6">
+                <div className="flex items-center justify-center">
+                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                  <span>Loading tasks...</span>
+                </div>
+              </TableCell>
+            </TableRow>
+          ) : taskList.length > 0 ? (
             taskList.map((task) => (
               <TableRow key={task.id}>
                 <TableCell>
@@ -217,7 +482,19 @@ export default function TaskManagement() {
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="hidden md:table-cell">{task.transactionId}</TableCell>
+                <TableCell className="hidden md:table-cell">
+                  <div>
+                    <div className="font-medium">{task.transactionId}</div>
+                    {task.transaction && (
+                      <div className="mt-1">
+                        {getTransactionStatusBadge(task.transaction.status)}
+                      </div>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell className="hidden md:table-cell">
+                  {task.transaction ? task.transaction.client : "Unknown Client"}
+                </TableCell>
                 <TableCell className="hidden md:table-cell">
                   <div className="flex items-center gap-2">
                     <Avatar className="h-6 w-6">
@@ -251,7 +528,7 @@ export default function TaskManagement() {
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
+              <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
                 No tasks found
               </TableCell>
             </TableRow>
@@ -286,9 +563,19 @@ export default function TaskManagement() {
                       <SelectValue placeholder="Select transaction" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="TR-7829">TR-7829 - 123 Main St</SelectItem>
-                      <SelectItem value="TR-6543">TR-6543 - 456 Oak Ave</SelectItem>
-                      <SelectItem value="TR-9021">TR-9021 - 789 Pine Rd</SelectItem>
+                      {transactions.length > 0 ? (
+                        transactions.map((transaction) => (
+                          <SelectItem key={transaction.id} value={transaction.id}>
+                            {transaction.id} - {transaction.property}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <>
+                          <SelectItem value="TR-7829">TR-7829 - 123 Main St</SelectItem>
+                          <SelectItem value="TR-6543">TR-6543 - 456 Oak Ave</SelectItem>
+                          <SelectItem value="TR-9021">TR-9021 - 789 Pine Rd</SelectItem>
+                        </>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -300,9 +587,20 @@ export default function TaskManagement() {
                       <SelectValue placeholder="Select agent" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="sarah">Sarah Johnson</SelectItem>
-                      <SelectItem value="john">John Smith</SelectItem>
-                      <SelectItem value="michael">Michael Brown</SelectItem>
+                      {transactions.length > 0 ? (
+                        // Get unique agents from transactions
+                        [...new Set(transactions.map(t => t.agent.name))].map((agentName) => (
+                          <SelectItem key={agentName} value={agentName}>
+                            {agentName}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <>
+                          <SelectItem value="sarah">Sarah Johnson</SelectItem>
+                          <SelectItem value="john">John Smith</SelectItem>
+                          <SelectItem value="michael">Michael Brown</SelectItem>
+                        </>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>

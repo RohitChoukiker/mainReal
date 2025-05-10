@@ -25,13 +25,16 @@ interface SidebarProps {
     title: string
     href: string
     icon: React.ReactNode
+    badge?: string
+    badgeVariant?: string
   }[]
   title: string
   icon: React.ReactNode
   onLogout?: () => Promise<void>
+  taskPanel?: React.ReactNode
 }
 
-export function Sidebar({ items, title, icon, onLogout }: SidebarProps) {
+export function Sidebar({ items, title, icon, onLogout, taskPanel }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -106,12 +109,24 @@ export function Sidebar({ items, title, icon, onLogout }: SidebarProps) {
                       key={index}
                       href={item.href}
                       className={cn(
-                        "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                        "flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors",
                         pathname === item.href ? "bg-primary text-primary-foreground" : "hover:bg-muted",
                       )}
                     >
-                      {item.icon}
-                      <span>{item.title}</span>
+                      <div className="flex items-center gap-3">
+                        {item.icon}
+                        <span>{item.title}</span>
+                      </div>
+                      {item.badge && (
+                        <span className={cn(
+                          "ml-auto flex h-5 w-5 items-center justify-center rounded-full text-xs font-medium",
+                          item.badgeVariant === "destructive" 
+                            ? "bg-destructive text-destructive-foreground" 
+                            : "bg-primary text-primary-foreground"
+                        )}>
+                          {item.badge}
+                        </span>
+                      )}
                     </Link>
                   ))}
                 </nav>
@@ -120,6 +135,13 @@ export function Sidebar({ items, title, icon, onLogout }: SidebarProps) {
                 {isBrokerPanel && (
                   <div className="mt-6">
                     <TransactionPanel />
+                  </div>
+                )}
+                
+                {/* Task Panel for TC */}
+                {taskPanel && (
+                  <div className="mt-6">
+                    {taskPanel}
                   </div>
                 )}
               </div>
@@ -168,6 +190,13 @@ export function Sidebar({ items, title, icon, onLogout }: SidebarProps) {
             {isBrokerPanel && (
               <div className="mt-6">
                 <TransactionPanel />
+              </div>
+            )}
+            
+            {/* Task Panel for TC */}
+            {taskPanel && (
+              <div className="mt-6">
+                {taskPanel}
               </div>
             )}
           </div>

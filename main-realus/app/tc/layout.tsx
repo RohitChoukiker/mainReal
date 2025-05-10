@@ -7,44 +7,19 @@ import { ClipboardCheck, ClipboardList, FileCheck, CheckSquare, AlertCircle, Che
 import ApprovalStatus from "@/components/approval-status";
 import { toast as reactToastify } from "react-toastify";
 import { useToast } from "@/hooks/use-toast";
+import dynamic from "next/dynamic";
 
-const sidebarItems = [
-  {
-    title: "Dashboard",
-    href: "/tc/dashboard",
-    icon: <ClipboardCheck className="h-5 w-5" />,
-  },
-  {
-    title: "Assigned Transactions",
-    href: "/tc/transactions",
-    icon: <ClipboardList className="h-5 w-5" />,
-  },
-  {
-    title: "Document Review",
-    href: "/tc/document-review",
-    icon: <FileCheck className="h-5 w-5" />,
-  },
-  {
-    title: "Task Management",
-    href: "/tc/tasks",
-    icon: <CheckSquare className="h-5 w-5" />,
-  },
-  {
-    title: "Complaints",
-    href: "/tc/complaints",
-    icon: <AlertCircle className="h-5 w-5" />,
-  },
-  {
-    title: "Ready for Closure",
-    href: "/tc/ready-for-closure",
-    icon: <CheckCircle className="h-5 w-5" />,
-  },
-  {
-    title: "Settings",
-    href: "/tc/settings",
-    icon: <Settings className="h-5 w-5" />,
-  },
-];
+// Dynamically import the TaskPanel to avoid SSR issues with real-time data
+const TaskPanel = dynamic(
+  () => import("@/components/tc/task-panel").then(mod => mod.default),
+  { ssr: false }
+);
+
+// Define the task interface
+interface ApiTask {
+  _id: string;
+  status: string;
+}
 
 export default function TCLayout({
   children,
@@ -53,11 +28,12 @@ export default function TCLayout({
 }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isApproved, setIsApproved] = useState<boolean | undefined>(undefined);
+  const [pendingTaskCount, setPendingTaskCount] = useState<number>(0);
   const router = useRouter();
   const { toast } = useToast();
 
+  // Check if user is logged in and approved
   useEffect(() => {
-    // Check if user is logged in and approved
     const checkAuth = async () => {
       try {
         const response = await fetch("/api/user/status");
@@ -87,6 +63,76 @@ export default function TCLayout({
     
     checkAuth();
   }, [router]);
+
+  // Fetch task count for the sidebar
+  useEffect(() => {
+    const fetchTaskCount = async () => {
+      try {
+        const response = await fetch("/api/tc/tasks");
+        
+        if (response.ok) {
+          const data = await response.json();
+          
+          if (data.tasks && Array.isArray(data.tasks)) {
+            // Count pending and overdue tasks
+            const pendingCount = data.tasks.filter((task: ApiTask) => 
+              task.status === "pending" || task.status === "in_progress" || task.status === "overdue"
+            ).length;
+            
+            setPendingTaskCount(pendingCount);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching task count:", error);
+      }
+    };
+    
+    // Only fetch if user is approved
+    if (isApproved) {
+      fetchTaskCount();
+    }
+  }, [isApproved]);
+
+  // Create sidebar items with dynamic task count
+  const sidebarItems = [
+    {
+      title: "Dashboard",
+      href: "/tc/dashboard",
+      icon: <ClipboardCheck className="h-5 w-5" />,
+    },
+    {
+      title: "Assigned Transactions",
+      href: "/tc/transactions",
+      icon: <ClipboardList className="h-5 w-5" />,
+    },
+    {
+      title: "Document Review",
+      href: "/tc/document-review",
+      icon: <FileCheck className="h-5 w-5" />,
+    },
+    {
+      title: "Task Management",
+      href: "/tc/tasks",
+      icon: <CheckSquare className="h-5 w-5" />,
+      badge: pendingTaskCount > 0 ? pendingTaskCount.toString() : undefined,
+      badgeVariant: "destructive"
+    },
+    {
+      title: "Complaints",
+      href: "/tc/complaints",
+      icon: <AlertCircle className="h-5 w-5" />,
+    },
+    {
+      title: "Ready for Closure",
+      href: "/tc/ready-for-closure",
+      icon: <CheckCircle className="h-5 w-5" />,
+    },
+    {
+      title: "Settings",
+      href: "/tc/settings",
+      icon: <Settings className="h-5 w-5" />,
+    },
+  ];
 
   const handleLogout = async () => {
     try {
@@ -137,6 +183,7 @@ export default function TCLayout({
         title="TC Panel" 
         icon={<ClipboardCheck className="h-5 w-5" />} 
         onLogout={handleLogout}
+        taskPanel={<TaskPanel />}
       />
       <div className="md:ml-64 min-h-screen">
         <main className="p-4 md:p-6">{children}</main>
