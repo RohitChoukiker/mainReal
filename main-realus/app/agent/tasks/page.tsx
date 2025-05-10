@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
@@ -22,77 +22,112 @@ interface Task {
   aiReminder?: boolean
 }
 
+interface ApiTask {
+  _id: string;
+  title: string;
+  transactionId: string;
+  propertyAddress?: string;
+  agentId?: string;
+  dueDate: string;
+  status: "pending" | "completed" | "overdue" | "in_progress";
+  priority: "low" | "medium" | "high";
+  description?: string;
+  aiReminder: boolean;
+  assignedBy?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export default function TasksAssigned() {
-  const [tasks, setTasks] = useState<Task[]>([
-    {
-      id: "task-1",
-      title: "Schedule home inspection",
-      transactionId: "TR-7829",
-      property: "123 Main St, Austin, TX",
-      assignedBy: "Sarah Johnson (TC)",
-      dueDate: "Apr 15, 2025",
-      status: "pending",
-      priority: "high",
-      description: "Contact the inspector and schedule a home inspection as soon as possible.",
-      aiReminder: true,
-    },
-    {
-      id: "task-2",
-      title: "Collect HOA documents",
-      transactionId: "TR-7829",
-      property: "123 Main St, Austin, TX",
-      assignedBy: "Sarah Johnson (TC)",
-      dueDate: "Apr 18, 2025",
-      status: "in_progress",
-      priority: "medium",
-      description: "Obtain all HOA documents including bylaws, financials, and meeting minutes.",
-    },
-    {
-      id: "task-3",
-      title: "Submit financing application",
-      transactionId: "TR-6543",
-      property: "456 Oak Ave, Dallas, TX",
-      assignedBy: "Michael Brown (TC)",
-      dueDate: "Apr 10, 2025",
-      status: "overdue",
-      priority: "high",
-      description: "Complete and submit the mortgage application with all required documentation.",
-      aiReminder: true,
-    },
-    {
-      id: "task-4",
-      title: "Review title report",
-      transactionId: "TR-9021",
-      property: "789 Pine Rd, Houston, TX",
-      assignedBy: "Michael Brown (TC)",
-      dueDate: "Apr 20, 2025",
-      status: "pending",
-      priority: "medium",
-      description: "Review the preliminary title report and note any issues or concerns.",
-    },
-    {
-      id: "task-5",
-      title: "Coordinate final walkthrough",
-      transactionId: "TR-6543",
-      property: "456 Oak Ave, Dallas, TX",
-      assignedBy: "Sarah Johnson (TC)",
-      dueDate: "Apr 25, 2025",
-      status: "pending",
-      priority: "low",
-      description: "Schedule and coordinate the final walkthrough with the buyer and seller.",
-    },
-    {
-      id: "task-6",
-      title: "Verify property disclosure",
-      transactionId: "TR-5432",
-      property: "321 Elm St, San Antonio, TX",
-      assignedBy: "Michael Brown (TC)",
-      dueDate: "Apr 5, 2025",
-      status: "completed",
-      priority: "high",
-      description: "Verify that all property disclosures are complete and accurate.",
-    },
-  ])
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  
+  // Fetch tasks from API
+  useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        setIsLoading(true)
+        
+        // Fetch tasks from API
+        const response = await fetch('/api/agent/tasks')
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch tasks: ${response.status}`)
+        }
+        
+        const data = await response.json()
+        
+        // Process tasks data
+        if (data && data.tasks && Array.isArray(data.tasks)) {
+          // Convert API tasks to the format expected by the UI
+          const formattedTasks: Task[] = data.tasks.map((apiTask: ApiTask) => {
+            return {
+              id: apiTask._id,
+              title: apiTask.title,
+              transactionId: apiTask.transactionId,
+              property: apiTask.propertyAddress || "Address not available",
+              assignedBy: apiTask.assignedBy || "TC Manager",
+              dueDate: new Date(apiTask.dueDate).toLocaleDateString(),
+              status: apiTask.status,
+              priority: apiTask.priority,
+              description: apiTask.description,
+              aiReminder: apiTask.aiReminder
+            }
+          })
+          
+          setTasks(formattedTasks)
+        } else {
+          // If no tasks are found, use demo data
+          setTasks([
+            {
+              id: "task-1",
+              title: "Schedule home inspection",
+              transactionId: "TR-7829",
+              property: "123 Main St, Austin, TX",
+              assignedBy: "Sarah Johnson (TC)",
+              dueDate: "Apr 15, 2025",
+              status: "pending",
+              priority: "high",
+              description: "Contact the inspector and schedule a home inspection as soon as possible.",
+              aiReminder: true,
+            },
+            {
+              id: "task-2",
+              title: "Collect HOA documents",
+              transactionId: "TR-7829",
+              property: "123 Main St, Austin, TX",
+              assignedBy: "Sarah Johnson (TC)",
+              dueDate: "Apr 18, 2025",
+              status: "in_progress",
+              priority: "medium",
+              description: "Obtain all HOA documents including bylaws, financials, and meeting minutes.",
+            }
+          ])
+        }
+      } catch (error) {
+        console.error("Error fetching tasks:", error)
+        // Set demo data on error
+        setTasks([
+          {
+            id: "task-1",
+            title: "Schedule home inspection",
+            transactionId: "TR-7829",
+            property: "123 Main St, Austin, TX",
+            assignedBy: "Sarah Johnson (TC)",
+            dueDate: "Apr 15, 2025",
+            status: "pending",
+            priority: "high",
+            description: "Contact the inspector and schedule a home inspection as soon as possible.",
+            aiReminder: true,
+          }
+        ])
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    
+    fetchTasks()
+  }, [])
 
   const pendingTasks = tasks.filter((task) => task.status === "pending" || task.status === "in_progress")
   const overdueTasks = tasks.filter((task) => task.status === "overdue")
@@ -158,8 +193,32 @@ export default function TasksAssigned() {
     }
   }
 
-  const handleCompleteTask = (taskId: string) => {
-    setTasks(tasks.map((task) => (task.id === taskId ? { ...task, status: "completed" } : task)))
+  const handleCompleteTask = async (taskId: string) => {
+    try {
+      // Update task status in UI immediately for better UX
+      setTasks(tasks.map((task) => (task.id === taskId ? { ...task, status: "completed" } : task)))
+      
+      // In a real implementation, you would update the task status in the database
+      // For now, we'll just log it
+      console.log(`Task ${taskId} marked as completed`)
+      
+      // TODO: Implement API call to update task status
+      // const response = await fetch(`/api/agent/tasks/${taskId}`, {
+      //   method: 'PATCH',
+      //   headers: {
+      //     'Content-Type': 'application/json'
+      //   },
+      //   body: JSON.stringify({ status: 'completed' })
+      // })
+      
+      // if (!response.ok) {
+      //   throw new Error(`Failed to update task: ${response.status}`)
+      // }
+    } catch (error) {
+      console.error("Error updating task:", error)
+      // Revert the UI change if the API call fails
+      // setTasks(originalTasks)
+    }
   }
 
   const renderTaskTable = (taskList: Task[]) => (
@@ -236,6 +295,12 @@ export default function TasksAssigned() {
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold tracking-tight">Tasks Assigned</h1>
+      
+      {isLoading && (
+        <div className="flex justify-center items-center h-[200px]">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="md:col-span-2">

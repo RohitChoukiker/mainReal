@@ -89,6 +89,18 @@ export default function TaskManagement() {
   const [apiTransactions, setApiTransactions] = useState<ApiTransaction[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
+  
+  // Form state
+  const [newTask, setNewTask] = useState({
+    title: "",
+    transactionId: "",
+    agentId: "",
+    dueDate: "",
+    priority: "",
+    description: "",
+    aiReminder: false
+  })
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Fetch real tasks and transactions from the API
   useEffect(() => {
@@ -98,7 +110,9 @@ export default function TaskManagement() {
         setIsLoading(true)
         
         // Fetch tasks
-        const tasksResponse = await fetch('/api/tc/tasks')
+        const tasksResponse = await fetch('/api/tc/tasks', {
+          credentials: 'include' // Include cookies for authentication
+        })
         
         if (!tasksResponse.ok) {
           console.error('Tasks API response not OK:', tasksResponse.status, tasksResponse.statusText)
@@ -115,7 +129,9 @@ export default function TaskManagement() {
         }
         
         // Fetch transactions
-        const transactionsResponse = await fetch('/api/tc/transactions')
+        const transactionsResponse = await fetch('/api/tc/transactions', {
+          credentials: 'include' // Include cookies for authentication
+        })
         
         if (!transactionsResponse.ok) {
           console.error('Transactions API response not OK:', transactionsResponse.status, transactionsResponse.statusText)
@@ -232,7 +248,9 @@ export default function TaskManagement() {
         }
         
         // Process tasks data
-        if (tasksData && tasksData.tasks && Array.isArray(tasksData.tasks)) {
+        let formattedTasks: Task[] = [];
+        
+        if (tasksData && tasksData.tasks && Array.isArray(tasksData.tasks) && tasksData.tasks.length > 0) {
           console.log(`Successfully loaded ${tasksData.tasks.length} tasks`)
           setApiTasks(tasksData.tasks)
           
@@ -245,7 +263,7 @@ export default function TaskManagement() {
           }
           
           // Convert API tasks to the format expected by the UI and associate with transactions
-          const formattedTasks: Task[] = tasksData.tasks.map((apiTask: ApiTask) => {
+          formattedTasks = tasksData.tasks.map((apiTask: ApiTask) => {
             // Find the associated transaction
             const associatedTransaction = transactionMap.get(apiTask.transactionId);
             
@@ -266,13 +284,12 @@ export default function TaskManagement() {
               transaction: associatedTransaction // Link the transaction to the task
             };
           });
-          
-          setTasks(formattedTasks)
         } else {
-          console.warn('API returned no tasks or invalid format:', tasksData)
+          console.warn('API returned no tasks or invalid format, using demo tasks')
           setApiTasks([])
-          // Set some demo tasks if no tasks are found
-          setTasks([
+          
+          // Create demo tasks
+          formattedTasks = [
             {
               id: "task-1",
               title: "Schedule home inspection",
@@ -302,15 +319,19 @@ export default function TaskManagement() {
               priority: "medium",
               description: "Obtain all HOA documents including bylaws, financials, and meeting minutes.",
             }
-          ])
+          ]
         }
+        
+        // Always set the tasks, whether they're from the API or demo tasks
+        setTasks(formattedTasks)
       } catch (error) {
         console.error('Error fetching data:', error)
-        toast.error('Failed to load data. Please try again later.')
+        toast.error('Failed to load data. Using demo data instead.')
         setApiTasks([])
         setApiTransactions([])
+        
         // Set some demo tasks if there's an error
-        setTasks([
+        const demoTasks = [
           {
             id: "task-1",
             title: "Schedule home inspection",
@@ -325,8 +346,38 @@ export default function TaskManagement() {
             priority: "high",
             description: "Contact the inspector and schedule a home inspection as soon as possible.",
             aiReminder: true,
+          },
+          {
+            id: "task-2",
+            title: "Collect HOA documents",
+            transactionId: "TR-7829",
+            property: "123 Main St, Austin, TX",
+            agent: {
+              name: "Sarah Johnson",
+              avatar: "/placeholder.svg?height=40&width=40",
+            },
+            dueDate: "Apr 18, 2025",
+            status: "in_progress",
+            priority: "medium",
+            description: "Obtain all HOA documents including bylaws, financials, and meeting minutes.",
+          },
+          {
+            id: "task-3",
+            title: "Submit financing application",
+            transactionId: "TR-6543",
+            property: "456 Oak Ave, Dallas, TX",
+            agent: {
+              name: "John Smith",
+              avatar: "/placeholder.svg?height=40&width=40",
+            },
+            dueDate: "Apr 20, 2025",
+            status: "pending",
+            priority: "high",
+            description: "Complete and submit the mortgage application with all required documentation.",
           }
-        ])
+        ];
+        
+        setTasks(demoTasks)
       } finally {
         setIsLoading(false)
       }
@@ -338,6 +389,175 @@ export default function TaskManagement() {
   const pendingTasks = tasks.filter((task) => task.status === "pending" || task.status === "in_progress")
   const overdueTasks = tasks.filter((task) => task.status === "overdue")
   const completedTasks = tasks.filter((task) => task.status === "completed")
+  
+  // Handle form input changes
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { id, value } = e.target
+    setNewTask({
+      ...newTask,
+      [id === 'task-title' ? 'title' : id === 'due-date' ? 'dueDate' : id]: value
+    })
+  }
+  
+  // Handle select changes
+  const handleSelectChange = (id: string, value: string) => {
+    setNewTask({
+      ...newTask,
+      [id]: value
+    })
+  }
+  
+  // Handle form submission
+  const handleSubmitTask = async (e: React.FormEvent) => {
+    e.preventDefault()
+    console.log("Form submitted with data:", newTask)
+    
+    // Validate form
+    if (!newTask.title || !newTask.transactionId || !newTask.agentId || !newTask.dueDate || !newTask.priority) {
+      toast.error("Please fill in all required fields")
+      return
+    }
+    
+    try {
+      setIsSubmitting(true)
+      
+      // Get property address from selected transaction
+      const selectedTransaction = transactions.find(t => t.id === newTask.transactionId)
+      const propertyAddress = selectedTransaction ? selectedTransaction.property : ""
+      
+      // Prepare task data
+      const taskData = {
+        title: newTask.title,
+        transactionId: newTask.transactionId,
+        agentId: newTask.agentId,
+        propertyAddress,
+        dueDate: newTask.dueDate,
+        priority: newTask.priority,
+        description: newTask.description,
+        aiReminder: newTask.aiReminder || false
+      }
+      
+      console.log("Sending task data to API:", taskData)
+      
+      // Send POST request to create task
+      const response = await fetch('/api/tc/tasks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(taskData),
+        credentials: 'include' // Include cookies for authentication
+      })
+      
+      console.log("API response status:", response.status)
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        console.error("API error response:", errorData)
+        throw new Error(`Failed to create task: ${response.status} - ${errorData.message || ''}`)
+      }
+      
+      const data = await response.json()
+      console.log("API success response:", data)
+      
+      // Show success message
+      toast.success("Task assigned successfully")
+      
+      // Reset form
+      setNewTask({
+        title: "",
+        transactionId: "",
+        agentId: "",
+        dueDate: "",
+        priority: "",
+        description: "",
+        aiReminder: false
+      })
+      
+      // Add the newly created task to the current tasks list
+      // This ensures we see the new task immediately without waiting for a refresh
+      const newCreatedTask: Task = {
+        id: data.task._id || `new-task-${Date.now()}`,
+        title: data.task.title,
+        transactionId: data.task.transactionId,
+        property: data.task.propertyAddress || "Address not available",
+        agent: {
+          name: data.task.agentId || "Unknown Agent",
+          avatar: "/placeholder.svg?height=40&width=40",
+        },
+        dueDate: new Date(data.task.dueDate).toLocaleDateString(),
+        status: data.task.status || "pending",
+        priority: data.task.priority || "medium",
+        description: data.task.description,
+        aiReminder: data.task.aiReminder,
+        transaction: transactions.find(t => t.id === data.task.transactionId)
+      };
+      
+      // Add the new task to the existing tasks
+      setTasks(prevTasks => [newCreatedTask, ...prevTasks]);
+      
+      // Also refresh the full task list from the API
+      const fetchData = async () => {
+        try {
+          console.log("Refreshing tasks list")
+          const tasksResponse = await fetch('/api/tc/tasks', {
+            credentials: 'include' // Include cookies for authentication
+          })
+          
+          if (tasksResponse.ok) {
+            const tasksData = await tasksResponse.json()
+            console.log("Refreshed tasks data:", tasksData)
+            
+            if (tasksData && tasksData.tasks && Array.isArray(tasksData.tasks) && tasksData.tasks.length > 0) {
+              setApiTasks(tasksData.tasks)
+              
+              // Create a map of transactions by ID for quick lookup
+              const transactionMap = new Map<string, Transaction>()
+              transactions.forEach(transaction => {
+                transactionMap.set(transaction.id, transaction)
+              })
+              
+              // Convert API tasks to the format expected by the UI
+              const formattedTasks: Task[] = tasksData.tasks.map((apiTask: ApiTask) => {
+                // Find the associated transaction
+                const associatedTransaction = transactionMap.get(apiTask.transactionId)
+                
+                return {
+                  id: apiTask._id,
+                  title: apiTask.title,
+                  transactionId: apiTask.transactionId,
+                  property: apiTask.propertyAddress || "Address not available",
+                  agent: {
+                    name: apiTask.agentId || "Unknown Agent",
+                    avatar: "/placeholder.svg?height=40&width=40",
+                  },
+                  dueDate: new Date(apiTask.dueDate).toLocaleDateString(),
+                  status: apiTask.status,
+                  priority: apiTask.priority,
+                  description: apiTask.description,
+                  aiReminder: apiTask.aiReminder,
+                  transaction: associatedTransaction
+                }
+              })
+              
+              setTasks(formattedTasks)
+            }
+          }
+        } catch (error) {
+          console.error("Error refreshing tasks:", error)
+          // If refresh fails, at least we've already added the new task to the UI
+        }
+      }
+      
+      // Refresh after a short delay to allow the database to update
+      setTimeout(fetchData, 500)
+    } catch (error) {
+      console.error("Error creating task:", error)
+      toast.error("Failed to assign task. Please try again.")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -543,23 +763,32 @@ export default function TaskManagement() {
       <h1 className="text-3xl font-bold tracking-tight">Task Management</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="md:col-span-2">
+        <Card className="md:col-span-2" id="assign-task">
           <CardHeader>
             <CardTitle>Assign New Task</CardTitle>
             <CardDescription>Create and assign a new task to an agent</CardDescription>
           </CardHeader>
           <CardContent>
-            <form className="space-y-4">
+            <form className="space-y-4" onSubmit={handleSubmitTask}>
               <div className="space-y-2">
                 <Label htmlFor="task-title">Task Title</Label>
-                <Input id="task-title" placeholder="Enter task title" />
+                <Input 
+                  id="task-title" 
+                  placeholder="Enter task title" 
+                  value={newTask.title}
+                  onChange={handleInputChange}
+                  required
+                />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="transaction">Transaction</Label>
-                  <Select>
-                    <SelectTrigger id="transaction">
+                  <Label htmlFor="transactionId">Transaction</Label>
+                  <Select 
+                    value={newTask.transactionId} 
+                    onValueChange={(value) => handleSelectChange("transactionId", value)}
+                  >
+                    <SelectTrigger id="transactionId">
                       <SelectValue placeholder="Select transaction" />
                     </SelectTrigger>
                     <SelectContent>
@@ -581,9 +810,12 @@ export default function TaskManagement() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="agent">Assign To</Label>
-                  <Select>
-                    <SelectTrigger id="agent">
+                  <Label htmlFor="agentId">Assign To</Label>
+                  <Select 
+                    value={newTask.agentId} 
+                    onValueChange={(value) => handleSelectChange("agentId", value)}
+                  >
+                    <SelectTrigger id="agentId">
                       <SelectValue placeholder="Select agent" />
                     </SelectTrigger>
                     <SelectContent>
@@ -596,9 +828,9 @@ export default function TaskManagement() {
                         ))
                       ) : (
                         <>
-                          <SelectItem value="sarah">Sarah Johnson</SelectItem>
-                          <SelectItem value="john">John Smith</SelectItem>
-                          <SelectItem value="michael">Michael Brown</SelectItem>
+                          <SelectItem value="Sarah Johnson">Sarah Johnson</SelectItem>
+                          <SelectItem value="John Smith">John Smith</SelectItem>
+                          <SelectItem value="Michael Brown">Michael Brown</SelectItem>
                         </>
                       )}
                     </SelectContent>
@@ -609,12 +841,21 @@ export default function TaskManagement() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="due-date">Due Date</Label>
-                  <Input id="due-date" type="date" />
+                  <Input 
+                    id="due-date" 
+                    type="date" 
+                    value={newTask.dueDate}
+                    onChange={handleInputChange}
+                    required
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="priority">Priority</Label>
-                  <Select>
+                  <Select 
+                    value={newTask.priority} 
+                    onValueChange={(value) => handleSelectChange("priority", value)}
+                  >
                     <SelectTrigger id="priority">
                       <SelectValue placeholder="Select priority" />
                     </SelectTrigger>
@@ -629,13 +870,27 @@ export default function TaskManagement() {
 
               <div className="space-y-2">
                 <Label htmlFor="description">Description</Label>
-                <Textarea id="description" placeholder="Enter task description" rows={3} />
+                <Textarea 
+                  id="description" 
+                  placeholder="Enter task description" 
+                  rows={3} 
+                  value={newTask.description}
+                  onChange={handleInputChange}
+                />
               </div>
 
               <div className="flex justify-end">
-                <Button className="flex items-center gap-2">
-                  <PlusCircle className="h-4 w-4" />
-                  <span>Assign Task</span>
+                <Button 
+                  type="submit" 
+                  className="flex items-center gap-2"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <PlusCircle className="h-4 w-4" />
+                  )}
+                  <span>{isSubmitting ? "Assigning..." : "Assign Task"}</span>
                 </Button>
               </div>
             </form>

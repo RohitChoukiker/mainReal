@@ -23,6 +23,7 @@ export interface ITask extends Document {
   priority: TaskPriority;
   description?: string;
   aiReminder: boolean;
+  assignedBy?: string; // Who assigned this task
   createdAt: Date;
   updatedAt: Date;
 }
@@ -45,7 +46,8 @@ const TaskSchema: Schema = new Schema(
       default: TaskPriority.Medium 
     },
     description: { type: String },
-    aiReminder: { type: Boolean, default: false }
+    aiReminder: { type: Boolean, default: false },
+    assignedBy: { type: String, default: "TC Manager" }
   },
   { timestamps: true }
 );

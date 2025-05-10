@@ -317,11 +317,20 @@ export default function TaskPanel() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Link href="/tc/tasks">
+            <Link href="/tc/tasks#assign-task">
               <Button 
                 variant="outline" 
                 size="sm" 
                 className="h-6 text-xs"
+                onClick={() => {
+                  // Add a small delay to ensure the page loads before scrolling
+                  setTimeout(() => {
+                    const assignTaskElement = document.getElementById('assign-task');
+                    if (assignTaskElement) {
+                      assignTaskElement.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }, 100);
+                }}
               >
                 <PlusCircle className="h-3 w-3 mr-1" />
                 Assign New Task
@@ -407,7 +416,7 @@ export default function TaskPanel() {
                 ))}
                 
                 <div className="flex justify-center mt-4">
-                  <Link href="/tc/tasks">
+                  <Link href="/tc/tasks" className="w-full">
                     <Button variant="outline" size="sm" className="w-full">
                       View All Tasks
                     </Button>

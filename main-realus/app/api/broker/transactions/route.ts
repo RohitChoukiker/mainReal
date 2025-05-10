@@ -3,10 +3,11 @@ import dbConnect from "@/utils/dbConnect";
 import TransactionModel from "@/models/transactionModel";
 import User, { Role } from "@/models/userModel";
 import jwt from "jsonwebtoken";
+import catchAsync from "@/utils/catchAsync";
 
 const JWT_SECRET = "123123123 " as string;
 
-export async function GET(req: NextRequest) {
+export const GET = catchAsync(async (req: NextRequest) => {
   try {
     console.log("Broker transactions API called");
     
@@ -159,10 +160,10 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 
 // Add a new endpoint to get agent performance data
-export async function POST(req: NextRequest) {
+export const POST = catchAsync(async (req: NextRequest) => {
   try {
     console.log("Broker agent performance API called");
     
@@ -333,4 +334,4 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
