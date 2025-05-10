@@ -12,6 +12,7 @@ const transactionStatusVariants = cva("", {
       at_risk: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
       delayed: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300",
       cancelled: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300",
+      new: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300",
     },
   },
   defaultVariants: {
@@ -26,8 +27,11 @@ export interface TransactionStatusBadgeProps
 }
 
 export function TransactionStatusBadge({ status, variant, className, ...props }: TransactionStatusBadgeProps) {
+  // Normalize status to lowercase for consistent handling
+  const normalizedStatus = typeof status === 'string' ? status.toLowerCase() : status;
+  
   // Map status string to variant if not explicitly provided
-  const mappedVariant = variant || (status.toLowerCase().replace(/\s+/g, "_") as any)
+  const mappedVariant = variant || (normalizedStatus.replace(/\s+/g, "_") as any)
 
   // Map status to display text
   const displayText = status

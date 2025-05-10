@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { UserCircle, PlusCircle, ClipboardList, Upload, CheckSquare, AlertCircle, Settings } from "lucide-react";
 import ApprovalStatus from "@/components/approval-status";
-import { toast as reactToastify } from "react-toastify";
+import { toast as reactToastify, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import { useToast } from "@/hooks/use-toast";
 
 const sidebarItems = [
@@ -151,6 +152,7 @@ export default function AgentLayout({
       <div className="md:ml-64 min-h-screen">
         <main className="p-4 md:p-6">{children}</main>
       </div>
+      <ToastContainer />
     </div>
   );
 }

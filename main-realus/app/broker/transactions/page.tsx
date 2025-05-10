@@ -1,15 +1,29 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Eye, FileText, AlertTriangle, Search, Filter, ArrowUpDown, Download } from "lucide-react"
+import { Eye, FileText, AlertTriangle, Search, Filter, ArrowUpDown, Download, Loader2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { TransactionStatusBadge } from "@/components/dashboard/transaction-status-badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { toast } from "sonner"
+
+interface ApiTransaction {
+  transactionId: string;
+  propertyAddress: string;
+  city: string;
+  state: string;
+  clientName: string;
+  agentId: string;
+  status: string;
+  createdAt: string;
+  closingDate: string;
+  price: number;
+}
 
 interface Transaction {
   id: string
@@ -19,7 +33,7 @@ interface Transaction {
     name: string
     avatar: string
   }
-  status: "pending" | "in_progress" | "at_risk" | "completed" | "cancelled"
+  status: "pending" | "in_progress" | "at_risk" | "completed" | "cancelled" | "New" | "new"
   createdDate: string
   closingDate: string
   price: string
@@ -37,168 +51,173 @@ interface Transaction {
 export default function BrokerTransactions() {
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [isLoading, setIsLoading] = useState(true)
+  const [apiTransactions, setApiTransactions] = useState<ApiTransaction[]>([])
 
-  const [transactions, setTransactions] = useState<Transaction[]>([
-    {
-      id: "TR-7829",
-      property: "123 Main St, Austin, TX",
-      client: "Robert Johnson",
-      agent: {
-        name: "Sarah Johnson",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      status: "at_risk",
-      createdDate: "Apr 1, 2025",
-      closingDate: "Apr 15, 2025",
-      price: "$450,000",
-      documents: {
-        total: 8,
-        verified: 5,
-      },
-      tasks: {
-        total: 12,
-        completed: 7,
-      },
-      riskLevel: "high",
-    },
-    {
-      id: "TR-6543",
-      property: "456 Oak Ave, Dallas, TX",
-      client: "Jennifer Williams",
-      agent: {
-        name: "John Smith",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      status: "in_progress",
-      createdDate: "Mar 25, 2025",
-      closingDate: "Apr 22, 2025",
-      price: "$375,000",
-      documents: {
-        total: 8,
-        verified: 6,
-      },
-      tasks: {
-        total: 10,
-        completed: 6,
-      },
-    },
-    {
-      id: "TR-9021",
-      property: "789 Pine Rd, Houston, TX",
-      client: "Michael Davis",
-      agent: {
-        name: "Michael Brown",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      status: "pending",
-      createdDate: "Apr 3, 2025",
-      closingDate: "May 3, 2025",
-      price: "$525,000",
-      documents: {
-        total: 8,
-        verified: 2,
-      },
-      tasks: {
-        total: 12,
-        completed: 3,
-      },
-    },
-    {
-      id: "TR-5432",
-      property: "321 Elm St, San Antonio, TX",
-      client: "Lisa Martinez",
-      agent: {
-        name: "John Smith",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      status: "completed",
-      createdDate: "Mar 5, 2025",
-      closingDate: "Apr 5, 2025",
-      price: "$410,000",
-      documents: {
-        total: 8,
-        verified: 8,
-      },
-      tasks: {
-        total: 12,
-        completed: 12,
-      },
-    },
-    {
-      id: "TR-8765",
-      property: "654 Birch Blvd, Fort Worth, TX",
-      client: "David Wilson",
-      agent: {
-        name: "Sarah Johnson",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      status: "cancelled",
-      createdDate: "Feb 15, 2025",
-      closingDate: "Mar 20, 2025",
-      price: "$390,000",
-      documents: {
-        total: 8,
-        verified: 4,
-      },
-      tasks: {
-        total: 10,
-        completed: 5,
-      },
-    },
-    {
-      id: "TR-3456",
-      property: "890 Cedar Ln, Houston, TX",
-      client: "Amanda Garcia",
-      agent: {
-        name: "Michael Brown",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      status: "in_progress",
-      createdDate: "Mar 28, 2025",
-      closingDate: "Apr 28, 2025",
-      price: "$495,000",
-      documents: {
-        total: 8,
-        verified: 5,
-      },
-      tasks: {
-        total: 14,
-        completed: 8,
-      },
-    },
-    {
-      id: "TR-2345",
-      property: "234 Birch Ave, Dallas, TX",
-      client: "James Taylor",
-      agent: {
-        name: "John Smith",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      status: "completed",
-      createdDate: "Mar 1, 2025",
-      closingDate: "Apr 1, 2025",
-      price: "$350,000",
-      documents: {
-        total: 8,
-        verified: 8,
-      },
-      tasks: {
-        total: 12,
-        completed: 12,
-      },
-    },
-  ])
+  // Fetch real transactions from the API with improved error handling
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      try {
+        console.log('Fetching transactions from API...');
+        const response = await fetch('/api/broker/transactions');
+        
+        if (!response.ok) {
+          console.error('API response not OK:', response.status, response.statusText);
+          throw new Error(`Failed to fetch transactions: ${response.status} ${response.statusText}`);
+        }
+        
+        let data;
+        try {
+          data = await response.json();
+          console.log('Fetched transactions:', data);
+        } catch (parseError) {
+          console.error('Error parsing JSON response:', parseError);
+          throw new Error('Failed to parse API response');
+        }
+        
+        if (data && data.transactions && Array.isArray(data.transactions)) {
+          console.log(`Successfully loaded ${data.transactions.length} transactions`);
+          setApiTransactions(data.transactions);
+        } else {
+          console.warn('API returned no transactions or invalid format:', data);
+          // Set empty array to avoid undefined errors
+          setApiTransactions([]);
+        }
+      } catch (error) {
+        console.error('Error fetching transactions:', error);
+        toast.error('Failed to load transactions. Please try again later.');
+        // Set empty array to avoid undefined errors
+        setApiTransactions([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchTransactions();
+  }, []);
 
-  const activeTransactions = transactions.filter((t) => t.status !== "completed" && t.status !== "cancelled")
-  const atRiskTransactions = transactions.filter((t) => t.status === "at_risk")
-  const completedTransactions = transactions.filter((t) => t.status === "completed")
+  // Convert API transactions to the format expected by the UI with error handling
+  const convertedTransactions: Transaction[] = apiTransactions.map(t => {
+    try {
+      // Safely format dates with fallbacks
+      let createdDate = "N/A";
+      let closingDate = "N/A";
+      
+      try {
+        if (t.createdAt) {
+          createdDate = new Date(t.createdAt).toLocaleDateString();
+        }
+      } catch (e) {
+        console.error("Error formatting createdAt date:", e);
+      }
+      
+      try {
+        if (t.closingDate) {
+          closingDate = new Date(t.closingDate).toLocaleDateString();
+        }
+      } catch (e) {
+        console.error("Error formatting closingDate date:", e);
+      }
+      
+      // Format price with fallback
+      let formattedPrice = "$0";
+      try {
+        if (t.price) {
+          formattedPrice = `$${t.price.toLocaleString()}`;
+        }
+      } catch (e) {
+        console.error("Error formatting price:", e);
+      }
+      
+      return {
+        id: t.transactionId || `TR-${Math.floor(Math.random() * 10000)}`,
+        property: t.propertyAddress ? 
+          `${t.propertyAddress}${t.city ? `, ${t.city}` : ''}${t.state ? `, ${t.state}` : ''}` : 
+          "Address not available",
+        client: t.clientName || "Unknown Client",
+        agent: {
+          name: t.agentId || "Unknown Agent",
+          avatar: "/placeholder.svg?height=40&width=40",
+        },
+        status: (t.status || "pending") as any,
+        createdDate,
+        closingDate,
+        price: formattedPrice,
+        documents: {
+          total: 8,
+          verified: 4,
+        },
+        tasks: {
+          total: 12,
+          completed: 6,
+        },
+      };
+    } catch (error) {
+      console.error("Error converting transaction:", error, t);
+      // Return a fallback transaction object if conversion fails
+      return {
+        id: `TR-${Math.floor(Math.random() * 10000)}`,
+        property: "Error loading property details",
+        client: "Unknown",
+        agent: {
+          name: "Unknown Agent",
+          avatar: "/placeholder.svg?height=40&width=40",
+        },
+        status: "pending" as any,
+        createdDate: "N/A",
+        closingDate: "N/A",
+        price: "$0",
+        documents: {
+          total: 0,
+          verified: 0,
+        },
+        tasks: {
+          total: 0,
+          completed: 0,
+        },
+      };
+    }
+  });
+
+  // Use only real transactions from the API, no demo data
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+
+  const activeTransactions = transactions.filter((t) => {
+    const status = typeof t.status === 'string' ? t.status.toLowerCase() : t.status;
+    return status !== "completed" && status !== "cancelled";
+  })
+  const atRiskTransactions = transactions.filter((t) => {
+    const status = typeof t.status === 'string' ? t.status.toLowerCase() : t.status;
+    return status === "at_risk";
+  })
+  const completedTransactions = transactions.filter((t) => {
+    const status = typeof t.status === 'string' ? t.status.toLowerCase() : t.status;
+    return status === "completed";
+  })
+
+  // Set transactions directly from API data with error handling
+  useEffect(() => {
+    try {
+      if (!isLoading) {
+        console.log('Setting transactions from API data:', convertedTransactions.length);
+        setTransactions(convertedTransactions || []);
+      }
+    } catch (error) {
+      console.error('Error setting transactions:', error);
+      // Set empty array as fallback
+      setTransactions([]);
+    }
+  }, [apiTransactions, isLoading, convertedTransactions]);
 
   // Apply filters
   let filteredTransactions = transactions
 
   // Apply status filter
   if (statusFilter !== "all") {
-    filteredTransactions = filteredTransactions.filter((t) => t.status === statusFilter)
+    filteredTransactions = filteredTransactions.filter((t) => {
+      const transactionStatus = typeof t.status === 'string' ? t.status.toLowerCase() : t.status;
+      return transactionStatus === statusFilter.toLowerCase();
+    });
   }
 
   // Apply search filter
@@ -268,7 +287,17 @@ export default function BrokerTransactions() {
           ) : (
             <TableRow>
               <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
-                No transactions found
+                {isLoading ? (
+                  <div className="flex items-center justify-center">
+                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                    <span>Loading transactions...</span>
+                  </div>
+                ) : (
+                  <div>
+                    <p>No transactions found</p>
+                    <p className="text-sm mt-1">Transactions created by agents will appear here</p>
+                  </div>
+                )}
               </TableCell>
             </TableRow>
           )}
@@ -288,42 +317,50 @@ export default function BrokerTransactions() {
             <CardDescription>Overview of all transactions</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center p-3 rounded-lg bg-muted/50">
-              <div className="mr-3 h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                <FileText className="h-5 w-5 text-blue-600 dark:text-blue-300" />
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
-              <div>
-                <div className="text-sm font-medium">Total Transactions</div>
-                <div className="text-xl font-bold">{transactions.length}</div>
-              </div>
-            </div>
+            ) : (
+              <>
+                <div className="flex items-center p-3 rounded-lg bg-muted/50">
+                  <div className="mr-3 h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                    <FileText className="h-5 w-5 text-blue-600 dark:text-blue-300" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium">Total Transactions</div>
+                    <div className="text-xl font-bold">{transactions.length}</div>
+                  </div>
+                </div>
 
-            <div className="flex items-center p-3 rounded-lg bg-muted/50">
-              <div className="mr-3 h-10 w-10 rounded-full bg-yellow-100 dark:bg-yellow-900 flex items-center justify-center">
-                <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-300" />
-              </div>
-              <div>
-                <div className="text-sm font-medium">At Risk</div>
-                <div className="text-xl font-bold">{atRiskTransactions.length}</div>
-              </div>
-            </div>
+                <div className="flex items-center p-3 rounded-lg bg-muted/50">
+                  <div className="mr-3 h-10 w-10 rounded-full bg-yellow-100 dark:bg-yellow-900 flex items-center justify-center">
+                    <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-300" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium">At Risk</div>
+                    <div className="text-xl font-bold">{atRiskTransactions.length}</div>
+                  </div>
+                </div>
 
-            <div className="flex items-center p-3 rounded-lg bg-muted/50">
-              <div className="mr-3 h-10 w-10 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
-                <FileText className="h-5 w-5 text-green-600 dark:text-green-300" />
-              </div>
-              <div>
-                <div className="text-sm font-medium">Active</div>
-                <div className="text-xl font-bold">{activeTransactions.length}</div>
-              </div>
-            </div>
+                <div className="flex items-center p-3 rounded-lg bg-muted/50">
+                  <div className="mr-3 h-10 w-10 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
+                    <FileText className="h-5 w-5 text-green-600 dark:text-green-300" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium">Active</div>
+                    <div className="text-xl font-bold">{activeTransactions.length}</div>
+                  </div>
+                </div>
 
-            <div className="mt-6">
-              <Button variant="outline" className="w-full flex items-center gap-2">
-                <Download className="h-4 w-4" />
-                <span>Export Transactions</span>
-              </Button>
-            </div>
+                <div className="mt-6">
+                  <Button variant="outline" className="w-full flex items-center gap-2">
+                    <Download className="h-4 w-4" />
+                    <span>Export Transactions</span>
+                  </Button>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -359,36 +396,55 @@ export default function BrokerTransactions() {
                     <SelectItem value="at_risk">At Risk</SelectItem>
                     <SelectItem value="completed">Completed</SelectItem>
                     <SelectItem value="cancelled">Cancelled</SelectItem>
+                    <SelectItem value="new">New</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <Tabs defaultValue="all">
-              <TabsList className="grid w-full grid-cols-4 mb-4 mx-4 mt-2">
-                <TabsTrigger value="all">All ({transactions.length})</TabsTrigger>
-                <TabsTrigger value="active">Active ({activeTransactions.length})</TabsTrigger>
-                <TabsTrigger value="at_risk">At Risk ({atRiskTransactions.length})</TabsTrigger>
-                <TabsTrigger value="completed">Completed ({completedTransactions.length})</TabsTrigger>
-              </TabsList>
+            {isLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <div className="text-center">
+                  <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+                  <p className="text-muted-foreground">Loading transactions...</p>
+                </div>
+              </div>
+            ) : (
+              <Tabs defaultValue="all">
+                <TabsList className="grid w-full grid-cols-4 mb-4 mx-4 mt-2">
+                  <TabsTrigger value="all">All ({transactions.length})</TabsTrigger>
+                  <TabsTrigger value="active">Active ({activeTransactions.length})</TabsTrigger>
+                  <TabsTrigger value="at_risk">At Risk ({atRiskTransactions.length})</TabsTrigger>
+                  <TabsTrigger value="completed">Completed ({completedTransactions.length})</TabsTrigger>
+                </TabsList>
 
               <TabsContent value="all">{renderTransactionTable(filteredTransactions)}</TabsContent>
 
               <TabsContent value="active">
                 {renderTransactionTable(
-                  filteredTransactions.filter((t) => t.status !== "completed" && t.status !== "cancelled"),
+                  filteredTransactions.filter((t) => {
+                    const status = typeof t.status === 'string' ? t.status.toLowerCase() : t.status;
+                    return status !== "completed" && status !== "cancelled";
+                  }),
                 )}
               </TabsContent>
 
               <TabsContent value="at_risk">
-                {renderTransactionTable(filteredTransactions.filter((t) => t.status === "at_risk"))}
+                {renderTransactionTable(filteredTransactions.filter((t) => {
+                  const status = typeof t.status === 'string' ? t.status.toLowerCase() : t.status;
+                  return status === "at_risk";
+                }))}
               </TabsContent>
 
               <TabsContent value="completed">
-                {renderTransactionTable(filteredTransactions.filter((t) => t.status === "completed"))}
+                {renderTransactionTable(filteredTransactions.filter((t) => {
+                  const status = typeof t.status === 'string' ? t.status.toLowerCase() : t.status;
+                  return status === "completed";
+                }))}
               </TabsContent>
             </Tabs>
+            )}
           </CardContent>
         </Card>
       </div>

@@ -5,6 +5,8 @@ import { Sidebar } from "@/components/layout/sidebar"
 import { Building2, Users, ClipboardList, AlertCircle, CheckSquare, BarChart3, Settings } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
+import { ToastContainer } from "react-toastify"
+import "react-toastify/dist/ReactToastify.css"
 
 const sidebarItems = [
   {
@@ -91,6 +93,7 @@ export default function BrokerLayout({
       <div className="md:ml-64 min-h-screen">
         <main className="p-4 md:p-6">{children}</main>
       </div>
+      <ToastContainer />
     </div>
   )
 }
