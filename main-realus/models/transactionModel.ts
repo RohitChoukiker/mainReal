@@ -53,7 +53,7 @@ const TransactionSchema: Schema<Transaction> = new Schema<Transaction>(
   {
     transactionId: { type: String, required: true, unique: true },
     agentId: { type: String, required: true },
-    brokerId: { type: String, required: true },
+    brokerId: { type: String, required: true, index: true }, // Add index for faster queries
     transactionCoordinatorId: { type: String },
     clientName: { type: String, required: true },
     clientEmail: { type: String, required: true },

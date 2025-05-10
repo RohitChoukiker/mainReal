@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { TransactionOverviewCard } from "@/components/dashboard/transaction-overview-card"
 import { AgentPerformanceWidget } from "@/components/dashboard/agent-performance-widget"
 import { AIInsightsCard } from "@/components/dashboard/ai-insights-card"
@@ -8,36 +9,174 @@ import { LiveNotificationsPanel } from "@/components/dashboard/live-notification
 import { TransactionListTable } from "@/components/dashboard/transaction-list-table"
 import BrokerIdCard from "@/components/broker/broker-id-card"
 import { FileText, UserPlus, AlertCircle, CheckCircle } from "lucide-react"
+import { TransactionStatus } from "@/models/transactionModel"
 
 export default function BrokerDashboard() {
-  // Sample data for demonstration
-  const agentPerformanceData = [
-    {
-      id: "1",
-      name: "John Smith",
-      avatar: "/placeholder.svg?height=40&width=40",
-      transactions: 24,
-      completionRate: 95,
-      avgTimeToClose: 18,
-    },
-    {
-      id: "2",
-      name: "Sarah Johnson",
-      avatar: "/placeholder.svg?height=40&width=40",
-      transactions: 18,
-      completionRate: 92,
-      avgTimeToClose: 21,
-    },
-    {
-      id: "3",
-      name: "Michael Brown",
-      avatar: "/placeholder.svg?height=40&width=40",
-      transactions: 15,
-      completionRate: 88,
-      avgTimeToClose: 25,
-    },
-  ]
+  // State for transactions data
+  const [transactions, setTransactions] = useState([]);
+  const [transactionStats, setTransactionStats] = useState({
+    total: 0,
+    completed: 0,
+    pending: 0,
+    atRisk: 0
+  });
+  
+  // State for agent performance data
+  const [agentPerformance, setAgentPerformance] = useState([]);
+  
+  // State for loading
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Fetch transaction data
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      try {
+        console.log("Fetching broker transactions...");
+        // Add a timestamp to prevent caching
+        const timestamp = new Date().getTime();
+        const response = await fetch(`/api/broker/transactions?_=${timestamp}`);
+        
+        console.log("Response status:", response.status);
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log("Received transaction data:", data);
+          
+          if (!data.transactions || data.transactions.length === 0) {
+            console.log("No transactions found in response");
+            setTransactions([]);
+            setTransactionStats({
+              total: 0,
+              completed: 0,
+              pending: 0,
+              atRisk: 0
+            });
+            return;
+          }
+          
+          // Process transactions for display
+          const formattedTransactions = data.transactions.map(transaction => {
+            console.log("Processing transaction:", transaction.transactionId);
+            
+            // Map transaction status to UI status
+            let uiStatus = "pending";
+            if (transaction.status === TransactionStatus.New || transaction.status === "New") {
+              uiStatus = "pending";
+            } else if (transaction.status === TransactionStatus.InProgress || transaction.status === "InProgress") {
+              uiStatus = "in_progress";
+            } else if (transaction.status === TransactionStatus.Closed || transaction.status === "Closed" || 
+                       transaction.status === TransactionStatus.Approved || transaction.status === "Approved") {
+              uiStatus = "completed";
+            } else if (transaction.status === TransactionStatus.PendingDocuments || transaction.status === "PendingDocuments") {
+              uiStatus = "at_risk";
+            }
+            
+            // Format the closing date
+            let formattedDate = "No date";
+            if (transaction.closingDate) {
+              try {
+                const closingDate = new Date(transaction.closingDate);
+                formattedDate = closingDate.toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric'
+                });
+              } catch (e) {
+                console.error("Error formatting date:", e);
+              }
+            }
+            
+            // Create a formatted transaction object for display
+            return {
+              id: transaction.transactionId || `TR-${Math.floor(Math.random() * 10000)}`,
+              property: transaction.propertyAddress + (transaction.city ? `, ${transaction.city}` : ''),
+              client: transaction.clientName || "Unknown Client",
+              agent: transaction.agentName || "Agent", // We'll update this when we have agent names
+              status: uiStatus,
+              dueDate: formattedDate,
+              riskLevel: uiStatus === "at_risk" ? "high" : undefined
+            };
+          });
+          
+          console.log("Formatted transactions:", formattedTransactions);
+          setTransactions(formattedTransactions);
+          
+          // Calculate transaction statistics
+          const stats = {
+            total: data.transactions.length,
+            completed: data.transactions.filter(t => 
+              t.status === TransactionStatus.Closed || 
+              t.status === TransactionStatus.Approved || 
+              t.status === "Closed" || 
+              t.status === "Approved"
+            ).length,
+            pending: data.transactions.filter(t => 
+              t.status === TransactionStatus.New || 
+              t.status === TransactionStatus.InProgress || 
+              t.status === "New" || 
+              t.status === "InProgress"
+            ).length,
+            atRisk: data.transactions.filter(t => 
+              t.status === TransactionStatus.PendingDocuments || 
+              t.status === TransactionStatus.UnderReview || 
+              t.status === "PendingDocuments" || 
+              t.status === "UnderReview"
+            ).length
+          };
+          
+          console.log("Transaction stats:", stats);
+          setTransactionStats(stats);
+        } else {
+          console.error("Error response from API:", response.status);
+        }
+      } catch (error) {
+        console.error("Error fetching transactions:", error);
+      }
+    };
+    
+    const fetchAgentPerformance = async () => {
+      try {
+        console.log("Fetching agent performance data...");
+        // Add a timestamp to prevent caching
+        const timestamp = new Date().getTime();
+        const response = await fetch(`/api/broker/transactions?_=${timestamp}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({})
+        });
+        
+        console.log("Agent performance response status:", response.status);
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log("Received agent performance data:", data);
+          
+          if (data.agents && data.agents.length > 0) {
+            setAgentPerformance(data.agents);
+            console.log("Updated agent performance state with", data.agents.length, "agents");
+          } else {
+            console.log("No agent performance data found");
+            setAgentPerformance([]);
+          }
+        } else {
+          console.error("Error response from API:", response.status);
+          setAgentPerformance([]);
+        }
+      } catch (error) {
+        console.error("Error fetching agent performance:", error);
+        setAgentPerformance([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchTransactions();
+    fetchAgentPerformance();
+  }, []);
 
+  // Sample data for parts we're not updating yet
   const aiInsightsData = [
     {
       id: "1",
@@ -111,7 +250,8 @@ export default function BrokerDashboard() {
     },
   ]
 
-  const transactionsData = [
+  // Fallback data for when API data is not available
+  const fallbackTransactions = [
     {
       id: "TR-7829",
       property: "123 Main St, Austin, TX",
@@ -145,14 +285,59 @@ export default function BrokerDashboard() {
       status: "completed",
       dueDate: "Apr 5, 2025",
     },
-  ]
+  ];
+
+  const fallbackAgentPerformance = [
+    {
+      id: "1",
+      name: "John Smith",
+      avatar: "/placeholder.svg?height=40&width=40",
+      transactions: 24,
+      completionRate: 95,
+      avgTimeToClose: 18,
+    },
+    {
+      id: "2",
+      name: "Sarah Johnson",
+      avatar: "/placeholder.svg?height=40&width=40",
+      transactions: 18,
+      completionRate: 92,
+      avgTimeToClose: 21,
+    },
+    {
+      id: "3",
+      name: "Michael Brown",
+      avatar: "/placeholder.svg?height=40&width=40",
+      transactions: 15,
+      completionRate: 88,
+      avgTimeToClose: 25,
+    },
+  ];
+
+  // Use real data if available, otherwise use fallback data
+  const displayTransactions = transactions.length > 0 ? transactions : fallbackTransactions;
+  const displayAgentPerformance = agentPerformance.length > 0 ? agentPerformance : fallbackAgentPerformance;
+  
+  // Calculate stats for the transaction overview card
+  const displayStats = {
+    total: transactionStats.total || 42,
+    completed: transactionStats.completed || 18,
+    pending: transactionStats.pending || 20,
+    atRisk: transactionStats.atRisk || 4
+  };
 
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold tracking-tight">Broker Dashboard</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <TransactionOverviewCard title="Transactions" total={42} completed={18} pending={20} atRisk={4} />
+        <TransactionOverviewCard 
+          title="Transactions" 
+          total={displayStats.total} 
+          completed={displayStats.completed} 
+          pending={displayStats.pending} 
+          atRisk={displayStats.atRisk} 
+        />
         <LiveNotificationsPanel notifications={notificationsData} />
         <QuickActionsPanel actions={quickActionsData} />
       </div>
@@ -166,12 +351,13 @@ export default function BrokerDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2">
           <TransactionListTable
-            transactions={transactionsData}
+            transactions={displayTransactions}
+            title={isLoading ? "Loading Transactions..." : "Recent Transactions"}
             onViewDetails={(id) => console.log(`View details for transaction ${id}`)}
           />
         </div>
         <div className="space-y-6">
-          <AgentPerformanceWidget agents={agentPerformanceData} />
+          <AgentPerformanceWidget agents={displayAgentPerformance} />
           <AIInsightsCard insights={aiInsightsData} />
         </div>
       </div>

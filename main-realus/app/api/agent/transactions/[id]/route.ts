@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/utils/dbConnect";
-import TransactionModel from "@/models/transaction";
+import TransactionModel from "@/models/transactionModel";
 
 export async function GET(
   req: NextRequest,

@@ -51,13 +51,11 @@ export async function POST(req: NextRequest) {
         }
         
         // If user is an agent or TC, verify that the broker ID exists
+        // We'll accept any broker ID during signup without validation
         if (validRole !== Role.Broker && brokerId) {
-            const broker = await User.findOne({ brokerId: brokerId, role: Role.Broker });
-            if (!broker) {
-                console.log(`No broker found with ID: ${brokerId}`);
-                return NextResponse.json({ message: 'Invalid broker ID. Please enter a valid broker ID.' }, { status: 400 });
-            }
-            console.log(`Found broker with ID ${brokerId}: ${broker.name}`);
+            console.log(`Using provided broker ID: ${brokerId} without validation`);
+            // We'll skip validation to allow any broker ID to be used
+            // This is as per the requirement to accept any broker ID entered during signup
         }
         
         const existingUser = await User.findOne({ email });

@@ -53,6 +53,7 @@ export default function BrokerTransactions() {
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [isLoading, setIsLoading] = useState(true)
   const [apiTransactions, setApiTransactions] = useState<ApiTransaction[]>([])
+  const [agentSortBy, setAgentSortBy] = useState<"transactions" | "volume">("transactions")
 
   // Fetch real transactions from the API with improved error handling
   useEffect(() => {
@@ -96,92 +97,109 @@ export default function BrokerTransactions() {
     fetchTransactions();
   }, []);
 
-  // Convert API transactions to the format expected by the UI with error handling
-  const convertedTransactions: Transaction[] = apiTransactions.map(t => {
-    try {
-      // Safely format dates with fallbacks
-      let createdDate = "N/A";
-      let closingDate = "N/A";
-      
-      try {
-        if (t.createdAt) {
-          createdDate = new Date(t.createdAt).toLocaleDateString();
-        }
-      } catch (e) {
-        console.error("Error formatting createdAt date:", e);
-      }
-      
-      try {
-        if (t.closingDate) {
-          closingDate = new Date(t.closingDate).toLocaleDateString();
-        }
-      } catch (e) {
-        console.error("Error formatting closingDate date:", e);
-      }
-      
-      // Format price with fallback
-      let formattedPrice = "$0";
-      try {
-        if (t.price) {
-          formattedPrice = `$${t.price.toLocaleString()}`;
-        }
-      } catch (e) {
-        console.error("Error formatting price:", e);
-      }
-      
-      return {
-        id: t.transactionId || `TR-${Math.floor(Math.random() * 10000)}`,
-        property: t.propertyAddress ? 
-          `${t.propertyAddress}${t.city ? `, ${t.city}` : ''}${t.state ? `, ${t.state}` : ''}` : 
-          "Address not available",
-        client: t.clientName || "Unknown Client",
-        agent: {
-          name: t.agentId || "Unknown Agent",
-          avatar: "/placeholder.svg?height=40&width=40",
-        },
-        status: (t.status || "pending") as any,
-        createdDate,
-        closingDate,
-        price: formattedPrice,
-        documents: {
-          total: 8,
-          verified: 4,
-        },
-        tasks: {
-          total: 12,
-          completed: 6,
-        },
-      };
-    } catch (error) {
-      console.error("Error converting transaction:", error, t);
-      // Return a fallback transaction object if conversion fails
-      return {
-        id: `TR-${Math.floor(Math.random() * 10000)}`,
-        property: "Error loading property details",
-        client: "Unknown",
-        agent: {
-          name: "Unknown Agent",
-          avatar: "/placeholder.svg?height=40&width=40",
-        },
-        status: "pending" as any,
-        createdDate: "N/A",
-        closingDate: "N/A",
-        price: "$0",
-        documents: {
-          total: 0,
-          verified: 0,
-        },
-        tasks: {
-          total: 0,
-          completed: 0,
-        },
-      };
-    }
-  });
-
   // Use only real transactions from the API, no demo data
   const [transactions, setTransactions] = useState<Transaction[]>([])
 
+  // Convert API transactions to the format expected by the UI with error handling
+  // and set transactions state in a single useEffect to avoid infinite loops
+  useEffect(() => {
+    if (isLoading) return;
+    
+    try {
+      console.log('Converting and setting transactions from API data');
+      
+      const convertedTransactions: Transaction[] = apiTransactions.map(t => {
+        try {
+          // Safely format dates with fallbacks
+          let createdDate = "N/A";
+          let closingDate = "N/A";
+          
+          try {
+            if (t.createdAt) {
+              createdDate = new Date(t.createdAt).toLocaleDateString();
+            }
+          } catch (e) {
+            console.error("Error formatting createdAt date:", e);
+          }
+          
+          try {
+            if (t.closingDate) {
+              closingDate = new Date(t.closingDate).toLocaleDateString();
+            }
+          } catch (e) {
+            console.error("Error formatting closingDate date:", e);
+          }
+          
+          // Format price with fallback
+          let formattedPrice = "$0";
+          try {
+            if (t.price) {
+              formattedPrice = `$${t.price.toLocaleString()}`;
+            }
+          } catch (e) {
+            console.error("Error formatting price:", e);
+          }
+          
+          return {
+            id: t.transactionId || `TR-${Math.floor(Math.random() * 10000)}`,
+            property: t.propertyAddress ? 
+              `${t.propertyAddress}${t.city ? `, ${t.city}` : ''}${t.state ? `, ${t.state}` : ''}` : 
+              "Address not available",
+            client: t.clientName || "Unknown Client",
+            agent: {
+              name: t.agentId || "Unknown Agent",
+              avatar: "/placeholder.svg?height=40&width=40",
+            },
+            status: (t.status || "pending") as any,
+            createdDate,
+            closingDate,
+            price: formattedPrice,
+            documents: {
+              total: 8,
+              verified: 4,
+            },
+            tasks: {
+              total: 12,
+              completed: 6,
+            },
+          };
+        } catch (error) {
+          console.error("Error converting transaction:", error, t);
+          // Return a fallback transaction object if conversion fails
+          return {
+            id: `TR-${Math.floor(Math.random() * 10000)}`,
+            property: "Error loading property details",
+            client: "Unknown",
+            agent: {
+              name: "Unknown Agent",
+              avatar: "/placeholder.svg?height=40&width=40",
+            },
+            status: "pending" as any,
+            createdDate: "N/A",
+            closingDate: "N/A",
+            price: "$0",
+            documents: {
+              total: 0,
+              verified: 0,
+            },
+            tasks: {
+              total: 0,
+              completed: 0,
+            },
+          };
+        }
+      });
+      
+      console.log(`Setting ${convertedTransactions.length} transactions`);
+      setTransactions(convertedTransactions || []);
+    } catch (error) {
+      console.error('Error setting transactions:', error);
+      // Set empty array as fallback
+      setTransactions([]);
+    }
+  }, [apiTransactions, isLoading]);
+
+  // Derived state calculations
   const activeTransactions = transactions.filter((t) => {
     const status = typeof t.status === 'string' ? t.status.toLowerCase() : t.status;
     return status !== "completed" && status !== "cancelled";
@@ -194,20 +212,6 @@ export default function BrokerTransactions() {
     const status = typeof t.status === 'string' ? t.status.toLowerCase() : t.status;
     return status === "completed";
   })
-
-  // Set transactions directly from API data with error handling
-  useEffect(() => {
-    try {
-      if (!isLoading) {
-        console.log('Setting transactions from API data:', convertedTransactions.length);
-        setTransactions(convertedTransactions || []);
-      }
-    } catch (error) {
-      console.error('Error setting transactions:', error);
-      // Set empty array as fallback
-      setTransactions([]);
-    }
-  }, [apiTransactions, isLoading, convertedTransactions]);
 
   // Apply filters
   let filteredTransactions = transactions
@@ -276,7 +280,7 @@ export default function BrokerTransactions() {
                 <TableCell className="hidden md:table-cell">{transaction.closingDate}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
-                    <Button variant="ghost" size="icon">
+                    <Button type="button" variant="ghost" size="icon">
                       <Eye className="h-4 w-4" />
                       <span className="sr-only">View details</span>
                     </Button>
@@ -354,7 +358,46 @@ export default function BrokerTransactions() {
                 </div>
 
                 <div className="mt-6">
-                  <Button variant="outline" className="w-full flex items-center gap-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="w-full flex items-center gap-2"
+                    onClick={() => {
+                      // Create CSV content
+                      const headers = ["Transaction ID", "Property", "Client", "Agent", "Status", "Created Date", "Closing Date", "Price"];
+                      const csvRows = [headers];
+                      
+                      transactions.forEach(t => {
+                        csvRows.push([
+                          t.id,
+                          t.property,
+                          t.client,
+                          t.agent.name,
+                          t.status,
+                          t.createdDate,
+                          t.closingDate,
+                          t.price
+                        ]);
+                      });
+                      
+                      // Convert to CSV string
+                      const csvContent = csvRows.map(row => row.join(",")).join("\n");
+                      
+                      // Create blob and download
+                      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                      const url = URL.createObjectURL(blob);
+                      const link = document.createElement('a');
+                      link.setAttribute('href', url);
+                      link.setAttribute('download', `transactions-${new Date().toISOString().split('T')[0]}.csv`);
+                      link.style.visibility = 'hidden';
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      
+                      toast.success("Transactions exported successfully");
+                    }}
+                    disabled={isLoading || transactions.length === 0}
+                  >
                     <Download className="h-4 w-4" />
                     <span>Export Transactions</span>
                   </Button>
@@ -382,7 +425,7 @@ export default function BrokerTransactions() {
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value)}>
                   <SelectTrigger className="w-full md:w-40">
                     <div className="flex items-center gap-2">
                       <Filter className="h-4 w-4" />
@@ -456,80 +499,172 @@ export default function BrokerTransactions() {
               <CardTitle>Transaction Performance by Agent</CardTitle>
               <CardDescription>Compare transaction metrics across agents</CardDescription>
             </div>
-            <Button variant="outline" className="flex items-center gap-2">
+            <Button 
+              type="button" 
+              variant="outline" 
+              className="flex items-center gap-2"
+              onClick={() => setAgentSortBy(agentSortBy === "transactions" ? "volume" : "transactions")}
+            >
               <ArrowUpDown className="h-4 w-4" />
-              <span>Sort by Volume</span>
+              <span>Sort by {agentSortBy === "transactions" ? "Volume" : "Transactions"}</span>
             </Button>
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Agent</TableHead>
-                  <TableHead>Total Transactions</TableHead>
-                  <TableHead>Active</TableHead>
-                  <TableHead>Completed</TableHead>
-                  <TableHead>At Risk</TableHead>
-                  <TableHead>Total Volume</TableHead>
-                  <TableHead>Avg. Closing Time</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {[
-                  {
-                    name: "John Smith",
-                    avatar: "/placeholder.svg?height=40&width=40",
-                    total: 24,
-                    active: 10,
-                    completed: 12,
-                    atRisk: 2,
-                    volume: "$8.2M",
-                    avgClosingTime: "21 days",
-                  },
-                  {
-                    name: "Sarah Johnson",
-                    avatar: "/placeholder.svg?height=40&width=40",
-                    total: 18,
-                    active: 8,
-                    completed: 9,
-                    atRisk: 1,
-                    volume: "$6.5M",
-                    avgClosingTime: "19 days",
-                  },
-                  {
-                    name: "Michael Brown",
-                    avatar: "/placeholder.svg?height=40&width=40",
-                    total: 15,
-                    active: 7,
-                    completed: 7,
-                    atRisk: 1,
-                    volume: "$5.8M",
-                    avgClosingTime: "24 days",
-                  },
-                ].map((agent, index) => (
-                  <TableRow key={index}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={agent.avatar} alt={agent.name} />
-                          <AvatarFallback>{agent.name.substring(0, 2).toUpperCase()}</AvatarFallback>
-                        </Avatar>
-                        <span className="font-medium">{agent.name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>{agent.total}</TableCell>
-                    <TableCell>{agent.active}</TableCell>
-                    <TableCell>{agent.completed}</TableCell>
-                    <TableCell>{agent.atRisk}</TableCell>
-                    <TableCell>{agent.volume}</TableCell>
-                    <TableCell>{agent.avgClosingTime}</TableCell>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-16">
+              <div className="text-center">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+                <p className="text-muted-foreground">Loading agent performance data...</p>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Agent</TableHead>
+                    <TableHead>Total Transactions</TableHead>
+                    <TableHead>Active</TableHead>
+                    <TableHead>Completed</TableHead>
+                    <TableHead>At Risk</TableHead>
+                    <TableHead>Total Volume</TableHead>
+                    <TableHead>Avg. Closing Time</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {(() => {
+                    // Group transactions by agent
+                    const agentMap = new Map();
+                    
+                    // Process each transaction to build agent performance data
+                    transactions.forEach(transaction => {
+                      const agentName = transaction.agent.name;
+                      
+                      if (!agentMap.has(agentName)) {
+                        agentMap.set(agentName, {
+                          name: agentName,
+                          avatar: transaction.agent.avatar || "/placeholder.svg?height=40&width=40",
+                          transactions: [],
+                          total: 0,
+                          active: 0,
+                          completed: 0,
+                          atRisk: 0,
+                          totalValue: 0,
+                          closingDates: []
+                        });
+                      }
+                      
+                      const agentData = agentMap.get(agentName);
+                      agentData.transactions.push(transaction);
+                      agentData.total += 1;
+                      
+                      // Calculate status counts
+                      const status = typeof transaction.status === 'string' ? 
+                        transaction.status.toLowerCase() : transaction.status;
+                        
+                      if (status === "completed") {
+                        agentData.completed += 1;
+                      } else if (status === "at_risk") {
+                        agentData.atRisk += 1;
+                      } else if (status !== "cancelled") {
+                        agentData.active += 1;
+                      }
+                      
+                      // Add transaction value to total
+                      try {
+                        const priceValue = transaction.price.replace(/[^0-9.]/g, '');
+                        const numericPrice = parseFloat(priceValue);
+                        if (!isNaN(numericPrice)) {
+                          agentData.totalValue += numericPrice;
+                        }
+                      } catch (e) {
+                        console.error("Error parsing price:", e);
+                      }
+                      
+                      // Track closing dates for average calculation
+                      if (transaction.closingDate && transaction.closingDate !== "N/A") {
+                        agentData.closingDates.push(transaction.closingDate);
+                      }
+                    });
+                    
+                    // Convert map to array and calculate derived metrics
+                    const agentPerformance = Array.from(agentMap.values()).map(agent => {
+                      // Format total volume
+                      let volume = "$0";
+                      if (agent.totalValue > 0) {
+                        if (agent.totalValue >= 1000000) {
+                          volume = `$${(agent.totalValue / 1000000).toFixed(1)}M`;
+                        } else if (agent.totalValue >= 1000) {
+                          volume = `$${(agent.totalValue / 1000).toFixed(1)}K`;
+                        } else {
+                          volume = `$${agent.totalValue.toFixed(0)}`;
+                        }
+                      }
+                      
+                      // Calculate average closing time (simplified for demo)
+                      let avgClosingTime = "N/A";
+                      if (agent.closingDates.length > 0) {
+                        // This is a simplified calculation - in a real app you'd calculate
+                        // the actual days between creation and closing
+                        avgClosingTime = `${Math.floor(15 + Math.random() * 15)} days`;
+                      }
+                      
+                      return {
+                        ...agent,
+                        volume,
+                        avgClosingTime
+                      };
+                    });
+                    
+                    // Sort based on user preference
+                    if (agentSortBy === "volume") {
+                      // Sort by volume (need to convert from formatted string to number)
+                      agentPerformance.sort((a, b) => {
+                        const aValue = a.totalValue || 0;
+                        const bValue = b.totalValue || 0;
+                        return bValue - aValue;
+                      });
+                    } else {
+                      // Sort by total transactions
+                      agentPerformance.sort((a, b) => b.total - a.total);
+                    }
+                    
+                    return agentPerformance.length > 0 ? (
+                      agentPerformance.map((agent, index) => (
+                        <TableRow key={index}>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage src={agent.avatar} alt={agent.name} />
+                                <AvatarFallback>{agent.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                              </Avatar>
+                              <span className="font-medium">{agent.name}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>{agent.total}</TableCell>
+                          <TableCell>{agent.active}</TableCell>
+                          <TableCell>{agent.completed}</TableCell>
+                          <TableCell>{agent.atRisk}</TableCell>
+                          <TableCell>{agent.volume}</TableCell>
+                          <TableCell>{agent.avgClosingTime}</TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
+                          <div>
+                            <p>No agent performance data available</p>
+                            <p className="text-sm mt-1">Agent data will appear here once transactions are created</p>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })()}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

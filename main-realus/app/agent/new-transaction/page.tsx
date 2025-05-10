@@ -63,6 +63,37 @@ export default function NewTransaction() {
     setIsLoading(true)
 
     try {
+      // Validate form data
+      if (!formData.transactionType) {
+        toast.error('Please select a transaction type');
+        setIsLoading(false);
+        return;
+      }
+
+      if (!formData.propertyAddress || !formData.city || !formData.state || !formData.zipCode) {
+        toast.error('Please complete all property address fields');
+        setIsLoading(false);
+        return;
+      }
+
+      if (!formData.clientName || !formData.clientEmail || !formData.clientPhone) {
+        toast.error('Please complete all client information fields');
+        setIsLoading(false);
+        return;
+      }
+
+      if (!formData.price) {
+        toast.error('Please enter a valid price');
+        setIsLoading(false);
+        return;
+      }
+
+      if (!formData.closingDate) {
+        toast.error('Please select a closing date');
+        setIsLoading(false);
+        return;
+      }
+
       // Prepare data for API
       const apiData = {
         clientName: formData.clientName,
@@ -78,7 +109,11 @@ export default function NewTransaction() {
         notes: formData.notes
       }
 
+      console.log('Submitting transaction data:', apiData);
+
       // Call API to create transaction
+      toast.info('Creating transaction...');
+      
       const response = await fetch('/api/agent/transactions/add-db', {
         method: 'POST',
         headers: {
@@ -87,7 +122,10 @@ export default function NewTransaction() {
         body: JSON.stringify(apiData),
       })
 
+      console.log('API response status:', response.status);
+      
       const data = await response.json()
+      console.log('API response data:', data);
 
       if (!response.ok) {
         throw new Error(data.message || 'Failed to create transaction')
@@ -125,10 +163,10 @@ export default function NewTransaction() {
             </p>
             <div className="flex justify-center gap-4">
               <Button asChild>
-                <a href="/agent/upload-documents">Upload Documents</a>
+                <a href={`/agent/upload-documents?transactionId=${transactionId}`}>Upload Documents</a>
               </Button>
               <Button variant="outline" asChild>
-                <a href="/agent/view-transactions">View My Transactions</a>
+                <a href="/agent/transactions">View My Transactions</a>
               </Button>
             </div>
           </CardContent>
