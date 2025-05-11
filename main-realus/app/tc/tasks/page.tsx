@@ -961,6 +961,23 @@ export default function TaskManagement() {
 
         <TabsContent value="completed">{renderTaskTable(completedTasks)}</TabsContent>
       </Tabs>
+
+      {/* Floating Assign New Task Button */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <Button
+          size="lg"
+          className="rounded-full shadow-lg hover:shadow-xl transition-all duration-200"
+          onClick={() => {
+            const assignTaskElement = document.getElementById('assign-task');
+            if (assignTaskElement) {
+              assignTaskElement.scrollIntoView({ behavior: 'smooth' });
+            }
+          }}
+        >
+          <PlusCircle className="h-5 w-5 mr-2" />
+          Assign New Task
+        </Button>
+      </div>
     </div>
   )
 }
