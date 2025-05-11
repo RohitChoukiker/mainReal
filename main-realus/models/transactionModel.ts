@@ -100,7 +100,17 @@ const TransactionSchema: Schema<Transaction> = new Schema<Transaction>(
 // });
 
 // Final Export
-const TransactionModel: Model<Transaction> =
-  mongoose.models.Transaction || mongoose.model<Transaction>("Transaction", TransactionSchema);
+// Check if the model exists first to avoid errors
+let TransactionModel: Model<Transaction>;
+
+try {
+  // Try to get the existing model
+  TransactionModel = mongoose.model<Transaction>("Transaction");
+  console.log("Using existing Transaction model");
+} catch (error) {
+  // Model doesn't exist yet, create it
+  TransactionModel = mongoose.model<Transaction>("Transaction", TransactionSchema);
+  console.log("Created new Transaction model");
+}
 
 export default TransactionModel;

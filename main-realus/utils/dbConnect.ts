@@ -1,6 +1,11 @@
 import mongoose from "mongoose";
 
+// Use a fallback URI if environment variable is not set
 const MONGO_URI = process.env.MONGODB_URI || "mongodb+srv://rohitchoukiker:sz9ngkji2s@cluster0.onuxs.mongodb.net/realus?retryWrites=true&w=majority";
+
+// Initialize mongoose models
+import "@/models/transactionModel";
+import "@/models/transaction";
 
 // Track connection status to avoid multiple connection attempts
 let isConnecting = false;

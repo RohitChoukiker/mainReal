@@ -5,6 +5,9 @@ import User, { Role } from "@/models/userModel";
 import jwt from "jsonwebtoken";
 import catchAsync from "@/utils/catchAsync";
 
+// Import both transaction models to ensure they're registered
+import "@/models/transaction";
+
 const JWT_SECRET = "123123123 " as string;
 
 export const GET = catchAsync(async (req: NextRequest) => {
