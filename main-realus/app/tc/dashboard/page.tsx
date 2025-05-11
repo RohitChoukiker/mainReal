@@ -7,9 +7,10 @@ import { QuickActionsPanel } from "@/components/dashboard/quick-actions-panel"
 import { LiveNotificationsPanel } from "@/components/dashboard/live-notifications-panel"
 import { TransactionListTable } from "@/components/dashboard/transaction-list-table"
 import { AIDelayPredictionWidget } from "@/components/dashboard/ai-delay-prediction-widget"
-import { FileCheck, CheckSquare, AlertCircle, CheckCircle } from "lucide-react"
+import { FileCheck, CheckSquare, AlertCircle, CheckCircle, RefreshCcw } from "lucide-react"
 import { toast } from "sonner"
 import { TransactionDetailsModal } from "@/components/dashboard/transaction-details-modal"
+import { Button } from "@/components/ui/button"
 
 interface ApiTransaction {
   transactionId: string;
@@ -238,23 +239,26 @@ export default function TCDashboard() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold tracking-tight">Transaction Coordinator Dashboard</h1>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <TransactionOverviewCard 
-          title="Assigned Transactions" 
-          total={transactionStats.total} 
-          completed={transactionStats.completed} 
-          pending={transactionStats.pending} 
-          atRisk={transactionStats.atRisk}
-          isLoading={isLoading}
-        />
-        <LiveNotificationsPanel notifications={notificationsData} />
-        <QuickActionsPanel actions={quickActionsData} />
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h1 className="text-3xl font-bold tracking-tight">Transaction Coordinator Dashboard</h1>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+            <RefreshCcw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          <TransactionOverviewCard 
+            title="Assigned Transactions" 
+            total={transactionStats.total} 
+            completed={transactionStats.completed} 
+            pending={transactionStats.pending} 
+            atRisk={transactionStats.atRisk}
+            isLoading={isLoading}
+          />
           <TransactionListTable
             transactions={transactionsData}
             title="Active Transactions"
@@ -264,6 +268,8 @@ export default function TCDashboard() {
           />
         </div>
         <div className="space-y-6">
+          <LiveNotificationsPanel notifications={notificationsData} />
+          <QuickActionsPanel actions={quickActionsData} />
           <AIDelayPredictionWidget predictions={delayPredictions} />
           <AIInsightsCard insights={aiInsightsData} />
         </div>

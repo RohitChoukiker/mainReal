@@ -186,7 +186,9 @@ export default function TCLayout({
         taskPanel={<TaskPanel />}
       />
       <div className="md:ml-64 min-h-screen">
-        <main className="p-4 md:p-6">{children}</main>
+        <div className="container mx-auto px-4 py-6">
+          <main className="space-y-6">{children}</main>
+        </div>
       </div>
     </div>
   );

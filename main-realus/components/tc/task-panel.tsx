@@ -304,7 +304,7 @@ export default function TaskPanel() {
   return (
     <Card className="w-full">
       <CardHeader className="pb-2">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
           <div>
             <CardTitle className="text-sm font-medium flex items-center">
               Task Management
@@ -316,14 +316,13 @@ export default function TaskPanel() {
               Last updated: {lastUpdateTime.toLocaleTimeString()}
             </p>
           </div>
-          <div className="flex gap-2">
-            <Link href="/tc/tasks#assign-task">
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Link href="/tc/tasks#assign-task" className="flex-1 sm:flex-none">
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="h-6 text-xs"
+                className="h-6 text-xs w-full sm:w-auto"
                 onClick={() => {
-                  // Add a small delay to ensure the page loads before scrolling
                   setTimeout(() => {
                     const assignTaskElement = document.getElementById('assign-task');
                     if (assignTaskElement) {
@@ -351,7 +350,7 @@ export default function TaskPanel() {
       </CardHeader>
       <CardContent className="p-0">
         <ScrollArea className="h-[300px]">
-          <div className="px-4 pb-4 space-y-4">
+          <div className="px-4 pb-4 space-y-4 overflow-x-auto whitespace-nowrap">
             {loading && tasks.length === 0 ? (
               <div className="flex justify-center items-center h-[100px] text-muted-foreground">
                 Loading tasks...
@@ -371,7 +370,6 @@ export default function TaskPanel() {
                 </Button>
               </div>
             ) : (
-              // Display tasks
               <div className="space-y-2">
                 {tasks.map((task) => (
                   <div 
@@ -380,13 +378,13 @@ export default function TaskPanel() {
                       Date.now() - task.timestamp < 30000 ? 'border-green-500 bg-green-50 dark:bg-green-950/20' : 'border-border'
                     }`}
                   >
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                      <div className="space-y-1">
                         <div className="flex items-center gap-1">
                           <CheckSquare className="h-3 w-3 text-muted-foreground" />
                           <p className="text-sm font-medium">{task.title}</p>
                         </div>
-                        <div className="flex items-center gap-1 mt-1">
+                        <div className="flex flex-wrap items-center gap-1">
                           <p className="text-xs text-muted-foreground">Transaction: {task.transactionId}</p>
                           {task.transaction && (
                             <Badge variant="outline" className="text-xs px-1 py-0 h-4">
