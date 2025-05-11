@@ -1,16 +1,26 @@
 "use client"
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useState, useEffect } from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { AlertCircle, CheckCircle, MessageSquare, Eye, Clock, ArrowUpCircle, PlusCircle } from "lucide-react"
+import { AlertCircle, CheckCircle, MessageSquare, Eye, Clock, ArrowUpCircle, PlusCircle, Loader2, X } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { toast } from "@/components/ui/use-toast"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+} from "@/components/ui/dialog"
 
 interface Complaint {
   id: string
@@ -25,61 +35,233 @@ interface Complaint {
   response?: string
 }
 
+interface Transaction {
+  id: string
+  property: string
+  transactionId: string
+}
+
 export default function AgentComplaints() {
   const [isCreatingComplaint, setIsCreatingComplaint] = useState(false)
+  const [complaints, setComplaints] = useState<Complaint[]>([])
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  // Modal states
+  const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null)
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false)
+  const [isResponseModalOpen, setIsResponseModalOpen] = useState(false)
+  const [responseText, setResponseText] = useState("")
+  const [isSubmittingResponse, setIsSubmittingResponse] = useState(false)
+  
+  // Form state
+  const [complaintForm, setComplaintForm] = useState({
+    title: "",
+    transactionId: "",
+    priority: "",
+    category: "",
+    description: ""
+  })
 
-  const [complaints, setComplaints] = useState<Complaint[]>([
-    {
-      id: "comp-1",
-      title: "Missing document notification",
-      transactionId: "TR-7829",
-      property: "123 Main St, Austin, TX",
-      submittedDate: "Apr 10, 2025",
-      status: "new",
-      priority: "medium",
-      description: "I was not notified about missing documents until the day before the deadline.",
-      category: "Communication",
-    },
-    {
-      id: "comp-2",
-      title: "Incorrect property information",
-      transactionId: "TR-6543",
-      property: "456 Oak Ave, Dallas, TX",
-      submittedDate: "Apr 8, 2025",
-      status: "in_progress",
-      priority: "high",
-      description: "The property square footage in the listing is incorrect and needs to be updated.",
-      category: "Documentation",
-      response: "We are reviewing the property information and will update it shortly.",
-    },
-    {
-      id: "comp-3",
-      title: "Delayed response from lender",
-      transactionId: "TR-9021",
-      property: "789 Pine Rd, Houston, TX",
-      submittedDate: "Apr 5, 2025",
-      status: "escalated",
-      priority: "high",
-      description: "The lender has not responded to multiple requests for pre-approval letter.",
-      category: "Third-party",
-      response: "We have escalated this issue to the broker who will contact the lender directly.",
-    },
-    {
-      id: "comp-4",
-      title: "Inspection scheduling conflict",
-      transactionId: "TR-7829",
-      property: "123 Main St, Austin, TX",
-      submittedDate: "Apr 3, 2025",
-      status: "resolved",
-      priority: "low",
-      description: "There was a scheduling conflict with the home inspector.",
-      category: "Scheduling",
-      response: "The inspection has been rescheduled for April 15th at 10:00 AM.",
-    },
-  ])
+  // Fetch complaints data
+  useEffect(() => {
+    const fetchComplaints = async () => {
+      try {
+        setIsLoading(true)
+        console.log("Fetching complaints data...")
+        
+        // Add timestamp to prevent caching
+        const timestamp = new Date().getTime()
+        const response = await fetch(`/api/agent/complaints?_=${timestamp}`)
+        
+        if (response.ok) {
+          const data = await response.json()
+          console.log("Received complaints data:", data)
+          
+          if (data.complaints && data.complaints.length > 0) {
+            setComplaints(data.complaints)
+          } else {
+            console.log("No complaints found")
+            setComplaints([])
+          }
+        } else {
+          console.error("Error response from API:", response.status)
+          // Don't use fallback data, just set empty array
+          setComplaints([])
+        }
+      } catch (error) {
+        console.error("Error fetching complaints:", error)
+        // Don't use fallback data, just set empty array
+        setComplaints([])
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    
+    const fetchTransactions = async () => {
+      try {
+        console.log("Fetching transactions data...")
+        
+        // Add timestamp to prevent caching
+        const timestamp = new Date().getTime()
+        const response = await fetch(`/api/agent/transactions/list?_=${timestamp}`)
+        
+        if (response.ok) {
+          const data = await response.json()
+          console.log("Received transactions data:", data)
+          
+          if (data.transactions && data.transactions.length > 0) {
+            // Format transactions for the dropdown
+            const formattedTransactions = data.transactions.map((transaction: any) => ({
+              id: transaction.transactionId || transaction.id,
+              transactionId: transaction.transactionId || transaction.id,
+              property: transaction.propertyAddress + 
+                (transaction.city ? `, ${transaction.city}` : '') + 
+                (transaction.state ? `, ${transaction.state}` : '')
+            }))
+            
+            setTransactions(formattedTransactions)
+          } else {
+            console.log("No transactions found")
+            // Don't use fallback data, just set empty array
+            setTransactions([])
+          }
+        } else {
+          console.error("Error response from API:", response.status)
+          // Don't use fallback data, just set empty array
+          setTransactions([])
+        }
+      } catch (error) {
+        console.error("Error fetching transactions:", error)
+        // Don't use fallback data, just set empty array
+        setTransactions([])
+      }
+    }
+    
+    fetchComplaints()
+    fetchTransactions()
+    
+    // Set up polling for real-time updates (every 30 seconds)
+    const intervalId = setInterval(() => {
+      fetchComplaints()
+    }, 30000)
+    
+    return () => clearInterval(intervalId)
+  }, [])
 
   const activeComplaints = complaints.filter((comp) => comp.status !== "resolved")
   const resolvedComplaints = complaints.filter((comp) => comp.status === "resolved")
+  
+  // Handle form input changes
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { id, value } = e.target
+    setComplaintForm({
+      ...complaintForm,
+      [id.replace('complaint-', '')]: value
+    })
+  }
+  
+  // Handle select changes
+  const handleSelectChange = (value: string, field: string) => {
+    setComplaintForm({
+      ...complaintForm,
+      [field]: value
+    })
+  }
+  
+  // Handle form submission
+  const handleSubmitComplaint = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    // Validate form
+    if (!complaintForm.title || !complaintForm.transactionId || !complaintForm.priority || 
+        !complaintForm.category || !complaintForm.description) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      })
+      return
+    }
+    
+    try {
+      setIsSubmitting(true)
+      
+      // Find the selected transaction to get the property
+      const selectedTransaction = transactions.find(t => t.transactionId === complaintForm.transactionId)
+      if (!selectedTransaction) {
+        // If no transactions are available, show an error
+        if (transactions.length === 0) {
+          throw new Error("No transactions available. Please try again later.")
+        } else {
+          throw new Error("Selected transaction not found")
+        }
+      }
+      
+      // Prepare the complaint data
+      const complaintData = {
+        title: complaintForm.title,
+        transactionId: complaintForm.transactionId,
+        property: selectedTransaction.property,
+        priority: complaintForm.priority,
+        description: complaintForm.description,
+        category: complaintForm.category,
+        agentId: "agent-123" // In a real app, this would be the logged-in agent's ID
+      }
+      
+      // Submit the complaint
+      const response = await fetch('/api/agent/complaints', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(complaintData)
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        console.log("Complaint submitted successfully:", data)
+        
+        // Add the new complaint to the state
+        setComplaints([data.complaint, ...complaints])
+        
+        // Reset the form
+        setComplaintForm({
+          title: "",
+          transactionId: "",
+          priority: "",
+          category: "",
+          description: ""
+        })
+        
+        // Close the form
+        setIsCreatingComplaint(false)
+        
+        // Show success message
+        toast({
+          title: "Success",
+          description: "Your complaint has been submitted successfully",
+          variant: "default"
+        })
+        
+        // Refresh complaints data
+        refreshComplaints()
+      } else {
+        const errorData = await response.json()
+        throw new Error(errorData.message || "Failed to submit complaint")
+      }
+    } catch (error) {
+      console.error("Error submitting complaint:", error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to submit complaint",
+        variant: "destructive"
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -140,6 +322,129 @@ export default function AgentComplaints() {
         return <Badge variant="outline">{priority}</Badge>
     }
   }
+  
+  // Handle view complaint details
+  const handleViewComplaint = (complaint: Complaint) => {
+    setSelectedComplaint(complaint)
+    setIsViewModalOpen(true)
+  }
+  
+  // Handle open response modal
+  const handleOpenResponseModal = (complaint: Complaint) => {
+    setSelectedComplaint(complaint)
+    setResponseText(complaint.response || "")
+    setIsResponseModalOpen(true)
+  }
+  
+  // Handle submit response
+  const handleSubmitResponse = async () => {
+    if (!selectedComplaint) return
+    
+    try {
+      setIsSubmittingResponse(true)
+      
+      // Prepare the response data
+      const responseData = {
+        complaintId: selectedComplaint.id,
+        response: responseText,
+        status: "in_progress" // Update status to in_progress when a response is added
+      }
+      
+      // Submit the response
+      const response = await fetch(`/api/agent/complaints/${selectedComplaint.id}/respond`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(responseData)
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        console.log("Response submitted successfully:", data)
+        
+        // Update the complaint in the state
+        setComplaints(complaints.map(c => 
+          c.id === selectedComplaint.id 
+            ? { ...c, response: responseText, status: "in_progress" } 
+            : c
+        ))
+        
+        // Close the modal
+        setIsResponseModalOpen(false)
+        
+        // Reset the response text
+        setResponseText("")
+        
+        // Show success message
+        toast({
+          title: "Success",
+          description: "Your response has been submitted successfully",
+          variant: "default"
+        })
+        
+        // Refresh complaints data
+        refreshComplaints()
+      } else {
+        const errorData = await response.json()
+        throw new Error(errorData.message || "Failed to submit response")
+      }
+    } catch (error) {
+      console.error("Error submitting response:", error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to submit response",
+        variant: "destructive"
+      })
+    } finally {
+      setIsSubmittingResponse(false)
+    }
+  }
+
+  // Function to manually refresh complaints
+  const refreshComplaints = async () => {
+    try {
+      setIsLoading(true)
+      console.log("Manually refreshing complaints data...")
+      
+      // Add timestamp to prevent caching
+      const timestamp = new Date().getTime()
+      const response = await fetch(`/api/agent/complaints?_=${timestamp}`)
+      
+      if (response.ok) {
+        const data = await response.json()
+        console.log("Received refreshed complaints data:", data)
+        
+        if (data.complaints && data.complaints.length > 0) {
+          setComplaints(data.complaints)
+          toast({
+            title: "Refreshed",
+            description: "Complaints data has been updated",
+            variant: "default"
+          })
+        } else {
+          console.log("No complaints found")
+          setComplaints([])
+        }
+      } else {
+        console.error("Error response from API:", response.status)
+        toast({
+          title: "Error",
+          description: "Failed to refresh complaints data",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      console.error("Error refreshing complaints:", error)
+      toast({
+        title: "Error",
+        description: "Failed to refresh complaints data",
+        variant: "destructive"
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const renderComplaintTable = (complaintList: Complaint[]) => (
     <div className="rounded-md border">
@@ -155,7 +460,16 @@ export default function AgentComplaints() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {complaintList.length > 0 ? (
+          {isLoading ? (
+            <TableRow>
+              <TableCell colSpan={6} className="text-center py-6">
+                <div className="flex justify-center items-center">
+                  <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                  <span>Loading complaints...</span>
+                </div>
+              </TableCell>
+            </TableRow>
+          ) : complaintList.length > 0 ? (
             complaintList.map((complaint) => (
               <TableRow key={complaint.id}>
                 <TableCell>
@@ -173,11 +487,21 @@ export default function AgentComplaints() {
                 <TableCell>{getPriorityBadge(complaint.priority)}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
-                    <Button variant="ghost" size="icon">
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => handleViewComplaint(complaint)}
+                      title="View details"
+                    >
                       <Eye className="h-4 w-4" />
                       <span className="sr-only">View details</span>
                     </Button>
-                    <Button variant="ghost" size="icon">
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => handleOpenResponseModal(complaint)}
+                      title="Add/View response"
+                    >
                       <MessageSquare className="h-4 w-4" />
                       <span className="sr-only">Message</span>
                     </Button>
@@ -209,12 +533,170 @@ export default function AgentComplaints() {
                 <CardTitle>My Complaints</CardTitle>
                 <CardDescription>View and manage your submitted complaints</CardDescription>
               </div>
-              <Button onClick={() => setIsCreatingComplaint(true)} className="flex items-center gap-2">
-                <PlusCircle className="h-4 w-4" />
-                <span>New Complaint</span>
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={refreshComplaints} 
+                  disabled={isLoading}
+                  className="flex items-center gap-2"
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Clock className="h-4 w-4" />
+                  )}
+                  <span>Refresh</span>
+                </Button>
+                <Button onClick={() => setIsCreatingComplaint(true)} className="flex items-center gap-2">
+                  <PlusCircle className="h-4 w-4" />
+                  <span>New Complaint</span>
+                </Button>
+              </div>
             </div>
           </CardHeader>
+          
+          {/* View Complaint Details Modal */}
+          <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+            <DialogContent className="sm:max-w-[600px]">
+              <DialogHeader>
+                <DialogTitle className="text-xl">Complaint Details</DialogTitle>
+                <DialogDescription>
+                  View detailed information about this complaint
+                </DialogDescription>
+              </DialogHeader>
+              
+              {selectedComplaint && (
+                <div className="space-y-4 py-4">
+                  <div className="grid grid-cols-4 gap-4">
+                    <div className="col-span-4">
+                      <h3 className="font-semibold text-lg">{selectedComplaint.title}</h3>
+                      <p className="text-sm text-muted-foreground">{selectedComplaint.property}</p>
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <h4 className="text-sm font-medium">Status</h4>
+                      <div>{getStatusBadge(selectedComplaint.status)}</div>
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <h4 className="text-sm font-medium">Priority</h4>
+                      <div>{getPriorityBadge(selectedComplaint.priority)}</div>
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <h4 className="text-sm font-medium">Category</h4>
+                      <p className="text-sm">{selectedComplaint.category}</p>
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <h4 className="text-sm font-medium">Submitted</h4>
+                      <p className="text-sm">{selectedComplaint.submittedDate}</p>
+                    </div>
+                    
+                    <div className="col-span-4 space-y-1">
+                      <h4 className="text-sm font-medium">Transaction ID</h4>
+                      <p className="text-sm">{selectedComplaint.transactionId}</p>
+                    </div>
+                    
+                    <div className="col-span-4 space-y-1">
+                      <h4 className="text-sm font-medium">Description</h4>
+                      <div className="rounded-md bg-muted p-3">
+                        <p className="text-sm whitespace-pre-wrap">{selectedComplaint.description}</p>
+                      </div>
+                    </div>
+                    
+                    {selectedComplaint.response && (
+                      <div className="col-span-4 space-y-1">
+                        <h4 className="text-sm font-medium">Response</h4>
+                        <div className="rounded-md bg-muted p-3">
+                          <p className="text-sm whitespace-pre-wrap">{selectedComplaint.response}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              <DialogFooter>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsViewModalOpen(false)}
+                >
+                  Close
+                </Button>
+                <Button 
+                  onClick={() => {
+                    setIsViewModalOpen(false)
+                    if (selectedComplaint) {
+                      handleOpenResponseModal(selectedComplaint)
+                    }
+                  }}
+                >
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  {selectedComplaint?.response ? "Update Response" : "Add Response"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          
+          {/* Response Modal */}
+          <Dialog open={isResponseModalOpen} onOpenChange={setIsResponseModalOpen}>
+            <DialogContent className="sm:max-w-[600px]">
+              <DialogHeader>
+                <DialogTitle className="text-xl">
+                  {selectedComplaint?.response ? "Update Response" : "Add Response"}
+                </DialogTitle>
+                <DialogDescription>
+                  {selectedComplaint?.response 
+                    ? "Update your response to this complaint" 
+                    : "Provide a response to this complaint"}
+                </DialogDescription>
+              </DialogHeader>
+              
+              {selectedComplaint && (
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <h3 className="font-semibold">{selectedComplaint.title}</h3>
+                    <p className="text-sm text-muted-foreground">{selectedComplaint.property}</p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="response">Your Response</Label>
+                    <Textarea 
+                      id="response" 
+                      value={responseText} 
+                      onChange={(e) => setResponseText(e.target.value)}
+                      placeholder="Enter your response here..."
+                      rows={6}
+                    />
+                  </div>
+                </div>
+              )}
+              
+              <DialogFooter>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsResponseModalOpen(false)}
+                  disabled={isSubmittingResponse}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleSubmitResponse}
+                  disabled={!responseText.trim() || isSubmittingResponse}
+                >
+                  {isSubmittingResponse ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    "Submit Response"
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
           <CardContent className="p-0">
             <Tabs defaultValue="active">
               <TabsList className="grid w-full grid-cols-2 mb-4 mx-4 mt-2">
@@ -237,45 +719,74 @@ export default function AgentComplaints() {
                 <CardDescription>Fill out the form to submit a new complaint</CardDescription>
               </CardHeader>
               <CardContent>
-                <form className="space-y-4">
+                <form className="space-y-4" onSubmit={handleSubmitComplaint}>
                   <div className="space-y-2">
                     <Label htmlFor="complaint-title">Title</Label>
-                    <Input id="complaint-title" placeholder="Brief title of your complaint" />
+                    <Input 
+                      id="complaint-title" 
+                      placeholder="Brief title of your complaint" 
+                      value={complaintForm.title}
+                      onChange={handleInputChange}
+                      required
+                    />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="transaction">Transaction</Label>
-                    <Select>
+                    <Select 
+                      value={complaintForm.transactionId} 
+                      onValueChange={(value) => handleSelectChange(value, 'transactionId')}
+                      disabled={transactions.length === 0}
+                    >
                       <SelectTrigger id="transaction">
-                        <SelectValue placeholder="Select transaction" />
+                        <SelectValue placeholder={transactions.length > 0 ? "Select transaction" : "No transactions available"} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="TR-7829">TR-7829 - 123 Main St</SelectItem>
-                        <SelectItem value="TR-6543">TR-6543 - 456 Oak Ave</SelectItem>
-                        <SelectItem value="TR-9021">TR-9021 - 789 Pine Rd</SelectItem>
+                        {transactions.length > 0 ? (
+                          transactions.map((transaction) => (
+                            <SelectItem key={transaction.id} value={transaction.transactionId}>
+                              {transaction.transactionId} - {transaction.property}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="no-transactions" disabled>
+                            No transactions available
+                          </SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
+                    {transactions.length === 0 && (
+                      <p className="text-xs text-destructive mt-1">
+                        No transactions available. Please try again later.
+                      </p>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="category">Category</Label>
-                      <Select>
+                      <Select 
+                        value={complaintForm.category} 
+                        onValueChange={(value) => handleSelectChange(value, 'category')}
+                      >
                         <SelectTrigger id="category">
                           <SelectValue placeholder="Select category" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="documentation">Documentation</SelectItem>
-                          <SelectItem value="communication">Communication</SelectItem>
-                          <SelectItem value="third-party">Third-party</SelectItem>
-                          <SelectItem value="scheduling">Scheduling</SelectItem>
+                          <SelectItem value="Documentation">Documentation</SelectItem>
+                          <SelectItem value="Communication">Communication</SelectItem>
+                          <SelectItem value="Third-party">Third-party</SelectItem>
+                          <SelectItem value="Scheduling">Scheduling</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="priority">Priority</Label>
-                      <Select>
+                      <Select 
+                        value={complaintForm.priority} 
+                        onValueChange={(value) => handleSelectChange(value, 'priority')}
+                      >
                         <SelectTrigger id="priority">
                           <SelectValue placeholder="Select priority" />
                         </SelectTrigger>
@@ -289,15 +800,40 @@ export default function AgentComplaints() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="description">Description</Label>
-                    <Textarea id="description" placeholder="Detailed description of your complaint" rows={5} />
+                    <Label htmlFor="complaint-description">Description</Label>
+                    <Textarea 
+                      id="complaint-description" 
+                      placeholder="Detailed description of your complaint" 
+                      rows={5} 
+                      value={complaintForm.description}
+                      onChange={handleInputChange}
+                      required
+                    />
                   </div>
 
                   <div className="flex justify-end gap-2">
-                    <Button variant="outline" type="button" onClick={() => setIsCreatingComplaint(false)}>
+                    <Button 
+                      variant="outline" 
+                      type="button" 
+                      onClick={() => setIsCreatingComplaint(false)}
+                      disabled={isSubmitting}
+                    >
                       Cancel
                     </Button>
-                    <Button type="submit">Submit Complaint</Button>
+                    <Button 
+                      type="submit" 
+                      disabled={isSubmitting || transactions.length === 0}
+                      title={transactions.length === 0 ? "No transactions available" : ""}
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Submitting...
+                        </>
+                      ) : (
+                        "Submit Complaint"
+                      )}
+                    </Button>
                   </div>
                 </form>
               </CardContent>
