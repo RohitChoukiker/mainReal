@@ -103,50 +103,9 @@ export async function GET(req: NextRequest) {
     
     // If we still don't have any transactions, create some demo ones
     if (transactions.length === 0) {
-      console.log("No transactions found in database or in-memory API, creating demo transactions");
-      
-      // Create demo transactions
-      const demoTransactions = [
-        {
-          transactionId: "TR-7829",
-          propertyAddress: "123 Main St",
-          city: "Austin",
-          state: "TX",
-          clientName: "John Doe",
-          agentId: "Sarah Johnson",
-          status: "InProgress",
-          createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-          closingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          price: 450000
-        },
-        {
-          transactionId: "TR-6543",
-          propertyAddress: "456 Oak Ave",
-          city: "Dallas",
-          state: "TX",
-          clientName: "Jane Smith",
-          agentId: "John Smith",
-          status: "New",
-          createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-          closingDate: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString(),
-          price: 350000
-        },
-        {
-          transactionId: "TR-9021",
-          propertyAddress: "789 Pine Rd",
-          city: "Houston",
-          state: "TX",
-          clientName: "Robert Johnson",
-          agentId: "Michael Brown",
-          status: "Approved",
-          createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
-          closingDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(),
-          price: 550000
-        }
-      ];
-      
-      transactions = demoTransactions;
-      total = transactions.length;
+      console.log("No transactions found in database or in-memory API");
+      transactions = [];
+      total = 0;
     }
     
     // We're using data from both the database and in-memory storage if needed

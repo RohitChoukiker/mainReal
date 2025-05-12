@@ -386,99 +386,19 @@ export default function TaskManagement() {
             };
           });
         } else {
-          console.warn('API returned no tasks or invalid format, using demo tasks')
+          console.warn('API returned no tasks or invalid format')
           setApiTasks([])
-          
-          // Create demo tasks
-          formattedTasks = [
-            {
-              id: "task-1",
-              title: "Schedule home inspection",
-              transactionId: "TR-7829",
-              property: "123 Main St, Austin, TX",
-              agent: {
-                name: "Sarah Johnson",
-                avatar: "/placeholder.svg?height=40&width=40",
-              },
-              dueDate: "Apr 15, 2025",
-              status: "pending",
-              priority: "high",
-              description: "Contact the inspector and schedule a home inspection as soon as possible.",
-              aiReminder: true,
-            },
-            {
-              id: "task-2",
-              title: "Collect HOA documents",
-              transactionId: "TR-7829",
-              property: "123 Main St, Austin, TX",
-              agent: {
-                name: "Sarah Johnson",
-                avatar: "/placeholder.svg?height=40&width=40",
-              },
-              dueDate: "Apr 18, 2025",
-              status: "in_progress",
-              priority: "medium",
-              description: "Obtain all HOA documents including bylaws, financials, and meeting minutes.",
-            }
-          ]
+          setTasks([])
         }
         
-        // Always set the tasks, whether they're from the API or demo tasks
+        // Always set the tasks from the API
         setTasks(formattedTasks)
       } catch (error) {
         console.error('Error fetching data:', error)
-        toast.error('Failed to load data. Using demo data instead.')
+        toast.error('Failed to load data.')
         setApiTasks([])
         setApiTransactions([])
-        
-        // Set some demo tasks if there's an error
-        const demoTasks = [
-          {
-            id: "task-1",
-            title: "Schedule home inspection",
-            transactionId: "TR-7829",
-            property: "123 Main St, Austin, TX",
-            agent: {
-              name: "Sarah Johnson",
-              avatar: "/placeholder.svg?height=40&width=40",
-            },
-            dueDate: "Apr 15, 2025",
-            status: "pending",
-            priority: "high",
-            description: "Contact the inspector and schedule a home inspection as soon as possible.",
-            aiReminder: true,
-          },
-          {
-            id: "task-2",
-            title: "Collect HOA documents",
-            transactionId: "TR-7829",
-            property: "123 Main St, Austin, TX",
-            agent: {
-              name: "Sarah Johnson",
-              avatar: "/placeholder.svg?height=40&width=40",
-            },
-            dueDate: "Apr 18, 2025",
-            status: "in_progress",
-            priority: "medium",
-            description: "Obtain all HOA documents including bylaws, financials, and meeting minutes.",
-          },
-          {
-            id: "task-3",
-            title: "Submit financing application",
-            transactionId: "TR-6543",
-            property: "456 Oak Ave, Dallas, TX",
-            agent: {
-              name: "John Smith",
-              avatar: "/placeholder.svg?height=40&width=40",
-            },
-            dueDate: "Apr 20, 2025",
-            status: "pending",
-            priority: "high",
-            description: "Complete and submit the mortgage application with all required documentation.",
-          }
-        ];
-        
-        setTasks(demoTasks)
+        setTasks([])
       } finally {
         setIsLoading(false)
       }

@@ -58,6 +58,8 @@ export default function TCTransactions() {
   const [apiTransactions, setApiTransactions] = useState<ApiTransaction[]>([])
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [error, setError] = useState<string | null>(null)
 
   // Function to open transaction details modal
   const openTransactionModal = (transaction: Transaction) => {
@@ -110,9 +112,6 @@ export default function TCTransactions() {
   }, [])
 
   // Convert API transactions to the format expected by the UI with useEffect
-  const [transactions, setTransactions] = useState<Transaction[]>([])
-  
-  // Convert API transactions to the format expected by the UI
   useEffect(() => {
     if (isLoading) return;
     

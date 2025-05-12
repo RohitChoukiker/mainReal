@@ -202,50 +202,13 @@ export default function TasksAssigned() {
           console.log(`Setting ${formattedTasks.length} formatted tasks`);
           setTasks(formattedTasks)
         } else {
-          // If no tasks are found, use demo data
-          setTasks([
-            {
-              id: "task-1",
-              title: "Schedule home inspection",
-              transactionId: "TR-7829",
-              property: "123 Main St, Austin, TX",
-              assignedBy: "Sarah Johnson (TC)",
-              dueDate: "Apr 15, 2025",
-              status: "pending",
-              priority: "high",
-              description: "Contact the inspector and schedule a home inspection as soon as possible.",
-              aiReminder: true,
-            },
-            {
-              id: "task-2",
-              title: "Collect HOA documents",
-              transactionId: "TR-7829",
-              property: "123 Main St, Austin, TX",
-              assignedBy: "Sarah Johnson (TC)",
-              dueDate: "Apr 18, 2025",
-              status: "in_progress",
-              priority: "medium",
-              description: "Obtain all HOA documents including bylaws, financials, and meeting minutes.",
-            }
-          ])
+          // If no tasks are found, set empty array
+          setTasks([])
         }
       } catch (error) {
         console.error("Error fetching tasks:", error)
-        // Set demo data on error
-        setTasks([
-          {
-            id: "task-1",
-            title: "Schedule home inspection",
-            transactionId: "TR-7829",
-            property: "123 Main St, Austin, TX",
-            assignedBy: "Sarah Johnson (TC)",
-            dueDate: "Apr 15, 2025",
-            status: "pending",
-            priority: "high",
-            description: "Contact the inspector and schedule a home inspection as soon as possible.",
-            aiReminder: true,
-          }
-        ])
+        // Set empty array on error
+        setTasks([])
       } finally {
         setIsLoading(false)
       }
