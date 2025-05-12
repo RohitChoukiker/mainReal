@@ -1,16 +1,16 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
+import { io, Socket } from "socket.io-client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { CheckSquare, Clock, AlertTriangle, CheckCircle, FileText, MessageSquare, Loader2 } from "lucide-react"
+import { CheckSquare, Clock, AlertTriangle, CheckCircle, FileText, Eye, Loader2 } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
 import { toast } from "sonner"
-import { TaskMessageDialog } from "@/components/task-message-dialog"
-import { UnreadMessageBadge } from "@/components/unread-message-badge"
+import { TaskDetailDialog } from "@/components/task-detail-dialog"
 
 interface Task {
   id: string
@@ -46,8 +46,66 @@ export default function TasksAssigned() {
   const [isLoading, setIsLoading] = useState(true)
   const [newTasksCount, setNewTasksCount] = useState(0)
   const [lastFetchTime, setLastFetchTime] = useState(Date.now())
-  const [messageDialogOpen, setMessageDialogOpen] = useState(false)
+  const [taskDetailDialogOpen, setTaskDetailDialogOpen] = useState(false)
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
+  const [activeTab, setActiveTab] = useState("pending")
+  const socketRef = useRef<Socket | null>(null)
+  const [socketConnected, setSocketConnected] = useState(false)
+  
+  // Setup WebSocket connection for real-time updates
+  useEffect(() => {
+    // Initialize socket connection
+    if (!socketRef.current) {
+      console.log('Initializing socket connection...')
+      socketRef.current = io({
+        path: '/api/socket',
+        autoConnect: true,
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000
+      })
+      
+      // Socket connection event handlers
+      socketRef.current.on('connect', () => {
+        console.log('Socket connected:', socketRef.current?.id)
+        setSocketConnected(true)
+        
+        // Get token from cookies
+        const cookies = document.cookie.split(';').reduce((acc, cookie) => {
+          const [key, value] = cookie.trim().split('=')
+          acc[key] = value
+          return acc
+        }, {} as Record<string, string>)
+        
+        // Authenticate with the socket server
+        if (cookies.token) {
+          socketRef.current?.emit('authenticate', cookies.token)
+        }
+      })
+      
+      socketRef.current.on('authenticated', (data) => {
+        console.log('Socket authenticated:', data)
+      })
+      
+      socketRef.current.on('connect_error', (error) => {
+        console.error('Socket connection error:', error)
+      })
+      
+      socketRef.current.on('disconnect', (reason) => {
+        console.log('Socket disconnected:', reason)
+        setSocketConnected(false)
+      })
+    }
+    
+    // Cleanup function
+    return () => {
+      if (socketRef.current) {
+        console.log('Cleaning up socket connection')
+        socketRef.current.disconnect()
+        socketRef.current = null
+      }
+    }
+  }, [])
   
   // Fetch tasks from API with real-time updates
   useEffect(() => {
@@ -206,6 +264,7 @@ export default function TasksAssigned() {
     return () => clearInterval(pollingInterval)
   }, [])
 
+  // Calculate filtered tasks based on current state
   const pendingTasks = tasks.filter((task) => task.status === "pending" || task.status === "in_progress")
   const overdueTasks = tasks.filter((task) => task.status === "overdue")
   const completedTasks = tasks.filter((task) => task.status === "completed")
@@ -272,88 +331,100 @@ export default function TasksAssigned() {
 
   const [completingTaskId, setCompletingTaskId] = useState<string | null>(null);
   
-  // Handler for opening the message modal
-  const handleOpenMessageModal = (task: Task) => {
+  // Handler for opening the task detail modal
+  const handleOpenTaskDetailModal = (task: Task) => {
     setSelectedTask(task);
-    setIsMessageModalOpen(true);
+    setTaskDetailDialogOpen(true);
   };
 
   const handleCompleteTask = async (taskId: string) => {
+    // Find the task
+    const taskToComplete = tasks.find(t => t.id === taskId);
+    
+    // If task doesn't exist or is already completed, do nothing
+    if (!taskToComplete) {
+      toast.error("Task not found");
+      return;
+    }
+    
+    if (taskToComplete.status === "completed") {
+      toast.info("This task is already completed");
+      return;
+    }
+    
+    // Set loading state
+    setCompletingTaskId(taskId);
+    
     try {
-      console.log(`Attempting to complete task: ${taskId}`);
-      
-      // Set the task as being completed (for UI loading state)
-      setCompletingTaskId(taskId);
-      
-      // Store original tasks in case we need to revert
-      const originalTasks = [...tasks];
-      
-      // Update task status in UI immediately for better UX
-      setTasks(tasks.map((task) => (task.id === taskId ? { ...task, status: "completed" } : task)));
-      
-      // Find the task title for notifications
-      const taskTitle = tasks.find(task => task.id === taskId)?.title || "Task";
-      
-      // Skip API call for demo tasks (those with IDs that don't look like MongoDB ObjectIDs)
-      if (taskId.startsWith('demo-') || taskId.startsWith('task-')) {
-        console.log(`Demo task ${taskId} marked as completed (no API call needed)`);
+      // For demo tasks, just show success message
+      if (taskId.startsWith('task-') || taskId.startsWith('demo-')) {
+        // Create a new array with the updated task
+        const updatedTasks = tasks.map(task => 
+          task.id === taskId 
+            ? { ...task, status: "completed" } 
+            : task
+        );
         
-        // Show success message for demo tasks
-        toast.success(`Task completed: ${taskTitle}`, {
-          description: "The task has been marked as completed.",
-          duration: 3000
-        });
+        // Update the state with the new array
+        setTasks(updatedTasks);
         
+        // Switch to completed tab
+        setActiveTab("completed");
+        
+        toast.success(`Task completed: ${taskToComplete.title}`);
+        console.log('Demo task completed successfully');
         setCompletingTaskId(null);
         return;
       }
       
-      // Implement API call to update task status
-      console.log(`Sending PATCH request to /api/agent/tasks/${taskId}`);
+      // For real tasks, make API call first
+      console.log(`Sending PATCH request to complete task ${taskId}`);
       const response = await fetch(`/api/agent/tasks/${taskId}`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'completed' }),
-        credentials: 'include' // Include cookies for authentication
+        credentials: 'include'
       });
-      
-      console.log(`API response status: ${response.status}`);
       
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`Error response body: ${errorText}`);
-        throw new Error(`Failed to update task: ${response.status} - ${errorText}`);
+        const errorData = await response.json();
+        console.error("API error response:", errorData);
+        throw new Error(`Failed to update task: ${response.status} - ${errorData.message || 'Unknown error'}`);
       }
       
-      const data = await response.json();
-      console.log(`Task ${taskId} marked as completed:`, data);
+      // Get the response data
+      const responseData = await response.json();
+      console.log('Task completion response:', responseData);
+      
+      // If API call is successful, update the UI
+      const updatedTasks = tasks.map(task => 
+        task.id === taskId 
+          ? { ...task, status: "completed" } 
+          : task
+      );
+      
+      // Update the state with the new array
+      setTasks(updatedTasks);
+      
+      // Switch to completed tab
+      setActiveTab("completed");
+      
+      // Join the task room for real-time updates
+      if (socketRef.current && socketConnected) {
+        socketRef.current.emit('join_task', taskId);
+        console.log(`Joined task room: ${taskId}`);
+      }
       
       // Show success message
-      toast.success(`Task completed: ${taskTitle}`, {
-        description: "The task has been marked as completed.",
-        duration: 3000
-      });
+      toast.success(`Task completed: ${taskToComplete.title}`);
       
-      console.log('Task completed successfully');
     } catch (error) {
-      console.error("Error updating task:", error);
-      
-      // Revert the UI change if the API call fails
-      setTasks(tasks.map((task) => 
-        task.id === taskId ? { ...task, status: "pending" } : task
-      ));
+      console.error("Error completing task:", error);
       
       // Show error message
-      toast.error("Failed to complete task", {
-        description: error.message,
-        duration: 5000
-      });
-      
-      console.error('Failed to complete task');
+      toast.error(`Failed to complete task: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
-      // Clear the completing task ID
+      // Clear loading state
       setCompletingTaskId(null);
     }
   }
@@ -367,6 +438,7 @@ export default function TasksAssigned() {
             <TableHead className="hidden md:table-cell">Transaction</TableHead>
             <TableHead className="hidden md:table-cell">Assigned By</TableHead>
             <TableHead>Due Date</TableHead>
+            <TableHead>Status</TableHead>
             <TableHead>Priority</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -374,10 +446,17 @@ export default function TasksAssigned() {
         <TableBody>
           {taskList.length > 0 ? (
             taskList.map((task) => (
-              <TableRow key={task.id}>
+              <TableRow 
+                key={task.id}
+                className={task.status === "completed" ? "bg-green-50 dark:bg-green-900/20" : ""}
+              >
                 <TableCell>
                   <div className="flex items-center gap-3">
-                    <CheckSquare className="h-5 w-5 text-muted-foreground" />
+                    {task.status === "completed" ? (
+                      <CheckSquare className="h-5 w-5 text-green-500" />
+                    ) : (
+                      <CheckSquare className="h-5 w-5 text-muted-foreground" />
+                    )}
                     <div>
                       <div className="font-medium">
                         {task.title}
@@ -401,21 +480,21 @@ export default function TasksAssigned() {
                 <TableCell className="hidden md:table-cell">{task.transactionId}</TableCell>
                 <TableCell className="hidden md:table-cell">{task.assignedBy}</TableCell>
                 <TableCell>{task.dueDate}</TableCell>
+                <TableCell>{getStatusBadge(task.status)}</TableCell>
                 <TableCell>{getPriorityBadge(task.priority)}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
                     <Button 
                       variant="outline" 
                       size="sm"
-                      className="flex items-center gap-1"
+                      className="flex items-center gap-1 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 border-blue-200"
                       onClick={() => {
                         setSelectedTask(task);
-                        setMessageDialogOpen(true);
+                        setTaskDetailDialogOpen(true);
                       }}
                     >
-                      <MessageSquare className="h-4 w-4" />
-                      <span className="hidden sm:inline">Message</span>
-                      <UnreadMessageBadge taskId={task.id} userRole="agent" />
+                      <Eye className="h-4 w-4" />
+                      <span className="hidden sm:inline">View</span>
                     </Button>
                     
                     {task.status !== "completed" ? (
@@ -467,15 +546,12 @@ export default function TasksAssigned() {
 
   return (
     <div className="space-y-6">
-      {/* Message Dialog */}
+      {/* Task Detail Dialog */}
       {selectedTask && (
-        <TaskMessageDialog
-          isOpen={messageDialogOpen}
-          onClose={() => setMessageDialogOpen(false)}
-          taskId={selectedTask.id}
-          taskTitle={selectedTask.title}
-          transactionId={selectedTask.transactionId}
-          currentUserRole="agent"
+        <TaskDetailDialog
+          isOpen={taskDetailDialogOpen}
+          onClose={() => setTaskDetailDialogOpen(false)}
+          task={selectedTask}
         />
       )}
       
@@ -508,7 +584,7 @@ export default function TasksAssigned() {
             <CardDescription>View and manage tasks assigned to you</CardDescription>
           </CardHeader>
           <CardContent className="p-0">
-            <Tabs defaultValue="pending">
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="grid w-full grid-cols-3 mb-4 mx-4 mt-2">
                 <TabsTrigger value="pending">Pending ({pendingTasks.length})</TabsTrigger>
                 <TabsTrigger value="overdue">Overdue ({overdueTasks.length})</TabsTrigger>

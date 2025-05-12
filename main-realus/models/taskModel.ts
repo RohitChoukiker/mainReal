@@ -33,12 +33,13 @@ const TaskSchema: Schema = new Schema(
     title: { type: String, required: true },
     transactionId: { type: String, required: true },
     propertyAddress: { type: String },
-    agentId: { type: String },
+    agentId: { type: String, index: true }, // Add index for faster queries
     dueDate: { type: Date, required: true },
     status: { 
       type: String, 
       enum: Object.values(TaskStatus),
-      default: TaskStatus.Pending 
+      default: TaskStatus.Pending,
+      index: true // Add index for faster status filtering
     },
     priority: { 
       type: String, 

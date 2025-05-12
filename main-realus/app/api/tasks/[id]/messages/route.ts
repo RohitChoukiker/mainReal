@@ -5,6 +5,9 @@ import TaskModel from "@/models/taskModel";
 import User, { Role } from "@/models/userModel";
 import jwt from "jsonwebtoken";
 import catchAsync from "@/utils/catchAsync";
+// Import socket server utilities
+const socketServer = require('../../../../../utils/socketServer.js');
+const { getSocketServer, emitToTask } = socketServer;
 
 const JWT_SECRET = "123123123 " as string;
 
@@ -67,14 +70,42 @@ export const GET = catchAsync(async (req: NextRequest, { params }: { params: { i
     
     // Mark messages as read if they were sent to the current user
     const otherRole = userRole === Role.Agent ? 'tc' : 'agent';
-    await MessageModel.updateMany(
-      { 
-        taskId,
-        senderRole: otherRole,
-        read: false
-      },
-      { read: true }
-    );
+    const unreadMessages = await MessageModel.find({ 
+      taskId,
+      senderRole: otherRole,
+      read: false
+    });
+    
+    if (unreadMessages.length > 0) {
+      // Update read status in database
+      await MessageModel.updateMany(
+        { 
+          taskId,
+          senderRole: otherRole,
+          read: false
+        },
+        { read: true }
+      );
+      
+      // Emit socket event for each message that was marked as read
+      const io = getSocketServer();
+      if (io) {
+        // Emit message_read events for each message
+        unreadMessages.forEach(message => {
+          emitToTask(taskId, 'message_read', { 
+            messageId: message._id,
+            taskId: taskId
+          });
+        });
+        
+        // Emit an event to update the unread count for the other role
+        emitToTask(taskId, 'unread_count_update', {
+          taskId,
+          role: otherRole,
+          count: 0
+        });
+      }
+    }
     
     return NextResponse.json({
       messages: messages.reverse() // Return in chronological order
@@ -169,6 +200,28 @@ export const POST = catchAsync(async (req: NextRequest, { params }: { params: { 
     // Save the message
     const savedMessage = await newMessage.save();
     console.log(`Message saved with ID: ${savedMessage._id}`);
+    
+    // Emit socket event for the new message
+    const io = getSocketServer();
+    if (io) {
+      emitToTask(taskId, 'new_message', savedMessage);
+      
+      // Also emit an event to update the unread count for the recipient role
+      const recipientRole = userRole === Role.Agent ? 'tc' : 'agent';
+      
+      // Get current unread count for the recipient
+      const unreadCount = await MessageModel.countDocuments({
+        taskId,
+        senderRole: userRole === Role.Agent ? 'agent' : 'tc',
+        read: false
+      });
+      
+      emitToTask(taskId, 'unread_count_update', {
+        taskId,
+        role: recipientRole,
+        count: unreadCount
+      });
+    }
     
     return NextResponse.json({
       message: "Message sent successfully",

@@ -11,6 +11,8 @@ import { AlertCircle, CheckCircle, MessageSquare, Eye, Clock, ArrowUpCircle, Loa
 import { toast } from "@/components/ui/use-toast"
 import { Input } from "@/components/ui/input"
 import { Progress } from "@/components/ui/progress"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
 
 interface Complaint {
   id: string
@@ -32,6 +34,13 @@ export default function ComplaintsManagement() {
   const [complaints, setComplaints] = useState<Complaint[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
+  
+  // Dialog states
+  const [viewDialogOpen, setViewDialogOpen] = useState(false)
+  const [respondDialogOpen, setRespondDialogOpen] = useState(false)
+  const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null)
+  const [responseText, setResponseText] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
   
   // Fetch complaints data
   useEffect(() => {
@@ -93,6 +102,117 @@ export default function ComplaintsManagement() {
   const inProgressComplaints = filteredComplaints.filter((comp) => comp.status === "in_progress")
   const escalatedComplaints = filteredComplaints.filter((comp) => comp.status === "escalated")
   const resolvedComplaints = filteredComplaints.filter((comp) => comp.status === "resolved")
+  
+  // Handle view complaint details
+  const handleViewComplaint = (complaint: Complaint) => {
+    setSelectedComplaint(complaint)
+    setViewDialogOpen(true)
+  }
+  
+  // Handle respond to complaint
+  const handleRespondClick = (complaint: Complaint) => {
+    setSelectedComplaint(complaint)
+    setResponseText("")
+    setRespondDialogOpen(true)
+  }
+  
+  // Handle submit response
+  const handleSubmitResponse = async () => {
+    if (!selectedComplaint || !responseText.trim()) return
+    
+    try {
+      setIsSubmitting(true)
+      
+      const response = await fetch('/api/tc/complaints', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: selectedComplaint.id,
+          status: 'in_progress',
+          response: responseText
+        }),
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        
+        // Update the complaint in the local state
+        setComplaints(prevComplaints => 
+          prevComplaints.map(c => 
+            c.id === selectedComplaint.id 
+              ? { ...c, status: 'in_progress' } 
+              : c
+          )
+        )
+        
+        toast({
+          title: "Response sent",
+          description: "Your response has been recorded and the complaint status updated.",
+        })
+        
+        // Close the dialog
+        setRespondDialogOpen(false)
+      } else {
+        throw new Error('Failed to update complaint')
+      }
+    } catch (error) {
+      console.error('Error updating complaint:', error)
+      toast({
+        title: "Error",
+        description: "Failed to send response. Please try again.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+  
+  // Handle mark as resolved
+  const handleMarkAsResolved = async (complaint: Complaint) => {
+    try {
+      setIsLoading(true)
+      
+      const response = await fetch('/api/tc/complaints', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: complaint.id,
+          status: 'resolved'
+        }),
+      })
+      
+      if (response.ok) {
+        // Update the complaint in the local state
+        setComplaints(prevComplaints => 
+          prevComplaints.map(c => 
+            c.id === complaint.id 
+              ? { ...c, status: 'resolved' } 
+              : c
+          )
+        )
+        
+        toast({
+          title: "Complaint resolved",
+          description: "The complaint has been marked as resolved.",
+        })
+      } else {
+        throw new Error('Failed to resolve complaint')
+      }
+    } catch (error) {
+      console.error('Error resolving complaint:', error)
+      toast({
+        title: "Error",
+        description: "Failed to resolve complaint. Please try again.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -203,16 +323,30 @@ export default function ComplaintsManagement() {
                 <TableCell>{getPriorityBadge(complaint.priority)}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
-                    <Button variant="ghost" size="icon">
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => handleViewComplaint(complaint)}
+                    >
                       <Eye className="h-4 w-4" />
                       <span className="sr-only">View details</span>
                     </Button>
-                    <Button variant="ghost" size="icon">
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => handleRespondClick(complaint)}
+                      disabled={complaint.status === "resolved"}
+                    >
                       <MessageSquare className="h-4 w-4" />
                       <span className="sr-only">Respond</span>
                     </Button>
                     {complaint.status !== "resolved" && (
-                      <Button variant="ghost" size="icon" className="text-green-500">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="text-green-500"
+                        onClick={() => handleMarkAsResolved(complaint)}
+                      >
                         <CheckCircle className="h-4 w-4" />
                         <span className="sr-only">Mark as resolved</span>
                       </Button>
@@ -391,6 +525,129 @@ export default function ComplaintsManagement() {
 
         <TabsContent value="resolved">{renderComplaintTable(resolvedComplaints)}</TabsContent>
       </Tabs>
+      
+      {/* View Complaint Details Dialog */}
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>{selectedComplaint?.title}</DialogTitle>
+            <DialogDescription>
+              Complaint ID: {selectedComplaint?.id}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <div className="font-medium">Status:</div>
+              <div className="col-span-3">
+                {selectedComplaint && getStatusBadge(selectedComplaint.status)}
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <div className="font-medium">Priority:</div>
+              <div className="col-span-3">
+                {selectedComplaint && getPriorityBadge(selectedComplaint.priority)}
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <div className="font-medium">Transaction:</div>
+              <div className="col-span-3">{selectedComplaint?.transactionId}</div>
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <div className="font-medium">Property:</div>
+              <div className="col-span-3">{selectedComplaint?.property}</div>
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <div className="font-medium">Agent:</div>
+              <div className="col-span-3">{selectedComplaint?.agent.name}</div>
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <div className="font-medium">Submitted:</div>
+              <div className="col-span-3">{selectedComplaint?.submittedDate}</div>
+            </div>
+            
+            <div className="grid grid-cols-4 items-start gap-4">
+              <div className="font-medium">Description:</div>
+              <div className="col-span-3 whitespace-pre-wrap">{selectedComplaint?.description}</div>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button onClick={() => setViewDialogOpen(false)}>Close</Button>
+            {selectedComplaint && selectedComplaint.status !== "resolved" && (
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setViewDialogOpen(false)
+                  handleRespondClick(selectedComplaint)
+                }}
+              >
+                Respond
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Respond to Complaint Dialog */}
+      <Dialog open={respondDialogOpen} onOpenChange={setRespondDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Respond to Complaint</DialogTitle>
+            <DialogDescription>
+              {selectedComplaint?.title}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-start gap-4">
+              <div className="font-medium">Description:</div>
+              <div className="col-span-3 whitespace-pre-wrap">{selectedComplaint?.description}</div>
+            </div>
+            
+            <div className="space-y-2">
+              <label htmlFor="response" className="font-medium">
+                Your Response:
+              </label>
+              <Textarea
+                id="response"
+                placeholder="Type your response here..."
+                rows={5}
+                value={responseText}
+                onChange={(e) => setResponseText(e.target.value)}
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setRespondDialogOpen(false)}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSubmitResponse}
+              disabled={isSubmitting || !responseText.trim()}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                "Send Response"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export default function catchAsync<T extends (req: NextRequest) => Promise<Response>>(fn: T) {
-  return async function (req: NextRequest): Promise<Response> {
+export default function catchAsync<T extends (req: NextRequest, context?: any) => Promise<Response>>(fn: T) {
+  return async function (req: NextRequest, context?: any): Promise<Response> {
     try {
-      return await fn(req);
+      return await fn(req, context);
     } catch (error: any) {
       console.error("Caught error in catchAsync:", error);
       

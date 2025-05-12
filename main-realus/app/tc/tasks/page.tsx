@@ -1,20 +1,20 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { CheckSquare, Clock, AlertTriangle, CheckCircle, PlusCircle, Calendar, MessageSquare, Loader2 } from "lucide-react"
+import { CheckSquare, Clock, AlertTriangle, CheckCircle, PlusCircle, Loader2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
-import { TaskMessageDialog } from "@/components/task-message-dialog"
-import { UnreadMessageBadge } from "@/components/unread-message-badge"
+// Message dialog removed
+import { io, Socket } from "socket.io-client"
 
 interface ApiTask {
   _id: string;
@@ -92,8 +92,7 @@ export default function TaskManagement() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
   
-  // Message dialog state
-  const [messageDialogOpen, setMessageDialogOpen] = useState(false)
+  // Task state
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   
   // Form state
@@ -107,6 +106,101 @@ export default function TaskManagement() {
     aiReminder: false
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const socketRef = useRef<Socket | null>(null)
+  const [socketConnected, setSocketConnected] = useState(false)
+
+  // Setup WebSocket connection for real-time updates
+  useEffect(() => {
+    // Initialize socket connection
+    if (!socketRef.current) {
+      console.log('Initializing socket connection...')
+      socketRef.current = io({
+        path: '/api/socket',
+        autoConnect: true,
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000
+      })
+      
+      // Socket connection event handlers
+      socketRef.current.on('connect', () => {
+        console.log('Socket connected:', socketRef.current?.id)
+        setSocketConnected(true)
+        
+        // Get token from cookies
+        const cookies = document.cookie.split(';').reduce((acc, cookie) => {
+          const [key, value] = cookie.trim().split('=')
+          acc[key] = value
+          return acc
+        }, {} as Record<string, string>)
+        
+        // Authenticate with the socket server
+        if (cookies.token) {
+          socketRef.current?.emit('authenticate', cookies.token)
+        }
+      })
+      
+      socketRef.current.on('authenticated', (data) => {
+        console.log('Socket authenticated:', data)
+        toast.success('Real-time updates connected')
+      })
+      
+      socketRef.current.on('connect_error', (error) => {
+        console.error('Socket connection error:', error)
+      })
+      
+      socketRef.current.on('disconnect', (reason) => {
+        console.log('Socket disconnected:', reason)
+        setSocketConnected(false)
+      })
+    }
+    
+    // Cleanup function
+    return () => {
+      if (socketRef.current) {
+        console.log('Cleaning up socket connection')
+        socketRef.current.disconnect()
+        socketRef.current = null
+      }
+    }
+  }, [])
+
+  // Listen for task updates via WebSocket
+  useEffect(() => {
+    if (!socketRef.current) return
+    
+    // Listen for task completed events
+    const handleTaskCompleted = (data: any) => {
+      console.log('Task completed event received:', data)
+      
+      // Show notification
+      toast.success(`Task "${data.task?.title || 'Unknown'}" was completed by an agent`, {
+        duration: 5000
+      })
+      
+      // Update the tasks list
+      setTasks(prevTasks => {
+        return prevTasks.map(task => {
+          if (task.id === data.taskId || task._id === data.taskId) {
+            return {
+              ...task,
+              status: 'completed',
+              updatedAt: data.updatedAt
+            }
+          }
+          return task
+        })
+      })
+    }
+    
+    // Register event handlers
+    socketRef.current.on('task_completed', handleTaskCompleted)
+    
+    // Cleanup function
+    return () => {
+      socketRef.current?.off('task_completed', handleTaskCompleted)
+    }
+  }, [])
 
   // Fetch real tasks and transactions from the API
   useEffect(() => {
@@ -393,8 +487,7 @@ export default function TaskManagement() {
     fetchData()
   }, [])
 
-  const pendingTasks = tasks.filter((task) => task.status === "pending" || task.status === "in_progress")
-  const overdueTasks = tasks.filter((task) => task.status === "overdue")
+  const pendingTasks = tasks.filter((task) => task.status === "pending" || task.status === "in_progress" || task.status === "overdue")
   const completedTasks = tasks.filter((task) => task.status === "completed")
   
   // Handle form input changes
@@ -679,8 +772,8 @@ export default function TaskManagement() {
             <TableHead className="hidden md:table-cell">Client</TableHead>
             <TableHead className="hidden md:table-cell">Agent</TableHead>
             <TableHead>Due Date</TableHead>
+            <TableHead>Status</TableHead>
             <TableHead>Priority</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -695,10 +788,17 @@ export default function TaskManagement() {
             </TableRow>
           ) : taskList.length > 0 ? (
             taskList.map((task) => (
-              <TableRow key={task.id}>
+              <TableRow 
+                key={task.id} 
+                className={task.status === "completed" ? "bg-green-50 dark:bg-green-900/20" : ""}
+              >
                 <TableCell>
                   <div className="flex items-center gap-3">
-                    <CheckSquare className="h-5 w-5 text-muted-foreground" />
+                    {task.status === "completed" ? (
+                      <CheckSquare className="h-5 w-5 text-green-500" />
+                    ) : (
+                      <CheckSquare className="h-5 w-5 text-muted-foreground" />
+                    )}
                     <div>
                       <div className="font-medium">{task.title}</div>
                       <div className="text-xs text-muted-foreground">{task.property}</div>
@@ -736,34 +836,8 @@ export default function TaskManagement() {
                   </div>
                 </TableCell>
                 <TableCell>{task.dueDate}</TableCell>
+                <TableCell>{getStatusBadge(task.status)}</TableCell>
                 <TableCell>{getPriorityBadge(task.priority)}</TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
-                    <Button variant="ghost" size="icon">
-                      <Calendar className="h-4 w-4" />
-                      <span className="sr-only">Reschedule</span>
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="flex items-center gap-1"
-                      onClick={() => {
-                        setSelectedTask(task);
-                        setMessageDialogOpen(true);
-                      }}
-                    >
-                      <MessageSquare className="h-4 w-4" />
-                      <span className="hidden sm:inline">Message</span>
-                      <UnreadMessageBadge taskId={task.id} userRole="tc" />
-                    </Button>
-                    {task.status !== "completed" && (
-                      <Button variant="ghost" size="icon" className="text-green-500">
-                        <CheckCircle className="h-4 w-4" />
-                        <span className="sr-only">Mark as completed</span>
-                      </Button>
-                    )}
-                  </div>
-                </TableCell>
               </TableRow>
             ))
           ) : (
@@ -780,17 +854,7 @@ export default function TaskManagement() {
 
   return (
     <div className="space-y-6">
-      {/* Message Dialog */}
-      {selectedTask && (
-        <TaskMessageDialog
-          isOpen={messageDialogOpen}
-          onClose={() => setMessageDialogOpen(false)}
-          taskId={selectedTask.id}
-          taskTitle={selectedTask.title}
-          transactionId={selectedTask.transactionId}
-          currentUserRole="tc"
-        />
-      )}
+      {/* Message Dialog removed */}
       
       <h1 className="text-3xl font-bold tracking-tight">Task Management</h1>
 
@@ -946,15 +1010,7 @@ export default function TaskManagement() {
                 </div>
               </div>
 
-              <div className="flex items-center p-4 rounded-lg bg-muted/50">
-                <div className="mr-4 h-12 w-12 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center">
-                  <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-300" />
-                </div>
-                <div>
-                  <div className="text-sm font-medium">Overdue Tasks</div>
-                  <div className="text-2xl font-bold">{overdueTasks.length}</div>
-                </div>
-              </div>
+
 
               <div className="flex items-center p-4 rounded-lg bg-muted/50">
                 <div className="mr-4 h-12 w-12 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
@@ -981,15 +1037,12 @@ export default function TaskManagement() {
       </div>
 
       <Tabs defaultValue="pending">
-        <TabsList className="grid w-full grid-cols-3 mb-4">
+        <TabsList className="grid w-full grid-cols-2 mb-4">
           <TabsTrigger value="pending">Pending ({pendingTasks.length})</TabsTrigger>
-          <TabsTrigger value="overdue">Overdue ({overdueTasks.length})</TabsTrigger>
           <TabsTrigger value="completed">Completed ({completedTasks.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="pending">{renderTaskTable(pendingTasks)}</TabsContent>
-
-        <TabsContent value="overdue">{renderTaskTable(overdueTasks)}</TabsContent>
 
         <TabsContent value="completed">{renderTaskTable(completedTasks)}</TabsContent>
       </Tabs>

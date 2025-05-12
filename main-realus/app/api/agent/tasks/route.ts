@@ -41,12 +41,6 @@ export const GET = catchAsync(async (req: NextRequest) => {
         console.log("Agent found:", agent ? "Yes" : "No");
         
         if (agent && agent.role === Role.Agent) {
-          // For development/demo purposes, we'll show ALL tasks to ensure they appear
-          // In production, you would want to filter by agent ID
-          console.log("Agent found, showing all tasks for demo purposes");
-          
-          // Uncomment this for production use to filter by agent:
-          /*
           // Create a more flexible query to match tasks assigned to this agent
           const agentIdentifiers = [
             decoded.id,
@@ -60,7 +54,6 @@ export const GET = catchAsync(async (req: NextRequest) => {
           ];
           
           console.log("Filtering tasks for agent with identifiers:", agentIdentifiers);
-          */
         }
       } catch (error) {
         console.error("Token verification error:", error);
@@ -154,11 +147,26 @@ export const GET = catchAsync(async (req: NextRequest) => {
     tasks = tasks.map(task => {
       const taskObj = task.toObject ? task.toObject() : task;
       
-      // Check if the task is overdue
-      if (taskObj.status !== TaskStatus.Completed && 
-          new Date(taskObj.dueDate) < new Date() && 
-          taskObj.status !== TaskStatus.Overdue) {
-        taskObj.status = TaskStatus.Overdue;
+      try {
+        // Check if the task is overdue
+        if (taskObj.status !== TaskStatus.Completed && 
+            taskObj.dueDate && 
+            new Date(taskObj.dueDate) < new Date() && 
+            taskObj.status !== TaskStatus.Overdue) {
+          console.log(`Task ${taskObj._id} is overdue. Due date: ${taskObj.dueDate}, Current status: ${taskObj.status}`);
+          taskObj.status = TaskStatus.Overdue;
+          
+          // If this is a database task (not a demo task), update it in the database
+          if (task.save && typeof task.save === 'function') {
+            // Use a non-blocking approach to update the task
+            TaskModel.updateOne(
+              { _id: taskObj._id },
+              { status: TaskStatus.Overdue }
+            ).catch(err => console.error(`Failed to update overdue task ${taskObj._id}:`, err));
+          }
+        }
+      } catch (error) {
+        console.error(`Error checking if task ${taskObj._id || 'unknown'} is overdue:`, error);
       }
       
       return taskObj;

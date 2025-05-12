@@ -4,6 +4,9 @@ import MessageModel from "@/models/messageModel";
 import User, { Role } from "@/models/userModel";
 import jwt from "jsonwebtoken";
 import catchAsync from "@/utils/catchAsync";
+// Import socket server utilities
+const socketServer = require('../../../../../../utils/socketServer.js');
+const { getSocketServer, emitToTask } = socketServer;
 
 const JWT_SECRET = "123123123 " as string;
 
@@ -58,6 +61,16 @@ export const GET = catchAsync(async (req: NextRequest, { params }: { params: { i
     });
     
     console.log(`Found ${unreadCount} unread messages for task ${taskId}`);
+    
+    // Emit socket event to update unread count
+    const io = getSocketServer();
+    if (io) {
+      emitToTask(taskId, 'unread_count_update', {
+        taskId,
+        role,
+        count: unreadCount
+      });
+    }
     
     return NextResponse.json({
       unreadCount

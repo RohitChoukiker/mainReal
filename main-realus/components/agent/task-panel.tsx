@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
+import { io, Socket } from "socket.io-client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -28,6 +29,63 @@ export default function AgentTaskPanel() {
   const [error, setError] = useState<string | null>(null)
   const [newTaskAlert, setNewTaskAlert] = useState(false)
   const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date())
+  const socketRef = useRef<Socket | null>(null)
+  const [socketConnected, setSocketConnected] = useState(false)
+  
+  // Setup WebSocket connection for real-time updates
+  useEffect(() => {
+    // Initialize socket connection
+    if (!socketRef.current) {
+      console.log('Initializing socket connection for task panel...')
+      socketRef.current = io({
+        path: '/api/socket',
+        autoConnect: true,
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000
+      })
+      
+      // Socket connection event handlers
+      socketRef.current.on('connect', () => {
+        console.log('Socket connected for task panel:', socketRef.current?.id)
+        setSocketConnected(true)
+        
+        // Get token from cookies
+        const cookies = document.cookie.split(';').reduce((acc, cookie) => {
+          const [key, value] = cookie.trim().split('=')
+          acc[key] = value
+          return acc
+        }, {} as Record<string, string>)
+        
+        // Authenticate with the socket server
+        if (cookies.token) {
+          socketRef.current?.emit('authenticate', cookies.token)
+        }
+      })
+      
+      socketRef.current.on('authenticated', (data) => {
+        console.log('Socket authenticated for task panel:', data)
+      })
+      
+      socketRef.current.on('connect_error', (error) => {
+        console.error('Socket connection error for task panel:', error)
+      })
+      
+      socketRef.current.on('disconnect', (reason) => {
+        console.log('Socket disconnected for task panel:', reason)
+        setSocketConnected(false)
+      })
+    }
+    
+    // Cleanup function
+    return () => {
+      if (socketRef.current) {
+        console.log('Cleaning up socket connection for task panel')
+        socketRef.current.disconnect()
+        socketRef.current = null
+      }
+    }
+  }, [])
 
   // Function to fetch tasks from the API
   const fetchTasks = async () => {
@@ -52,19 +110,30 @@ export default function AgentTaskPanel() {
       
       // Process tasks data
       if (tasksData && tasksData.tasks && Array.isArray(tasksData.tasks)) {
+        console.log("Tasks data received:", tasksData.tasks.length, "tasks");
         // Convert API tasks to the format expected by the UI
         const formattedTasks: Task[] = tasksData.tasks.map((apiTask: any) => {
+          // Format the due date with a fallback
+          let formattedDueDate = "No due date";
+          try {
+            if (apiTask.dueDate) {
+              formattedDueDate = new Date(apiTask.dueDate).toLocaleDateString();
+            }
+          } catch (e) {
+            console.error("Error formatting due date:", e);
+          }
+          
           return {
             id: apiTask._id || apiTask.id,
             title: apiTask.title,
-            transactionId: apiTask.transactionId,
+            transactionId: apiTask.transactionId || "Unknown Transaction",
             property: apiTask.propertyAddress || apiTask.property || "Address not available",
             assignedBy: apiTask.assignedBy || "TC Manager",
-            dueDate: new Date(apiTask.dueDate).toLocaleDateString(),
-            status: apiTask.status,
-            priority: apiTask.priority,
-            description: apiTask.description,
-            aiReminder: apiTask.aiReminder,
+            dueDate: formattedDueDate,
+            status: apiTask.status || "pending",
+            priority: apiTask.priority || "medium",
+            description: apiTask.description || "",
+            aiReminder: apiTask.aiReminder || false,
             timestamp: apiTask.updatedAt ? new Date(apiTask.updatedAt).getTime() : Date.now()
           };
         });
@@ -162,6 +231,65 @@ export default function AgentTaskPanel() {
     // Clean up interval on component unmount
     return () => clearInterval(intervalId)
   }, [])
+  
+  // Listen for task updates via WebSocket
+  useEffect(() => {
+    if (!socketRef.current) return
+    
+    // Listen for task completed events
+    const handleTaskCompleted = (data: any) => {
+      console.log('Task completed event received in panel:', data)
+      
+      // Update the tasks list
+      setTasks(prevTasks => {
+        return prevTasks.map(task => {
+          if (task.id === data.taskId || task._id === data.taskId) {
+            return {
+              ...task,
+              status: 'completed',
+              timestamp: Date.now() // Mark as recently updated
+            }
+          }
+          return task
+        })
+      })
+      
+      // Update last update time
+      setLastUpdateTime(new Date())
+    }
+    
+    // Listen for task updated events
+    const handleTaskUpdated = (data: any) => {
+      console.log('Task updated event received in panel:', data)
+      
+      // Update the tasks list
+      setTasks(prevTasks => {
+        return prevTasks.map(task => {
+          if (task.id === data.taskId || task._id === data.taskId) {
+            return {
+              ...task,
+              status: data.status,
+              timestamp: Date.now() // Mark as recently updated
+            }
+          }
+          return task
+        })
+      })
+      
+      // Update last update time
+      setLastUpdateTime(new Date())
+    }
+    
+    // Register event handlers
+    socketRef.current.on('task_completed', handleTaskCompleted)
+    socketRef.current.on('task_updated', handleTaskUpdated)
+    
+    // Cleanup function
+    return () => {
+      socketRef.current?.off('task_completed', handleTaskCompleted)
+      socketRef.current?.off('task_updated', handleTaskUpdated)
+    }
+  }, [socketRef.current, socketConnected])
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -259,13 +387,17 @@ export default function AgentTaskPanel() {
                   <div 
                     key={task.id} 
                     className={`p-3 rounded-md border ${
-                      task.timestamp && Date.now() - task.timestamp < 30000 ? 'border-green-500 bg-green-50 dark:bg-green-950/20' : 'border-border'
+                      task.status === "completed" 
+                        ? 'border-green-500 bg-green-50 dark:bg-green-950/20' 
+                        : task.timestamp && Date.now() - task.timestamp < 30000 
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20' 
+                          : 'border-border'
                     }`}
                   >
                     <div className="flex justify-between items-start mb-2">
                       <div>
                         <div className="flex items-center gap-1">
-                          <CheckSquare className="h-3 w-3 text-muted-foreground" />
+                          <CheckSquare className={`h-3 w-3 ${task.status === "completed" ? "text-green-500" : "text-muted-foreground"}`} />
                           <p className="text-sm font-medium">{task.title}</p>
                         </div>
                         <div className="flex items-center gap-1 mt-1">
