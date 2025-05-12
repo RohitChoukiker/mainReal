@@ -6,8 +6,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { CheckSquare, Clock, AlertTriangle, CheckCircle, FileText, MessageSquare } from "lucide-react"
+import { CheckSquare, Clock, AlertTriangle, CheckCircle, FileText, MessageSquare, Loader2 } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
+import { toast } from "sonner"
 
 interface Task {
   id: string
@@ -265,15 +266,40 @@ export default function TasksAssigned() {
     }
   }
 
+  const [completingTaskId, setCompletingTaskId] = useState<string | null>(null);
+
   const handleCompleteTask = async (taskId: string) => {
     try {
+      console.log(`Attempting to complete task: ${taskId}`);
+      
+      // Set the task as being completed (for UI loading state)
+      setCompletingTaskId(taskId);
+      
       // Store original tasks in case we need to revert
-      const originalTasks = [...tasks]
+      const originalTasks = [...tasks];
       
       // Update task status in UI immediately for better UX
-      setTasks(tasks.map((task) => (task.id === taskId ? { ...task, status: "completed" } : task)))
+      setTasks(tasks.map((task) => (task.id === taskId ? { ...task, status: "completed" } : task)));
+      
+      // Find the task title for notifications
+      const taskTitle = tasks.find(task => task.id === taskId)?.title || "Task";
+      
+      // Skip API call for demo tasks (those with IDs that don't look like MongoDB ObjectIDs)
+      if (taskId.startsWith('demo-') || taskId.startsWith('task-')) {
+        console.log(`Demo task ${taskId} marked as completed (no API call needed)`);
+        
+        // Show success message for demo tasks
+        toast.success(`Task completed: ${taskTitle}`, {
+          description: "The task has been marked as completed.",
+          duration: 3000
+        });
+        
+        setCompletingTaskId(null);
+        return;
+      }
       
       // Implement API call to update task status
+      console.log(`Sending PATCH request to /api/agent/tasks/${taskId}`);
       const response = await fetch(`/api/agent/tasks/${taskId}`, {
         method: 'PATCH',
         headers: {
@@ -281,27 +307,44 @@ export default function TasksAssigned() {
         },
         body: JSON.stringify({ status: 'completed' }),
         credentials: 'include' // Include cookies for authentication
-      })
+      });
+      
+      console.log(`API response status: ${response.status}`);
       
       if (!response.ok) {
-        throw new Error(`Failed to update task: ${response.status}`)
+        const errorText = await response.text();
+        console.error(`Error response body: ${errorText}`);
+        throw new Error(`Failed to update task: ${response.status} - ${errorText}`);
       }
       
-      const data = await response.json()
-      console.log(`Task ${taskId} marked as completed:`, data)
+      const data = await response.json();
+      console.log(`Task ${taskId} marked as completed:`, data);
       
       // Show success message
-      // If you have a toast notification system, you can use it here
-      console.log('Task completed successfully')
+      toast.success(`Task completed: ${taskTitle}`, {
+        description: "The task has been marked as completed.",
+        duration: 3000
+      });
+      
+      console.log('Task completed successfully');
     } catch (error) {
-      console.error("Error updating task:", error)
+      console.error("Error updating task:", error);
+      
       // Revert the UI change if the API call fails
       setTasks(tasks.map((task) => 
         task.id === taskId ? { ...task, status: "pending" } : task
-      ))
+      ));
       
       // Show error message
-      console.error('Failed to complete task')
+      toast.error("Failed to complete task", {
+        description: error.message,
+        duration: 5000
+      });
+      
+      console.error('Failed to complete task');
+    } finally {
+      // Clear the completing task ID
+      setCompletingTaskId(null);
     }
   }
 
@@ -351,19 +394,44 @@ export default function TasksAssigned() {
                 <TableCell>{getPriorityBadge(task.priority)}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
-                    <Button variant="ghost" size="icon">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="flex items-center gap-1"
+                    >
                       <MessageSquare className="h-4 w-4" />
-                      <span className="sr-only">Message</span>
+                      <span className="hidden sm:inline">Message</span>
                     </Button>
-                    {task.status !== "completed" && (
+                    
+                    {task.status !== "completed" ? (
                       <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-green-500"
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-1 bg-green-50 text-green-600 hover:bg-green-100 hover:text-green-700 border-green-200"
                         onClick={() => handleCompleteTask(task.id)}
+                        disabled={completingTaskId === task.id}
+                      >
+                        {completingTaskId === task.id ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span className="hidden sm:inline">Completing...</span>
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle className="h-4 w-4" />
+                            <span className="hidden sm:inline">Complete</span>
+                          </>
+                        )}
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-1 bg-gray-50 text-gray-400 cursor-default"
+                        disabled
                       >
                         <CheckCircle className="h-4 w-4" />
-                        <span className="sr-only">Mark as completed</span>
+                        <span className="hidden sm:inline">Completed</span>
                       </Button>
                     )}
                   </div>
