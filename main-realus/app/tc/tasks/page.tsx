@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
+import { useRouter } from "next/navigation"
 // Message dialog removed
 
 interface ApiTask {
@@ -97,12 +98,14 @@ interface Agent {
 }
 
 export default function TaskManagement() {
+  const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
   const [apiTasks, setApiTasks] = useState<ApiTask[]>([])
   const [apiTransactions, setApiTransactions] = useState<ApiTransaction[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [agents, setAgents] = useState<Agent[]>([])
+  const [authError, setAuthError] = useState<string | null>(null)
   
   // Task state
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
@@ -120,6 +123,50 @@ export default function TaskManagement() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [autoRefreshActive, setAutoRefreshActive] = useState(false)
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null)
+  
+  // Check authentication status
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        console.log("Checking authentication status...")
+        const response = await fetch("/api/user/status", {
+          credentials: 'include' // Include cookies for authentication
+        })
+        
+        if (!response.ok) {
+          console.error("Authentication check failed:", response.status)
+          setAuthError("Authentication failed. Please log in again.")
+          router.push("/landing")
+          return
+        }
+        
+        const data = await response.json()
+        console.log("Auth status:", data)
+        
+        if (data.role !== "Tc") {
+          console.error("User is not a TC, role:", data.role)
+          setAuthError("You must be a Transaction Coordinator to access this page")
+          router.push("/unauthorized")
+          return
+        }
+        
+        if (!data.isApproved) {
+          console.error("TC is not approved")
+          setAuthError("Your account is pending approval")
+          router.push("/unauthorized")
+          return
+        }
+        
+        console.log("Authentication successful")
+      } catch (error) {
+        console.error("Error checking authentication:", error)
+        setAuthError("Error checking authentication status")
+        router.push("/landing")
+      }
+    }
+    
+    checkAuth()
+  }, [router])
 
   // Set up polling for task updates
   useEffect(() => {
@@ -130,11 +177,26 @@ export default function TaskManagement() {
         
         // Fetch tasks from API
         const tasksResponse = await fetch('/api/tc/tasks', {
-          credentials: 'include' // Include cookies for authentication
+          credentials: 'include', // Include cookies for authentication
+          cache: 'no-store' // Disable caching to ensure fresh data
         })
         
         if (!tasksResponse.ok) {
           console.error('Tasks API response not OK:', tasksResponse.status, tasksResponse.statusText)
+          
+          // Handle authentication errors
+          if (tasksResponse.status === 401 || tasksResponse.status === 403) {
+            console.error('Authentication error when fetching tasks')
+            setAuthError("Authentication failed. Please log in again.")
+            router.push("/landing")
+            return
+          }
+          
+          toast({
+            title: "Error loading tasks",
+            description: `Server returned ${tasksResponse.status}: ${tasksResponse.statusText}`,
+            variant: "destructive"
+          })
           return
         }
         
@@ -214,14 +276,30 @@ export default function TaskManagement() {
       try {
         console.log('Fetching tasks, transactions, and agents from API...')
         setIsLoading(true)
+        setAuthError(null) // Clear any previous auth errors
         
         // Fetch tasks
         const tasksResponse = await fetch('/api/tc/tasks', {
-          credentials: 'include' // Include cookies for authentication
+          credentials: 'include', // Include cookies for authentication
+          cache: 'no-store' // Disable caching to ensure fresh data
         })
         
         if (!tasksResponse.ok) {
           console.error('Tasks API response not OK:', tasksResponse.status, tasksResponse.statusText)
+          
+          // Handle authentication errors
+          if (tasksResponse.status === 401 || tasksResponse.status === 403) {
+            console.error('Authentication error when fetching tasks')
+            setAuthError("Authentication failed. Please log in again.")
+            router.push("/landing")
+            return
+          }
+          
+          toast({
+            title: "Error loading tasks",
+            description: `Server returned ${tasksResponse.status}: ${tasksResponse.statusText}`,
+            variant: "destructive"
+          })
           throw new Error(`Failed to fetch tasks: ${tasksResponse.status} ${tasksResponse.statusText}`)
         }
         
@@ -231,6 +309,11 @@ export default function TaskManagement() {
           console.log('Fetched tasks:', tasksData)
         } catch (parseError) {
           console.error('Error parsing tasks JSON response:', parseError)
+          toast({
+            title: "Error parsing tasks data",
+            description: "The server returned an invalid response",
+            variant: "destructive"
+          })
           throw new Error('Failed to parse tasks API response')
         }
         
@@ -990,6 +1073,51 @@ export default function TaskManagement() {
     </div>
   )
 
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[70vh]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+          <p className="text-muted-foreground">Loading task management...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show auth error if present
+  if (authError) {
+    return (
+      <div className="flex items-center justify-center min-h-[70vh]">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              <CardTitle>Authentication Error</CardTitle>
+            </div>
+            <CardDescription>
+              {authError}
+            </CardDescription>
+          </CardHeader>
+          <CardFooter className="flex justify-between">
+            <Button 
+              variant="outline" 
+              onClick={() => window.location.href = "/"}
+            >
+              Go to Home
+            </Button>
+            <Button 
+              onClick={() => window.location.reload()}
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Try Again
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       {/* Message Dialog removed */}
@@ -1082,11 +1210,11 @@ export default function TaskManagement() {
                           ) : newTask.agentId === "agent-3" ? (
                             <SelectItem value="TR-9021">TR-9021 - 789 Pine Rd</SelectItem>
                           ) : (
-                            <SelectItem value="" disabled>No transactions for this agent</SelectItem>
+                            <SelectItem value="no-transactions" disabled>No transactions for this agent</SelectItem>
                           )
                         )
                       ) : (
-                        <SelectItem value="" disabled>Please select an agent first</SelectItem>
+                        <SelectItem value="select-agent-first" disabled>Please select an agent first</SelectItem>
                       )}
                     </SelectContent>
                   </Select>

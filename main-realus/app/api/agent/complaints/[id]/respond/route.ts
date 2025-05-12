@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
-import { ComplaintSchema } from "../../../models/complaintModel";
+import { ComplaintSchema } from "@/models/complaintModel";
 
 let ComplaintModel: mongoose.Model<any>;
 

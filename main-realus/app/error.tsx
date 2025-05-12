@@ -31,6 +31,17 @@ export default function Error({
           <p className="text-muted-foreground">
             We apologize for the inconvenience. An unexpected error has occurred.
           </p>
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mt-4 p-4 bg-muted rounded-md text-left overflow-auto max-h-48 text-sm">
+              <p className="font-semibold">Error details (only visible in development):</p>
+              <p className="text-red-500">{error.message}</p>
+              {error.stack && (
+                <pre className="mt-2 text-xs overflow-auto">
+                  {error.stack}
+                </pre>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="w-full max-w-xs mx-auto border-t pt-6">

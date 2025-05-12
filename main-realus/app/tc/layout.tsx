@@ -8,6 +8,7 @@ import ApprovalStatus from "@/components/approval-status";
 import { toast as reactToastify } from "react-toastify";
 import { useToast } from "@/hooks/use-toast";
 import dynamic from "next/dynamic";
+import { ErrorBoundary } from "@/components/error-boundary";
 
 // Dynamically import the TaskPanel to avoid SSR issues with real-time data
 const TaskPanel = dynamic(
@@ -55,7 +56,7 @@ export default function TCLayout({
         // Check if user is a TC
         if (data.role !== "Tc") {
           reactToastify.error("Unauthorized: You must be a Transaction Coordinator to access this page");
-          router.push("/login");
+          router.push("/");
           return;
         }
         
@@ -63,7 +64,7 @@ export default function TCLayout({
         setIsLoading(false);
       } catch (error) {
         console.error("Authentication error:", error);
-        router.push("/login");
+        router.push("/");
       }
     };
     
@@ -200,7 +201,11 @@ export default function TCLayout({
       />
       <div className="md:ml-64 min-h-screen">
         <div className="container mx-auto px-4 py-6">
-          <main className="space-y-6">{children}</main>
+          <main className="space-y-6">
+            <ErrorBoundary>
+              {children}
+            </ErrorBoundary>
+          </main>
         </div>
       </div>
     </div>

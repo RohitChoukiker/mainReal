@@ -13,6 +13,45 @@ export const GET = catchAsync(async (req: NextRequest) => {
   try {
     console.log("TC tasks API called");
     
+    // Get the token from cookies
+    const token = req.cookies.get('token')?.value;
+    console.log("Token from cookies:", token ? "Found" : "Not found");
+    
+    // Check if token exists
+    if (!token) {
+      console.log("No token found, returning 401");
+      return NextResponse.json(
+        { message: "Unauthorized: No token provided" },
+        { status: 401 }
+      );
+    }
+    
+    let tcId;
+    let userRole;
+    
+    try {
+      // Verify the token
+      const decoded = jwt.verify(token, JWT_SECRET) as { id: string, role: string };
+      tcId = decoded.id;
+      userRole = decoded.role;
+      console.log("Token decoded, User ID:", tcId, "Role:", userRole);
+      
+      // Check if user is a TC
+      if (userRole !== Role.Tc) {
+        console.log("User is not a TC, role:", userRole);
+        return NextResponse.json(
+          { message: "Unauthorized: User is not a Transaction Coordinator" },
+          { status: 403 }
+        );
+      }
+    } catch (error) {
+      console.error("Token verification error:", error);
+      return NextResponse.json(
+        { message: "Unauthorized: Invalid token" },
+        { status: 401 }
+      );
+    }
+    
     // Connect to database
     await dbConnect();
     console.log("Database connected");
@@ -22,35 +61,6 @@ export const GET = catchAsync(async (req: NextRequest) => {
     const limit = parseInt(url.searchParams.get("limit") || "20");
     const page = parseInt(url.searchParams.get("page") || "1");
     const skip = (page - 1) * limit;
-    
-    // Get the token from cookies
-    const token = req.cookies.get('token')?.value;
-    console.log("Token from cookies:", token ? "Found" : "Not found");
-    
-    let tcId;
-    
-    if (token) {
-      try {
-        // Verify the token
-        const decoded = jwt.verify(token, JWT_SECRET) as { id: string, role: string };
-        tcId = decoded.id;
-        console.log("Token decoded, TC ID:", tcId);
-        
-        // Find the TC in the database
-        const tc = await User.findById(decoded.id);
-        console.log("TC found:", tc ? "Yes" : "No");
-        
-        if (tc && tc.role !== Role.Tc) {
-          console.log("User is not a TC, role:", tc.role);
-          return NextResponse.json(
-            { message: "Unauthorized: User is not a Transaction Coordinator" },
-            { status: 403 }
-          );
-        }
-      } catch (error) {
-        console.error("Token verification error:", error);
-      }
-    }
     
     // Create a query - filter by TC ID if available
     const query: any = {};
