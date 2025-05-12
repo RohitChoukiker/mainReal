@@ -1,16 +1,24 @@
 "use client"
 
-import { Textarea } from "@/components/ui/textarea"
-
-import { Label } from "@/components/ui/label"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { AlertCircle, CheckCircle, MessageSquare, Eye, Clock, ArrowUpCircle, Download, Search } from "lucide-react"
+import { AlertCircle, CheckCircle, MessageSquare, Eye, Clock, ArrowUpCircle, Download, Search, Loader2, RefreshCw, X } from "lucide-react"
+import { toast } from "@/components/ui/use-toast"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+} from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
@@ -35,104 +43,68 @@ interface Complaint {
 
 export default function BrokerComplaints() {
   const [searchQuery, setSearchQuery] = useState("")
-
-  const [complaints, setComplaints] = useState<Complaint[]>([
-    {
-      id: "comp-1",
-      title: "Missing document notification",
-      transactionId: "TR-7829",
-      property: "123 Main St, Austin, TX",
-      agent: {
-        name: "Sarah Johnson",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      submittedDate: "Apr 10, 2025",
-      status: "new",
-      priority: "medium",
-      description: "I was not notified about missing documents until the day before the deadline.",
-      category: "Communication",
-    },
-    {
-      id: "comp-2",
-      title: "Incorrect property information",
-      transactionId: "TR-6543",
-      property: "456 Oak Ave, Dallas, TX",
-      agent: {
-        name: "John Smith",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      submittedDate: "Apr 8, 2025",
-      status: "in_progress",
-      priority: "high",
-      description: "The property square footage in the listing is incorrect and needs to be updated.",
-      category: "Documentation",
-      assignedTo: "Michael Brown (TC)",
-    },
-    {
-      id: "comp-3",
-      title: "Delayed response from lender",
-      transactionId: "TR-9021",
-      property: "789 Pine Rd, Houston, TX",
-      agent: {
-        name: "Michael Brown",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      submittedDate: "Apr 5, 2025",
-      status: "escalated",
-      priority: "high",
-      description: "The lender has not responded to multiple requests for pre-approval letter.",
-      category: "Third-party",
-      assignedTo: "You",
-    },
-    {
-      id: "comp-4",
-      title: "Inspection scheduling conflict",
-      transactionId: "TR-7829",
-      property: "123 Main St, Austin, TX",
-      agent: {
-        name: "Sarah Johnson",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      submittedDate: "Apr 3, 2025",
-      status: "resolved",
-      priority: "low",
-      description: "There was a scheduling conflict with the home inspector.",
-      category: "Scheduling",
-      assignedTo: "Sarah Johnson (TC)",
-    },
-    {
-      id: "comp-5",
-      title: "Disclosure form issues",
-      transactionId: "TR-5432",
-      property: "321 Elm St, San Antonio, TX",
-      agent: {
-        name: "John Smith",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      submittedDate: "Mar 30, 2025",
-      status: "resolved",
-      priority: "medium",
-      description: "The seller's disclosure form had several incomplete sections.",
-      category: "Documentation",
-      assignedTo: "Michael Brown (TC)",
-    },
-    {
-      id: "comp-6",
-      title: "Commission dispute",
-      transactionId: "TR-2345",
-      property: "234 Birch Ave, Dallas, TX",
-      agent: {
-        name: "John Smith",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      submittedDate: "Apr 12, 2025",
-      status: "escalated",
-      priority: "high",
-      description: "There is a dispute regarding the commission split on this transaction.",
-      category: "Financial",
-      assignedTo: "You",
-    },
+  const [isLoading, setIsLoading] = useState(true)
+  const [complaints, setComplaints] = useState<Complaint[]>([])
+  
+  // Modal states
+  const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null)
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false)
+  const [isResponseModalOpen, setIsResponseModalOpen] = useState(false)
+  const [isResolveModalOpen, setIsResolveModalOpen] = useState(false)
+  const [responseText, setResponseText] = useState("")
+  const [isSubmittingResponse, setIsSubmittingResponse] = useState(false)
+  const [assignToOptions] = useState([
+    { value: "broker-1", label: "You (Broker)" },
+    { value: "tc-1", label: "Sarah Johnson (TC)" },
+    { value: "tc-2", label: "Michael Brown (TC)" },
+    { value: "tc-3", label: "Jennifer Lee (TC)" },
   ])
+  const [selectedAssignee, setSelectedAssignee] = useState("")
+  
+  // Fetch complaints data
+  useEffect(() => {
+    fetchComplaints()
+  }, [])
+  
+  // Function to fetch complaints
+  const fetchComplaints = async () => {
+    try {
+      setIsLoading(true)
+      console.log("Fetching complaints data for broker...")
+      
+      // Add timestamp to prevent caching
+      const timestamp = new Date().getTime()
+      const response = await fetch(`/api/broker/complaints?_=${timestamp}`)
+      
+      if (response.ok) {
+        const data = await response.json()
+        console.log("Received complaints data:", data)
+        
+        if (data.complaints && data.complaints.length > 0) {
+          setComplaints(data.complaints)
+        } else {
+          console.log("No complaints found")
+          setComplaints([])
+        }
+      } else {
+        console.error("Error response from API:", response.status)
+        toast({
+          title: "Error",
+          description: "Failed to fetch complaints data",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      console.error("Error fetching complaints:", error)
+      toast({
+        title: "Error",
+        description: "Failed to fetch complaints data",
+        variant: "destructive"
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const newComplaints = complaints.filter((comp) => comp.status === "new")
   const inProgressComplaints = complaints.filter((comp) => comp.status === "in_progress")
@@ -209,6 +181,161 @@ export default function BrokerComplaints() {
         return <Badge variant="outline">{priority}</Badge>
     }
   }
+  
+  // Handle view complaint details
+  const handleViewComplaint = (complaint: Complaint) => {
+    setSelectedComplaint(complaint)
+    setIsViewModalOpen(true)
+  }
+  
+  // Handle open response modal
+  const handleOpenResponseModal = (complaint: Complaint) => {
+    setSelectedComplaint(complaint)
+    setResponseText(complaint.response || "")
+    setSelectedAssignee("") // Reset the selected assignee
+    setIsResponseModalOpen(true)
+  }
+  
+  // Handle open resolve modal
+  const handleOpenResolveModal = (complaint: Complaint) => {
+    setSelectedComplaint(complaint)
+    setIsResolveModalOpen(true)
+  }
+  
+  // Handle submit response
+  const handleSubmitResponse = async () => {
+    if (!selectedComplaint) return
+    
+    try {
+      setIsSubmittingResponse(true)
+      
+      // Prepare the response data
+      const responseData = {
+        id: selectedComplaint.id,
+        response: responseText,
+        status: "in_progress", // Update status to in_progress when a response is added
+        assignedTo: selectedAssignee || undefined
+      }
+      
+      console.log("Submitting response data:", responseData)
+      
+      // Submit the response
+      const response = await fetch(`/api/broker/complaints`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(responseData)
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        console.log("Response submitted successfully:", data)
+        
+        // Update the complaint in the state
+        setComplaints(complaints.map(c => 
+          c.id === selectedComplaint.id 
+            ? { 
+                ...c, 
+                response: responseText, 
+                status: "in_progress",
+                assignedTo: selectedAssignee ? assignToOptions.find(opt => opt.value === selectedAssignee)?.label : c.assignedTo
+              } 
+            : c
+        ))
+        
+        // Close the modal
+        setIsResponseModalOpen(false)
+        
+        // Reset the response text and selected assignee
+        setResponseText("")
+        setSelectedAssignee("")
+        
+        // Show success message
+        toast({
+          title: "Success",
+          description: "Your response has been submitted successfully",
+          variant: "default"
+        })
+        
+        // Refresh complaints data
+        fetchComplaints()
+      } else {
+        const errorData = await response.json()
+        throw new Error(errorData.message || "Failed to submit response")
+      }
+    } catch (error) {
+      console.error("Error submitting response:", error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to submit response",
+        variant: "destructive"
+      })
+    } finally {
+      setIsSubmittingResponse(false)
+    }
+  }
+  
+  // Handle resolve complaint
+  const handleResolveComplaint = async () => {
+    if (!selectedComplaint) return
+    
+    try {
+      setIsSubmittingResponse(true)
+      
+      // Prepare the resolve data
+      const resolveData = {
+        id: selectedComplaint.id,
+        status: "resolved"
+      }
+      
+      // Submit the resolve request
+      const response = await fetch(`/api/broker/complaints`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(resolveData)
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        console.log("Complaint resolved successfully:", data)
+        
+        // Update the complaint in the state
+        setComplaints(complaints.map(c => 
+          c.id === selectedComplaint.id 
+            ? { ...c, status: "resolved" } 
+            : c
+        ))
+        
+        // Close the modal
+        setIsResolveModalOpen(false)
+        
+        // Show success message
+        toast({
+          title: "Success",
+          description: "The complaint has been resolved successfully",
+          variant: "default"
+        })
+        
+        // Refresh complaints data
+        fetchComplaints()
+      } else {
+        const errorData = await response.json()
+        throw new Error(errorData.message || "Failed to resolve complaint")
+      }
+    } catch (error) {
+      console.error("Error resolving complaint:", error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to resolve complaint",
+        variant: "destructive"
+      })
+    } finally {
+      setIsSubmittingResponse(false)
+    }
+  }
 
   const renderComplaintTable = (complaintList: Complaint[]) => (
     <div className="rounded-md border">
@@ -225,7 +352,16 @@ export default function BrokerComplaints() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {complaintList.length > 0 ? (
+          {isLoading ? (
+            <TableRow>
+              <TableCell colSpan={7} className="text-center py-6">
+                <div className="flex justify-center items-center">
+                  <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                  <span>Loading complaints...</span>
+                </div>
+              </TableCell>
+            </TableRow>
+          ) : complaintList.length > 0 ? (
             complaintList.map((complaint) => (
               <TableRow key={complaint.id}>
                 <TableCell>
@@ -257,16 +393,32 @@ export default function BrokerComplaints() {
                 <TableCell className="hidden md:table-cell">{complaint.assignedTo || "-"}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
-                    <Button variant="ghost" size="icon">
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => handleViewComplaint(complaint)}
+                      title="View details"
+                    >
                       <Eye className="h-4 w-4" />
                       <span className="sr-only">View details</span>
                     </Button>
-                    <Button variant="ghost" size="icon">
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => handleOpenResponseModal(complaint)}
+                      title="Add/View response"
+                    >
                       <MessageSquare className="h-4 w-4" />
                       <span className="sr-only">Respond</span>
                     </Button>
                     {complaint.status !== "resolved" && (
-                      <Button variant="ghost" size="icon" className="text-green-500">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="text-green-500"
+                        onClick={() => handleOpenResolveModal(complaint)}
+                        title="Mark as resolved"
+                      >
                         <CheckCircle className="h-4 w-4" />
                         <span className="sr-only">Mark as resolved</span>
                       </Button>
@@ -299,18 +451,266 @@ export default function BrokerComplaints() {
                 <CardTitle>All Complaints</CardTitle>
                 <CardDescription>Review and manage complaints from agents</CardDescription>
               </div>
-              <div className="relative w-full md:w-64">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Search complaints..."
-                  className="pl-8"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
+              <div className="flex gap-2">
+                <div className="relative w-full md:w-64">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    placeholder="Search complaints..."
+                    className="pl-8"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+                <Button 
+                  variant="outline" 
+                  onClick={fetchComplaints} 
+                  disabled={isLoading}
+                  className="flex items-center gap-2"
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                  <span className="hidden md:inline">Refresh</span>
+                </Button>
               </div>
             </div>
           </CardHeader>
+          
+          {/* View Complaint Details Modal */}
+          <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+            <DialogContent className="sm:max-w-[600px]">
+              <DialogHeader>
+                <DialogTitle className="text-xl">Complaint Details</DialogTitle>
+                <DialogDescription>
+                  View detailed information about this complaint
+                </DialogDescription>
+              </DialogHeader>
+              
+              {selectedComplaint && (
+                <div className="space-y-4 py-4">
+                  <div className="grid grid-cols-4 gap-4">
+                    <div className="col-span-4">
+                      <h3 className="font-semibold text-lg">{selectedComplaint.title}</h3>
+                      <p className="text-sm text-muted-foreground">{selectedComplaint.property}</p>
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <h4 className="text-sm font-medium">Status</h4>
+                      <div>{getStatusBadge(selectedComplaint.status)}</div>
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <h4 className="text-sm font-medium">Priority</h4>
+                      <div>{getPriorityBadge(selectedComplaint.priority)}</div>
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <h4 className="text-sm font-medium">Category</h4>
+                      <p className="text-sm">{selectedComplaint.category}</p>
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <h4 className="text-sm font-medium">Submitted</h4>
+                      <p className="text-sm">{selectedComplaint.submittedDate}</p>
+                    </div>
+                    
+                    <div className="col-span-4 space-y-1">
+                      <h4 className="text-sm font-medium">Transaction ID</h4>
+                      <p className="text-sm">{selectedComplaint.transactionId}</p>
+                    </div>
+                    
+                    <div className="col-span-4 space-y-1">
+                      <h4 className="text-sm font-medium">Agent</h4>
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-6 w-6">
+                          <AvatarImage src={selectedComplaint.agent.avatar} alt={selectedComplaint.agent.name} />
+                          <AvatarFallback>{selectedComplaint.agent.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                        <span>{selectedComplaint.agent.name}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="col-span-4 space-y-1">
+                      <h4 className="text-sm font-medium">Assigned To</h4>
+                      <p className="text-sm">{selectedComplaint.assignedTo || "Not assigned"}</p>
+                    </div>
+                    
+                    <div className="col-span-4 space-y-1">
+                      <h4 className="text-sm font-medium">Description</h4>
+                      <div className="rounded-md bg-muted p-3">
+                        <p className="text-sm whitespace-pre-wrap">{selectedComplaint.description}</p>
+                      </div>
+                    </div>
+                    
+                    {selectedComplaint.response && (
+                      <div className="col-span-4 space-y-1">
+                        <h4 className="text-sm font-medium">Response</h4>
+                        <div className="rounded-md bg-muted p-3">
+                          <p className="text-sm whitespace-pre-wrap">{selectedComplaint.response}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              <DialogFooter>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsViewModalOpen(false)}
+                >
+                  Close
+                </Button>
+                <Button 
+                  onClick={() => {
+                    setIsViewModalOpen(false)
+                    if (selectedComplaint) {
+                      handleOpenResponseModal(selectedComplaint)
+                    }
+                  }}
+                >
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  {selectedComplaint?.response ? "Update Response" : "Add Response"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          
+          {/* Response Modal */}
+          <Dialog open={isResponseModalOpen} onOpenChange={setIsResponseModalOpen}>
+            <DialogContent className="sm:max-w-[600px]">
+              <DialogHeader>
+                <DialogTitle className="text-xl">
+                  {selectedComplaint?.response ? "Update Response" : "Add Response"}
+                </DialogTitle>
+                <DialogDescription>
+                  {selectedComplaint?.response 
+                    ? "Update your response to this complaint" 
+                    : "Provide a response to this complaint"}
+                </DialogDescription>
+              </DialogHeader>
+              
+              {selectedComplaint && (
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <h3 className="font-semibold">{selectedComplaint.title}</h3>
+                    <p className="text-sm text-muted-foreground">{selectedComplaint.property}</p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="response">Your Response</Label>
+                    <Textarea 
+                      id="response" 
+                      value={responseText} 
+                      onChange={(e) => setResponseText(e.target.value)}
+                      placeholder="Enter your response here..."
+                      rows={6}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="assignTo">Assign To</Label>
+                    <Select 
+                      value={selectedAssignee} 
+                      onValueChange={setSelectedAssignee}
+                    >
+                      <SelectTrigger id="assignTo">
+                        <SelectValue placeholder="Select who to assign this complaint to" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {assignToOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Leave empty to keep current assignment: {selectedComplaint.assignedTo || "Not assigned"}
+                    </p>
+                  </div>
+                </div>
+              )}
+              
+              <DialogFooter>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsResponseModalOpen(false)}
+                  disabled={isSubmittingResponse}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleSubmitResponse}
+                  disabled={!responseText.trim() || isSubmittingResponse}
+                >
+                  {isSubmittingResponse ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    "Submit Response"
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          
+          {/* Resolve Modal */}
+          <Dialog open={isResolveModalOpen} onOpenChange={setIsResolveModalOpen}>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle className="text-xl">Resolve Complaint</DialogTitle>
+                <DialogDescription>
+                  Are you sure you want to mark this complaint as resolved?
+                </DialogDescription>
+              </DialogHeader>
+              
+              {selectedComplaint && (
+                <div className="py-4">
+                  <div className="space-y-2">
+                    <h3 className="font-semibold">{selectedComplaint.title}</h3>
+                    <p className="text-sm text-muted-foreground">{selectedComplaint.property}</p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="text-sm font-medium">Current status:</span>
+                      {getStatusBadge(selectedComplaint.status)}
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              <DialogFooter>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsResolveModalOpen(false)}
+                  disabled={isSubmittingResponse}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleResolveComplaint}
+                  disabled={isSubmittingResponse}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  {isSubmittingResponse ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      Mark as Resolved
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
           <CardContent className="p-0">
             <Tabs defaultValue="all">
               <TabsList className="grid w-full grid-cols-5 mb-4 mx-4 mt-2">

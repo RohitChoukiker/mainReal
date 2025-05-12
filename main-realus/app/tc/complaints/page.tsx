@@ -1,13 +1,15 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { AlertCircle, CheckCircle, MessageSquare, Eye, Clock, ArrowUpCircle } from "lucide-react"
+import { AlertCircle, CheckCircle, MessageSquare, Eye, Clock, ArrowUpCircle, Loader2, RefreshCw, Search } from "lucide-react"
+import { toast } from "@/components/ui/use-toast"
+import { Input } from "@/components/ui/input"
 import { Progress } from "@/components/ui/progress"
 
 interface Complaint {
@@ -27,88 +29,70 @@ interface Complaint {
 }
 
 export default function ComplaintsManagement() {
-  const [complaints, setComplaints] = useState<Complaint[]>([
-    {
-      id: "comp-1",
-      title: "Missing document notification",
-      transactionId: "TR-7829",
-      property: "123 Main St, Austin, TX",
-      agent: {
-        name: "Sarah Johnson",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      submittedDate: "Apr 10, 2025",
-      status: "new",
-      priority: "medium",
-      description: "I was not notified about missing documents until the day before the deadline.",
-      category: "Communication",
-    },
-    {
-      id: "comp-2",
-      title: "Incorrect property information",
-      transactionId: "TR-6543",
-      property: "456 Oak Ave, Dallas, TX",
-      agent: {
-        name: "John Smith",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      submittedDate: "Apr 8, 2025",
-      status: "in_progress",
-      priority: "high",
-      description: "The property square footage in the listing is incorrect and needs to be updated.",
-      category: "Documentation",
-    },
-    {
-      id: "comp-3",
-      title: "Delayed response from lender",
-      transactionId: "TR-9021",
-      property: "789 Pine Rd, Houston, TX",
-      agent: {
-        name: "Michael Brown",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      submittedDate: "Apr 5, 2025",
-      status: "escalated",
-      priority: "high",
-      description: "The lender has not responded to multiple requests for pre-approval letter.",
-      category: "Third-party",
-    },
-    {
-      id: "comp-4",
-      title: "Inspection scheduling conflict",
-      transactionId: "TR-7829",
-      property: "123 Main St, Austin, TX",
-      agent: {
-        name: "Sarah Johnson",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      submittedDate: "Apr 3, 2025",
-      status: "resolved",
-      priority: "low",
-      description: "There was a scheduling conflict with the home inspector.",
-      category: "Scheduling",
-    },
-    {
-      id: "comp-5",
-      title: "Disclosure form issues",
-      transactionId: "TR-5432",
-      property: "321 Elm St, San Antonio, TX",
-      agent: {
-        name: "John Smith",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      submittedDate: "Mar 30, 2025",
-      status: "resolved",
-      priority: "medium",
-      description: "The seller's disclosure form had several incomplete sections.",
-      category: "Documentation",
-    },
-  ])
+  const [complaints, setComplaints] = useState<Complaint[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState("")
+  
+  // Fetch complaints data
+  useEffect(() => {
+    fetchComplaints()
+  }, [])
+  
+  // Function to fetch complaints
+  const fetchComplaints = async () => {
+    try {
+      setIsLoading(true)
+      console.log("Fetching complaints data for TC...")
+      
+      // Add timestamp to prevent caching
+      const timestamp = new Date().getTime()
+      const response = await fetch(`/api/tc/complaints?_=${timestamp}`)
+      
+      if (response.ok) {
+        const data = await response.json()
+        console.log("Received complaints data:", data)
+        
+        if (data.complaints && data.complaints.length > 0) {
+          setComplaints(data.complaints)
+        } else {
+          console.log("No complaints found")
+          setComplaints([])
+        }
+      } else {
+        console.error("Error response from API:", response.status)
+        toast({
+          title: "Error",
+          description: "Failed to fetch complaints data",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      console.error("Error fetching complaints:", error)
+      toast({
+        title: "Error",
+        description: "Failed to fetch complaints data",
+        variant: "destructive"
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
-  const newComplaints = complaints.filter((comp) => comp.status === "new")
-  const inProgressComplaints = complaints.filter((comp) => comp.status === "in_progress")
-  const escalatedComplaints = complaints.filter((comp) => comp.status === "escalated")
-  const resolvedComplaints = complaints.filter((comp) => comp.status === "resolved")
+  // Apply search filter
+  const filteredComplaints = searchQuery
+    ? complaints.filter(
+        (c) =>
+          c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          c.property.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          c.agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          c.transactionId.toLowerCase().includes(searchQuery.toLowerCase()),
+      )
+    : complaints
+    
+  const newComplaints = filteredComplaints.filter((comp) => comp.status === "new")
+  const inProgressComplaints = filteredComplaints.filter((comp) => comp.status === "in_progress")
+  const escalatedComplaints = filteredComplaints.filter((comp) => comp.status === "escalated")
+  const resolvedComplaints = filteredComplaints.filter((comp) => comp.status === "resolved")
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -184,7 +168,16 @@ export default function ComplaintsManagement() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {complaintList.length > 0 ? (
+          {isLoading ? (
+            <TableRow>
+              <TableCell colSpan={6} className="text-center py-6">
+                <div className="flex justify-center items-center">
+                  <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                  <span>Loading complaints...</span>
+                </div>
+              </TableCell>
+            </TableRow>
+          ) : complaintList.length > 0 ? (
             complaintList.map((complaint) => (
               <TableRow key={complaint.id}>
                 <TableCell>
@@ -247,8 +240,37 @@ export default function ComplaintsManagement() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="md:col-span-2">
           <CardHeader>
-            <CardTitle>Complaint Categories</CardTitle>
-            <CardDescription>Distribution of complaints by category</CardDescription>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <CardTitle>Complaint Categories</CardTitle>
+                <CardDescription>Distribution of complaints by category</CardDescription>
+              </div>
+              <div className="flex gap-2">
+                <div className="relative w-full md:w-64">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    placeholder="Search complaints..."
+                    className="pl-8"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+                <Button 
+                  variant="outline" 
+                  onClick={fetchComplaints} 
+                  disabled={isLoading}
+                  className="flex items-center gap-2"
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                  <span className="hidden md:inline">Refresh</span>
+                </Button>
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-4">
