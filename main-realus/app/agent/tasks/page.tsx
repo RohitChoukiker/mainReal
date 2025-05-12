@@ -229,7 +229,6 @@ export default function TasksAssigned() {
 
   // Calculate filtered tasks based on current state
   const pendingTasks = tasks.filter((task) => task.status === "pending" || task.status === "in_progress")
-  const overdueTasks = tasks.filter((task) => task.status === "overdue")
   const completedTasks = tasks.filter((task) => task.status === "completed")
 
   const getStatusBadge = (status: string) => {
@@ -548,15 +547,12 @@ export default function TasksAssigned() {
           </CardHeader>
           <CardContent className="p-0">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-3 mb-4 mx-4 mt-2">
+              <TabsList className="grid w-full grid-cols-2 mb-4 mx-4 mt-2">
                 <TabsTrigger value="pending">Pending ({pendingTasks.length})</TabsTrigger>
-                <TabsTrigger value="overdue">Overdue ({overdueTasks.length})</TabsTrigger>
                 <TabsTrigger value="completed">Completed ({completedTasks.length})</TabsTrigger>
               </TabsList>
 
               <TabsContent value="pending">{renderTaskTable(pendingTasks)}</TabsContent>
-
-              <TabsContent value="overdue">{renderTaskTable(overdueTasks)}</TabsContent>
 
               <TabsContent value="completed">{renderTaskTable(completedTasks)}</TabsContent>
             </Tabs>
@@ -577,16 +573,6 @@ export default function TasksAssigned() {
                 <div>
                   <div className="text-sm font-medium">Pending Tasks</div>
                   <div className="text-2xl font-bold">{pendingTasks.length}</div>
-                </div>
-              </div>
-
-              <div className="flex items-center p-4 rounded-lg bg-muted/50">
-                <div className="mr-4 h-12 w-12 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center">
-                  <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-300" />
-                </div>
-                <div>
-                  <div className="text-sm font-medium">Overdue Tasks</div>
-                  <div className="text-2xl font-bold">{overdueTasks.length}</div>
                 </div>
               </div>
 
