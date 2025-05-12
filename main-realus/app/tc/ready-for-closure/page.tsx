@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { CheckCircle, Eye, ArrowUpCircle, FileCheck, Calendar, AlertCircle, Loader2, RefreshCw, Bell } from "lucide-react"
+import { CheckCircle, Eye, ArrowUpCircle, FileCheck, Calendar, AlertCircle, Loader2, RefreshCw, Bell, Clock, FileText, CheckSquare } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { toast } from "@/components/ui/use-toast"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Progress } from "@/components/ui/progress"
 
 interface Transaction {
   id: string
@@ -21,7 +22,7 @@ interface Transaction {
     avatar: string
   }
   closingDate: string
-  status: "ready_for_closure" | "forwarded_to_broker" | "closed"
+  status: "ReadyForClosure" | "ForwardedToBroker" | "Closed" | "InProgress" | "Cancelled"
   completionPercentage: number
   documents: {
     total: number
@@ -65,7 +66,7 @@ export default function ReadyForClosure() {
             // If transactions are loaded but the ID wasn't found
             toast({
               title: "Transaction Not Found",
-              description: `Transaction ${transactionId} was not found or is not ready for closure.`,
+              description: `Transaction ${transactionId} was not found.`,
               variant: "destructive"
             })
           } else {
@@ -83,7 +84,7 @@ export default function ReadyForClosure() {
   const fetchTransactions = async () => {
     try {
       setIsLoading(true)
-      console.log("Fetching ready for closure transactions...")
+      console.log("Fetching assigned transactions...")
       
       // Add timestamp to prevent caching
       const timestamp = new Date().getTime()
@@ -119,13 +120,18 @@ export default function ReadyForClosure() {
     }
   }
 
-  const readyTransactions = transactions.filter((t) => t.status === "ready_for_closure")
-  const forwardedTransactions = transactions.filter((t) => t.status === "forwarded_to_broker")
-  const closedTransactions = transactions.filter((t) => t.status === "closed")
+  const readyTransactions = transactions.filter((t) => t.status === "ReadyForClosure")
+  const forwardedTransactions = transactions.filter((t) => t.status === "ForwardedToBroker")
+  const inProgressTransactions = transactions.filter((t) => 
+    t.status !== "ReadyForClosure" && 
+    t.status !== "ForwardedToBroker" && 
+    t.status !== "Closed" && 
+    t.status !== "Cancelled"
+  )
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "ready_for_closure":
+      case "ReadyForClosure":
         return (
           <Badge
             variant="outline"
@@ -135,14 +141,21 @@ export default function ReadyForClosure() {
             <span>Ready for Closure</span>
           </Badge>
         )
-      case "forwarded_to_broker":
+      case "ForwardedToBroker":
         return (
           <Badge variant="secondary" className="flex items-center gap-1">
             <ArrowUpCircle className="h-3 w-3" />
             <span>Forwarded to Broker</span>
           </Badge>
         )
-      case "closed":
+      case "InProgress":
+        return (
+          <Badge variant="outline" className="flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            <span>In Progress</span>
+          </Badge>
+        )
+      case "Closed":
         return (
           <Badge variant="success" className="flex items-center gap-1">
             <CheckCircle className="h-3 w-3" />
@@ -186,7 +199,7 @@ export default function ReadyForClosure() {
         },
         body: JSON.stringify({
           transactionId: selectedTransactionForForward.id,
-          status: 'forwarded_to_broker',
+          status: 'ForwardedToBroker',
           notes: closingNotes
         }),
       })
@@ -199,7 +212,7 @@ export default function ReadyForClosure() {
         setTransactions(prevTransactions => 
           prevTransactions.map(t => 
             t.id === selectedTransactionForForward.id 
-              ? { ...t, status: 'forwarded_to_broker' } 
+              ? { ...t, status: 'ForwardedToBroker' } 
               : t
           )
         )
@@ -254,19 +267,25 @@ export default function ReadyForClosure() {
     }
   }, [readyTransactions])
 
+  // Add this function near the top with other functions
+  const openTransactionModal = (transaction: Transaction) => {
+    setSelectedTransactionForForward(transaction)
+    setClosingNotes("")
+    setForwardDialogOpen(true)
+  }
+
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold tracking-tight">Ready for Closure</h1>
+      <h1 className="text-3xl font-bold tracking-tight">Assigned Transactions</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="md:col-span-2">
           <CardHeader className="pb-0">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
-                <CardTitle>Transactions Ready for Closure</CardTitle>
+                <CardTitle>All Assigned Transactions</CardTitle>
                 <CardDescription>
-                  Transactions that have completed all requirements and are ready to be forwarded to the broker for final
-                  approval
+                  View and manage all your assigned transactions
                 </CardDescription>
               </div>
               <Button 
@@ -294,21 +313,22 @@ export default function ReadyForClosure() {
                     <TableHead className="hidden md:table-cell">Agent</TableHead>
                     <TableHead className="hidden md:table-cell">Closing Date</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Progress</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-6">
+                      <TableCell colSpan={7} className="text-center py-6">
                         <div className="flex justify-center items-center">
                           <Loader2 className="h-6 w-6 animate-spin mr-2" />
                           <span>Loading transactions...</span>
                         </div>
                       </TableCell>
                     </TableRow>
-                  ) : readyTransactions.length > 0 ? (
-                    readyTransactions.map((transaction) => (
+                  ) : transactions.length > 0 ? (
+                    transactions.map((transaction) => (
                       <TableRow key={transaction.id}>
                         <TableCell>
                           <div className="flex items-center gap-3">
@@ -331,23 +351,59 @@ export default function ReadyForClosure() {
                         </TableCell>
                         <TableCell className="hidden md:table-cell">{transaction.closingDate}</TableCell>
                         <TableCell>{getStatusBadge(transaction.status)}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Progress value={transaction.completionPercentage} className="w-[60px]" />
+                            <span className="text-sm text-muted-foreground">{transaction.completionPercentage}%</span>
+                          </div>
+                        </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
-                            <Button variant="ghost" size="icon">
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => {
+                                window.location.href = `/tc/document-review?transaction=${transaction.id}`;
+                              }}
+                            >
+                              <FileText className="h-4 w-4" />
+                              <span className="sr-only">Review documents</span>
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => {
+                                window.location.href = `/tc/tasks?transaction=${transaction.id}`;
+                              }}
+                            >
+                              <CheckSquare className="h-4 w-4" />
+                              <span className="sr-only">Manage tasks</span>
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => openTransactionModal(transaction)}
+                            >
                               <Eye className="h-4 w-4" />
                               <span className="sr-only">View details</span>
                             </Button>
-                            <Button variant="default" size="sm" onClick={() => handleForwardToBroker(transaction.id)}>
-                              Forward to Broker
-                            </Button>
+                            {transaction.status === "ReadyForClosure" && (
+                              <Button 
+                                variant="default" 
+                                size="sm"
+                                onClick={() => handleForwardToBroker(transaction.id)}
+                              >
+                                Forward to Broker
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
-                        No transactions ready for closure
+                      <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
+                        No transactions assigned
                       </TableCell>
                     </TableRow>
                   )}
@@ -359,8 +415,8 @@ export default function ReadyForClosure() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Closure Status</CardTitle>
-            <CardDescription>Overview of transaction closures</CardDescription>
+            <CardTitle>Transaction Status</CardTitle>
+            <CardDescription>Overview of your assigned transactions</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -385,12 +441,12 @@ export default function ReadyForClosure() {
               </div>
 
               <div className="flex items-center p-4 rounded-lg bg-muted/50">
-                <div className="mr-4 h-12 w-12 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
-                  <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-300" />
+                <div className="mr-4 h-12 w-12 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
+                  <Clock className="h-6 w-6 text-purple-600 dark:text-purple-300" />
                 </div>
                 <div>
-                  <div className="text-sm font-medium">Closed Transactions</div>
-                  <div className="text-2xl font-bold">{closedTransactions.length}</div>
+                  <div className="text-sm font-medium">In Progress</div>
+                  <div className="text-2xl font-bold">{inProgressTransactions.length}</div>
                 </div>
               </div>
 
@@ -425,7 +481,13 @@ export default function ReadyForClosure() {
                 id="transaction"
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 value={selectedTransaction}
-                onChange={(e) => setSelectedTransaction(e.target.value)}
+                onChange={(e) => {
+                  setSelectedTransaction(e.target.value)
+                  const transaction = transactions.find(t => t.id === e.target.value)
+                  if (transaction) {
+                    setSelectedTransactionForForward(transaction)
+                  }
+                }}
               >
                 <option value="">Select a transaction</option>
                 {readyTransactions.map((t) => (
@@ -446,6 +508,27 @@ export default function ReadyForClosure() {
                 onChange={(e) => setClosingNotes(e.target.value)}
               />
             </div>
+
+            {selectedTransactionForForward && (
+              <div className="space-y-2">
+                <div className="text-sm font-medium mb-2">Transaction Details</div>
+                <div className="space-y-2 p-4 rounded-lg border">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="text-sm text-muted-foreground">Transaction ID:</div>
+                    <div className="text-sm font-medium">{selectedTransactionForForward.id}</div>
+                    
+                    <div className="text-sm text-muted-foreground">Property:</div>
+                    <div className="text-sm font-medium">{selectedTransactionForForward.property}</div>
+                    
+                    <div className="text-sm text-muted-foreground">Client:</div>
+                    <div className="text-sm font-medium">{selectedTransactionForForward.client}</div>
+                    
+                    <div className="text-sm text-muted-foreground">Closing Date:</div>
+                    <div className="text-sm font-medium">{selectedTransactionForForward.closingDate}</div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2">
               <div className="text-sm font-medium mb-2">Completion Checklist</div>
@@ -473,12 +556,7 @@ export default function ReadyForClosure() {
               <Button 
                 className="flex items-center gap-2"
                 disabled={!selectedTransaction || isSubmitting}
-                onClick={() => {
-                  const transaction = transactions.find(t => t.id === selectedTransaction)
-                  if (transaction) {
-                    openForwardDialog(transaction)
-                  }
-                }}
+                onClick={handleSubmitForward}
               >
                 {isSubmitting ? (
                   <>

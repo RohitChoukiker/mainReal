@@ -58,9 +58,20 @@ export async function GET(request: NextRequest) {
     // Try to fetch closure requests from the database
     let closureRequests = [];
     try {
-      // In a real implementation, we would filter by brokerId
-      // For now, we'll get all closure requests
-      closureRequests = await ClosureRequestModel.find()
+      console.log("Fetching closure requests for broker:", brokerId);
+      
+      // First find all transactions for this broker
+      const brokerTransactions = await TransactionModel.find({ brokerId });
+      console.log("Found broker transactions:", brokerTransactions.length);
+      
+      // Get the transaction IDs
+      const transactionIds = brokerTransactions.map(tx => tx._id);
+      console.log("Transaction IDs:", transactionIds);
+      
+      // Find closure requests for these transactions
+      closureRequests = await ClosureRequestModel.find({
+        transactionId: { $in: transactionIds }
+      })
         .populate({
           path: 'transaction',
           populate: [
@@ -71,7 +82,7 @@ export async function GET(request: NextRequest) {
         })
         .sort({ submittedDate: -1 });
       
-      console.log(`Found ${closureRequests.length} closure requests in database`);
+      console.log(`Found ${closureRequests.length} closure requests for broker ${brokerId}`);
     } catch (error) {
       console.error("Error fetching closure requests from database:", error);
     }

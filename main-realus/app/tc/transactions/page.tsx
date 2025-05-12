@@ -35,7 +35,7 @@ interface Transaction {
     name: string
     avatar: string
   }
-  status: "pending" | "in_progress" | "at_risk" | "completed" | "cancelled" | "New" | "new" | "ready_for_closure"
+  status: "New" | "InProgress" | "PendingDocuments" | "UnderReview" | "ReadyForClosure" | "ForwardedToBroker" | "Approved" | "Closed" | "Cancelled"
   createdDate: string
   closingDate: string
   price?: string
@@ -320,7 +320,7 @@ export default function TCTransactions() {
                       <Eye className="h-4 w-4" />
                       <span className="sr-only">View details</span>
                     </Button>
-                    {transaction.status === "ready_for_closure" && (
+                    {transaction.status === "ReadyForClosure" && (
                       <Button 
                         variant="default" 
                         size="sm"

@@ -8,48 +8,20 @@ import { isTransactionReadyForClosure } from "@/utils/transactionUtils";
 
 export async function GET(request: NextRequest) {
   try {
-    console.log("Fetching ready for closure transactions...");
+    console.log("Fetching assigned transactions...");
     await dbConnect();
     
-    // Get transactions that are ready for closure
+    // Get all assigned transactions that are not closed or cancelled
     const transactions = await TransactionModel.find({
-      status: TransactionStatus.ReadyForClosure
+      status: { 
+        $nin: [
+          TransactionStatus.Closed, 
+          TransactionStatus.Cancelled
+        ] 
+      }
     });
     
-    console.log(`Found ${transactions.length} transactions with ReadyForClosure status`);
-    
-    // If no transactions found with ReadyForClosure status, check all transactions
-    if (transactions.length === 0) {
-      console.log("No transactions found with ReadyForClosure status, checking all transactions...");
-      
-      // Get all transactions that are not already closed or cancelled
-      const allTransactions = await TransactionModel.find({
-        status: { 
-          $nin: [
-            TransactionStatus.Closed, 
-            TransactionStatus.Cancelled,
-            TransactionStatus.ReadyForClosure,
-            TransactionStatus.ForwardedToBroker
-          ] 
-        }
-      });
-      
-      console.log(`Found ${allTransactions.length} active transactions to check`);
-      
-      // Check each transaction if it's ready for closure
-      for (const transaction of allTransactions) {
-        const isReady = await isTransactionReadyForClosure(transaction.transactionId);
-        
-        if (isReady) {
-          console.log(`Transaction ${transaction.transactionId} is ready for closure, updating status...`);
-          transaction.status = TransactionStatus.ReadyForClosure;
-          await transaction.save();
-          transactions.push(transaction);
-        }
-      }
-      
-      console.log(`Updated ${transactions.length} transactions to ReadyForClosure status`);
-    }
+    console.log(`Found ${transactions.length} assigned transactions`);
     
     // Format the response
     const formattedTransactions = transactions.map(transaction => {
@@ -76,7 +48,7 @@ export async function GET(request: NextRequest) {
         },
         closingDate: transaction.closingDate,
         status: transaction.status,
-        completionPercentage: 100, // Since it's ready for closure, it's 100% complete
+        completionPercentage: calculateCompletionPercentage(transaction),
         documents: {
           total: transaction.documents?.length || 0,
           verified: transaction.documents?.filter(doc => doc.approved).length || 0
@@ -90,12 +62,24 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ transactions: formattedTransactions });
   } catch (error) {
-    console.error("Error fetching ready for closure transactions:", error);
+    console.error("Error fetching assigned transactions:", error);
     return NextResponse.json(
       { error: "Failed to fetch transactions", message: String(error) },
       { status: 500 }
     );
   }
+}
+
+// Helper function to calculate completion percentage
+function calculateCompletionPercentage(transaction: any): number {
+  const totalItems = (transaction.documents?.length || 0) + (transaction.tasks?.length || 0);
+  if (totalItems === 0) return 0;
+  
+  const completedItems = 
+    (transaction.documents?.filter(doc => doc.approved).length || 0) + 
+    (transaction.tasks?.filter(task => task.completed).length || 0);
+  
+  return Math.round((completedItems / totalItems) * 100);
 }
 
 export async function POST(request: NextRequest) {
@@ -138,44 +122,72 @@ export async function POST(request: NextRequest) {
     // Create closure request if forwarding to broker
     if (status === TransactionStatus.ForwardedToBroker) {
       console.log(`Creating closure request for transaction ${transactionId}`);
+      console.log("Transaction details:", {
+        id: transaction._id,
+        brokerId: transaction.brokerId,
+        status: transaction.status
+      });
       
       try {
-        const closureRequest = new ClosureRequestModel({
-          transactionId: transaction._id,
-          status: 'pending',
-          notes: notes || ""
+        // First check if a closure request already exists
+        const existingRequest = await ClosureRequestModel.findOne({
+          transactionId: transaction._id
         });
-        await closureRequest.save();
-        console.log(`Closure request created for transaction ${transactionId}`);
-      } catch (closureError) {
-        console.error(`Error creating closure request: ${closureError}`);
-        // Continue even if closure request creation fails
-      }
 
-      // Send email notification to broker if broker email is available
-      try {
-        if (transaction.broker && transaction.broker.email) {
-          console.log(`Sending email notification to broker: ${transaction.broker.email}`);
-          
-          const emailData = {
-            to: transaction.broker.email,
-            subject: "New Closure Request",
-            template: 'new-closure-request',
-            data: {
-              transactionId: transaction.transactionId,
-              property: transaction.propertyAddress,
-              closingDate: transaction.closingDate,
-              notes: notes || ""
-            }
-          };
-          await sendEmail(emailData);
-          console.log(`Email notification sent to broker: ${transaction.broker.email}`);
+        if (existingRequest) {
+          console.log(`Closure request already exists for transaction ${transactionId}`);
+          // Update existing request
+          existingRequest.status = 'pending';
+          existingRequest.notes = notes || "";
+          await existingRequest.save();
+          console.log(`Updated existing closure request for transaction ${transactionId}`);
         } else {
-          console.log("Broker email not available, skipping email notification");
+          // Create new closure request
+          const closureRequest = new ClosureRequestModel({
+            transactionId: transaction._id,
+            status: 'pending',
+            notes: notes || "",
+            submittedDate: new Date()
+          });
+          await closureRequest.save();
+          console.log(`Created new closure request for transaction ${transactionId}:`, {
+            requestId: closureRequest._id,
+            transactionId: closureRequest.transactionId,
+            status: closureRequest.status
+          });
         }
-      } catch (emailError) {
-        console.error(`Error sending email notification: ${emailError}`);
-        // Continue even if email sending fails
+
+        // Send email notification to broker if broker email is available
+        try {
+          if (transaction.broker && transaction.broker.email) {
+            console.log(`Sending email notification to broker: ${transaction.broker.email}`);
+            
+            const emailData = {
+              to: transaction.broker.email,
+              subject: "New Closure Request",
+              template: 'new-closure-request',
+              data: {
+                transactionId: transaction.transactionId,
+                property: transaction.propertyAddress,
+                closingDate: transaction.closingDate,
+                notes: notes || ""
+              }
+            };
+            await sendEmail(emailData);
+            console.log(`Email notification sent to broker: ${transaction.broker.email}`);
+          } else {
+            console.log("Broker email not available, skipping email notification");
+          }
+        } catch (emailError) {
+          console.error(`Error sending email notification: ${emailError}`);
+          // Continue even if email sending fails
+        }
+      } catch (closureError) {
+        console.error(`Error handling closure request: ${closureError}`);
+        return NextResponse.json(
+          { error: "Failed to create closure request", message: String(closureError) },
+          { status: 500 }
+        );
       }
     }
 
