@@ -1,13 +1,13 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { CheckSquare, Clock, AlertTriangle, CheckCircle, PlusCircle, Loader2 } from "lucide-react"
+import { CheckSquare, Clock, AlertTriangle, CheckCircle, PlusCircle, Loader2, RefreshCw, AlertCircle } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -300,193 +300,136 @@ export default function TaskManagement() {
             description: `Server returned ${tasksResponse.status}: ${tasksResponse.statusText}`,
             variant: "destructive"
           })
-          throw new Error(`Failed to fetch tasks: ${tasksResponse.status} ${tasksResponse.statusText}`)
-        }
-        
-        let tasksData
-        try {
-          tasksData = await tasksResponse.json()
-          console.log('Fetched tasks:', tasksData)
-        } catch (parseError) {
-          console.error('Error parsing tasks JSON response:', parseError)
-          toast({
-            title: "Error parsing tasks data",
-            description: "The server returned an invalid response",
-            variant: "destructive"
-          })
-          throw new Error('Failed to parse tasks API response')
         }
         
         // Fetch transactions
         const transactionsResponse = await fetch('/api/tc/transactions', {
-          credentials: 'include' // Include cookies for authentication
-        })
-        
-        // Fetch agents
-        const agentsResponse = await fetch('/api/tc/agents', {
-          credentials: 'include' // Include cookies for authentication
+          credentials: 'include', // Include cookies for authentication
+          cache: 'no-store' // Disable caching to ensure fresh data
         })
         
         if (!transactionsResponse.ok) {
           console.error('Transactions API response not OK:', transactionsResponse.status, transactionsResponse.statusText)
-          throw new Error(`Failed to fetch transactions: ${transactionsResponse.status} ${transactionsResponse.statusText}`)
+          toast({
+            title: "Error loading transactions",
+            description: `Server returned ${transactionsResponse.status}: ${transactionsResponse.statusText}`,
+            variant: "destructive"
+          })
         }
         
-        let transactionsData
-        try {
-          transactionsData = await transactionsResponse.json()
-          console.log('Fetched transactions:', transactionsData)
-        } catch (parseError) {
-          console.error('Error parsing transactions JSON response:', parseError)
-          throw new Error('Failed to parse transactions API response')
-        }
+        // Fetch agents
+        const agentsResponse = await fetch('/api/tc/agents', {
+          credentials: 'include', // Include cookies for authentication
+          cache: 'no-store' // Disable caching to ensure fresh data
+        })
         
-        // Process agents response
         if (!agentsResponse.ok) {
           console.error('Agents API response not OK:', agentsResponse.status, agentsResponse.statusText)
-          console.warn('Will use fallback agents data')
-        } else {
-          try {
-            const agentsData = await agentsResponse.json()
-            console.log('Fetched agents:', agentsData)
-            
-            if (agentsData && agentsData.agents && Array.isArray(agentsData.agents)) {
-              console.log(`Successfully loaded ${agentsData.agents.length} agents`)
-              setAgents(agentsData.agents)
-            } else {
-              console.warn('API returned no agents or invalid format:', agentsData)
-              setAgents([]) // Empty array if no agents found
-            }
-          } catch (parseError) {
-            console.error('Error parsing agents JSON response:', parseError)
-            setAgents([]) // Empty array if error parsing agents
-          }
+          toast({
+            title: "Error loading agents",
+            description: `Server returned ${agentsResponse.status}: ${agentsResponse.statusText}`,
+            variant: "destructive"
+          })
         }
         
-        // Process transactions data
+        // Process responses
+        const tasksData = tasksResponse.ok ? await tasksResponse.json() : { tasks: [] }
+        const transactionsData = transactionsResponse.ok ? await transactionsResponse.json() : { transactions: [] }
+        const agentsData = agentsResponse.ok ? await agentsResponse.json() : { agents: [] }
+        
+        console.log('API data:', { tasks: tasksData, transactions: transactionsData, agents: agentsData })
+        
+        // Update state with API data
+        if (tasksData && tasksData.tasks && Array.isArray(tasksData.tasks)) {
+          setApiTasks(tasksData.tasks)
+        }
+        
         if (transactionsData && transactionsData.transactions && Array.isArray(transactionsData.transactions)) {
-          console.log(`Successfully loaded ${transactionsData.transactions.length} transactions`)
           setApiTransactions(transactionsData.transactions)
           
           // Convert API transactions to the format expected by the UI
-          const formattedTransactions: Transaction[] = transactionsData.transactions.map((t: ApiTransaction) => {
-            try {
-              // Safely format dates with fallbacks
-              let createdDate = "N/A";
-              let closingDate = "N/A";
-              
-              try {
-                if (t.createdAt) {
-                  createdDate = new Date(t.createdAt).toLocaleDateString();
-                }
-              } catch (e) {
-                console.error("Error formatting createdAt date:", e);
-              }
-              
-              try {
-                if (t.closingDate) {
-                  closingDate = new Date(t.closingDate).toLocaleDateString();
-                }
-              } catch (e) {
-                console.error("Error formatting closingDate date:", e);
-              }
-              
-              // Format price with fallback
-              let formattedPrice = "$0";
-              try {
-                if (t.price) {
-                  formattedPrice = `$${t.price.toLocaleString()}`;
-                }
-              } catch (e) {
-                console.error("Error formatting price:", e);
-              }
-              
-              // Calculate completion percentage (random for now)
-              const completionPercentage = Math.floor(Math.random() * 100);
-              
-              return {
-                id: t.transactionId || `TR-${Math.floor(Math.random() * 10000)}`,
-                property: t.propertyAddress ? 
-                  `${t.propertyAddress}${t.city ? `, ${t.city}` : ''}${t.state ? `, ${t.state}` : ''}` : 
-                  "Address not available",
-                client: t.clientName || "Unknown Client",
-                agent: {
-                  id: t.agentId || "unknown-agent", // Store the agent ID
-                  name: t.agentId || "Unknown Agent",
-                  avatar: "/placeholder.svg?height=40&width=40",
-                },
-                agentId: t.agentId, // Also store the raw agentId for filtering
-                status: (t.status || "pending") as any,
-                createdDate,
-                closingDate,
-                price: formattedPrice,
-                documents: {
-                  total: 8,
-                  verified: Math.floor(Math.random() * 9),
-                },
-                tasks: {
-                  total: 12,
-                  completed: Math.floor(Math.random() * 13),
-                },
-                completionPercentage,
-              };
-            } catch (error) {
-              console.error("Error converting transaction:", error, t);
-              // Return a fallback transaction object if conversion fails
-              return {
-                id: `TR-${Math.floor(Math.random() * 10000)}`,
-                property: "Error loading property details",
-                client: "Unknown",
-                agent: {
-                  id: "unknown-agent",
-                  name: "Unknown Agent",
-                  avatar: "/placeholder.svg?height=40&width=40",
-                },
-                agentId: "unknown-agent",
-                status: "pending" as any,
-                createdDate: "N/A",
-                closingDate: "N/A",
-                price: "$0",
-                documents: {
-                  total: 0,
-                  verified: 0,
-                },
-                tasks: {
-                  total: 0,
-                  completed: 0,
-                },
-                completionPercentage: 0,
-              };
+          const formattedTransactions: Transaction[] = transactionsData.transactions.map((apiTransaction: ApiTransaction) => {
+            return {
+              id: apiTransaction.transactionId,
+              property: apiTransaction.propertyAddress,
+              client: apiTransaction.clientName,
+              agent: {
+                id: apiTransaction.agentId,
+                name: "Agent Name", // This would ideally come from the API
+                avatar: "/placeholder.svg?height=40&width=40",
+              },
+              agentId: apiTransaction.agentId, // Store raw agent ID for filtering
+              status: apiTransaction.status as any,
+              createdDate: new Date(apiTransaction.createdAt).toLocaleDateString(),
+              closingDate: new Date(apiTransaction.closingDate).toLocaleDateString(),
+              price: `$${apiTransaction.price.toLocaleString()}`,
+              documents: {
+                total: 10, // Placeholder values
+                verified: 7,
+              },
+              tasks: {
+                total: 5, // Placeholder values
+                completed: 3,
+              },
+              completionPercentage: 60, // Placeholder value
             }
-          });
+          })
           
-          setTransactions(formattedTransactions || []);
-        } else {
-          console.warn('API returned no transactions or invalid format:', transactionsData)
-          setApiTransactions([])
-          setTransactions([])
+          setTransactions(formattedTransactions)
         }
         
-        // Process tasks data
-        let formattedTasks: Task[] = [];
-        
-        if (tasksData && tasksData.tasks && Array.isArray(tasksData.tasks) && tasksData.tasks.length > 0) {
-          console.log(`Successfully loaded ${tasksData.tasks.length} tasks`)
-          setApiTasks(tasksData.tasks)
+        if (agentsData && agentsData.agents && Array.isArray(agentsData.agents)) {
+          // Convert API agents to the format expected by the UI
+          const formattedAgents: Agent[] = agentsData.agents.map((apiAgent: any) => {
+            return {
+              id: apiAgent.id || apiAgent._id,
+              name: apiAgent.name,
+              email: apiAgent.email || "agent@example.com",
+              phone: apiAgent.phone || "555-123-4567",
+            }
+          })
           
+          setAgents(formattedAgents)
+        }
+        
+        // If we have tasks data, convert it to the format expected by the UI
+        if (tasksData && tasksData.tasks && Array.isArray(tasksData.tasks)) {
           // Create a map of transactions by ID for quick lookup
-          const transactionMap = new Map<string, Transaction>();
+          const transactionMap = new Map<string, Transaction>()
           if (transactionsData && transactionsData.transactions) {
-            // Use the transactions array that was already processed and stored in state
-            transactions.forEach(transaction => {
-              transactionMap.set(transaction.id, transaction);
-            });
+            transactionsData.transactions.forEach((apiTransaction: ApiTransaction) => {
+              const transaction: Transaction = {
+                id: apiTransaction.transactionId,
+                property: apiTransaction.propertyAddress,
+                client: apiTransaction.clientName,
+                agent: {
+                  id: apiTransaction.agentId,
+                  name: "Agent Name", // This would ideally come from the API
+                  avatar: "/placeholder.svg?height=40&width=40",
+                },
+                agentId: apiTransaction.agentId,
+                status: apiTransaction.status as any,
+                createdDate: new Date(apiTransaction.createdAt).toLocaleDateString(),
+                closingDate: new Date(apiTransaction.closingDate).toLocaleDateString(),
+                price: `$${apiTransaction.price.toLocaleString()}`,
+                documents: {
+                  total: 10,
+                  verified: 7,
+                },
+                tasks: {
+                  total: 5,
+                  completed: 3,
+                },
+                completionPercentage: 60,
+              }
+              transactionMap.set(transaction.id, transaction)
+            })
           }
           
-          // Convert API tasks to the format expected by the UI and associate with transactions
-          formattedTasks = tasksData.tasks.map((apiTask: ApiTask) => {
+          // Convert API tasks to the format expected by the UI
+          const formattedTasks: Task[] = tasksData.tasks.map((apiTask: ApiTask) => {
             // Find the associated transaction
-            const associatedTransaction = transactionMap.get(apiTask.transactionId);
+            const associatedTransaction = transactionMap.get(apiTask.transactionId)
             
             return {
               id: apiTask._id,
@@ -503,85 +446,62 @@ export default function TaskManagement() {
               priority: apiTask.priority,
               description: apiTask.description,
               aiReminder: apiTask.aiReminder,
-              transaction: associatedTransaction // Link the transaction to the task
-            };
-          });
-        } else {
-          console.warn('API returned no tasks or invalid format')
-          setApiTasks([])
-          setTasks([])
+              transaction: associatedTransaction
+            }
+          })
+          
+          setTasks(formattedTasks)
         }
-        
-        // Always set the tasks from the API
-        setTasks(formattedTasks)
       } catch (error) {
         console.error('Error fetching data:', error)
-        toast.error('Failed to load data.')
-        setApiTasks([])
-        setApiTransactions([])
-        setTasks([])
+        toast({
+          title: "Error loading data",
+          description: "Failed to load tasks and transactions. Please try again.",
+          variant: "destructive"
+        })
       } finally {
         setIsLoading(false)
       }
     }
     
     fetchData()
-  }, [])
+  }, [router])
 
-  const pendingTasks = tasks.filter((task) => task.status === "pending" || task.status === "in_progress" || task.status === "overdue")
-  const completedTasks = tasks.filter((task) => task.status === "completed")
-  
   // Handle form input changes
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target
-    setNewTask({
-      ...newTask,
-      [id === 'task-title' ? 'title' : id === 'due-date' ? 'dueDate' : id]: value
-    })
+    setNewTask(prev => ({
+      ...prev,
+      [id.replace('task-', '')]: value
+    }))
   }
-  
+
   // Handle select changes
-  const handleSelectChange = (id: string, value: string) => {
-    if (id === "agentId") {
-      // When agent changes, reset the transaction selection
-      setNewTask({
-        ...newTask,
-        [id]: value,
-        transactionId: "" // Reset transaction when agent changes
-      })
-    } else {
-      setNewTask({
-        ...newTask,
-        [id]: value
-      })
-    }
+  const handleSelectChange = (field: string, value: string) => {
+    setNewTask(prev => ({
+      ...prev,
+      [field]: value
+    }))
   }
-  
-  // Get transactions for the selected agent
+
+  // Handle checkbox changes
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, checked } = e.target
+    setNewTask(prev => ({
+      ...prev,
+      [id.replace('task-', '')]: checked
+    }))
+  }
+
+  // Get transactions for a specific agent
   const getAgentTransactions = () => {
     if (!newTask.agentId) return []
-    
-    // Filter transactions by the selected agent
-    return transactions.filter(transaction => {
-      // Check if the transaction has an agent property
-      if (transaction.agent) {
-        // Check if the agent ID or name matches
-        return transaction.agent.id === newTask.agentId || 
-               transaction.agent.name === newTask.agentId
-      } 
-      // For API transactions that might have agentId directly
-      else if (transaction.agentId) {
-        return transaction.agentId === newTask.agentId
-      }
-      
-      return false
-    })
+    return transactions.filter(t => t.agentId === newTask.agentId || t.agent.id === newTask.agentId)
   }
-  
+
   // Handle form submission
   const handleSubmitTask = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log("Form submitted with data:", newTask)
     
     // Validate form
     if (!newTask.title || !newTask.transactionId || !newTask.agentId || !newTask.dueDate || !newTask.priority) {
@@ -589,14 +509,15 @@ export default function TaskManagement() {
       return
     }
     
+    setIsSubmitting(true)
+    
     try {
-      setIsSubmitting(true)
+      console.log("Creating new task:", newTask)
       
-      // Get property address from selected transaction
-      const selectedTransaction = transactions.find(t => t.id === newTask.transactionId)
+      // Get property address from transaction
       let propertyAddress = ""
+      const selectedTransaction = transactions.find(t => t.id === newTask.transactionId)
       
-      // Handle fallback transactions
       if (selectedTransaction) {
         propertyAddress = selectedTransaction.property
       } else if (newTask.transactionId === "TR-7829") {
@@ -695,7 +616,8 @@ export default function TaskManagement() {
                   transactionId: apiTask.transactionId,
                   property: apiTask.propertyAddress || "Address not available",
                   agent: {
-                    name: apiTask.agentId || "Unknown Agent",
+                    id: apiTask.agentId || "unknown-agent",
+                    name: apiTask.agentName || apiTask.agentId || "Unknown Agent",
                     avatar: "/placeholder.svg?height=40&width=40",
                   },
                   dueDate: new Date(apiTask.dueDate).toLocaleDateString(),
@@ -728,7 +650,8 @@ export default function TaskManagement() {
         transactionId: data.task.transactionId,
         property: data.task.propertyAddress || "Address not available",
         agent: {
-          name: data.task.agentId || "Unknown Agent",
+          id: data.task.agentId || "unknown-agent",
+          name: data.task.agentName || data.task.agentId || "Unknown Agent",
           avatar: "/placeholder.svg?height=40&width=40",
         },
         dueDate: new Date(data.task.dueDate).toLocaleDateString(),
@@ -774,7 +697,8 @@ export default function TaskManagement() {
                   transactionId: apiTask.transactionId,
                   property: apiTask.propertyAddress || "Address not available",
                   agent: {
-                    name: apiTask.agentId || "Unknown Agent",
+                    id: apiTask.agentId || "unknown-agent",
+                    name: apiTask.agentName || apiTask.agentId || "Unknown Agent",
                     avatar: "/placeholder.svg?height=40&width=40",
                   },
                   dueDate: new Date(apiTask.dueDate).toLocaleDateString(),
@@ -904,174 +828,65 @@ export default function TaskManagement() {
     }
   }
 
-  const renderTaskTable = (taskList: Task[]) => (
-    <div className="rounded-md border">
-      <div className="flex justify-between items-center p-2 text-xs text-muted-foreground">
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          className="text-xs flex items-center gap-1"
-          onClick={() => {
-            toast.info("Refreshing task list...", { duration: 1000 })
-            // Trigger an immediate refresh of the task list
-            const refreshTasks = async () => {
-              try {
-                const tasksResponse = await fetch('/api/tc/tasks', {
-                  credentials: 'include'
-                })
-                
-                if (tasksResponse.ok) {
-                  const tasksData = await tasksResponse.json()
-                  
-                  if (tasksData && tasksData.tasks && Array.isArray(tasksData.tasks)) {
-                    setApiTasks(tasksData.tasks)
-                    
-                    // Create a map of transactions by ID for quick lookup
-                    const transactionMap = new Map<string, Transaction>()
-                    transactions.forEach(transaction => {
-                      transactionMap.set(transaction.id, transaction)
-                    })
-                    
-                    // Convert API tasks to the format expected by the UI
-                    const formattedTasks: Task[] = tasksData.tasks.map((apiTask: ApiTask) => {
-                      // Find the associated transaction
-                      const associatedTransaction = transactionMap.get(apiTask.transactionId)
-                      
-                      return {
-                        id: apiTask._id,
-                        title: apiTask.title,
-                        transactionId: apiTask.transactionId,
-                        property: apiTask.propertyAddress || "Address not available",
-                        agent: {
-                          name: apiTask.agentId || "Unknown Agent",
-                          avatar: "/placeholder.svg?height=40&width=40",
-                        },
-                        dueDate: new Date(apiTask.dueDate).toLocaleDateString(),
-                        status: apiTask.status,
-                        priority: apiTask.priority,
-                        description: apiTask.description,
-                        aiReminder: apiTask.aiReminder,
-                        transaction: associatedTransaction
-                      }
-                    })
-                    
-                    setTasks(formattedTasks)
-                    setLastRefreshed(new Date())
-                    toast.success("Task list refreshed", { duration: 2000 })
-                  }
-                }
-              } catch (error) {
-                console.error("Error refreshing tasks:", error)
-                toast.error("Failed to refresh tasks", { duration: 2000 })
-              }
-            }
-            
-            refreshTasks()
-          }}
-        >
-          <Clock className="h-3 w-3" />
-          <span>Refresh Now</span>
-        </Button>
-        
-        {lastRefreshed ? (
-          <div className="flex items-center gap-1">
-            <Clock className="h-3 w-3" />
-            <span>Last updated: {lastRefreshed.toLocaleTimeString()}</span>
-          </div>
-        ) : (
-          <div className="flex items-center gap-1">
-            <Clock className="h-3 w-3" />
-            <span>Updating...</span>
-          </div>
-        )}
-      </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Task</TableHead>
-            <TableHead className="hidden md:table-cell">Transaction</TableHead>
-            <TableHead className="hidden md:table-cell">Client</TableHead>
-            <TableHead className="hidden md:table-cell">Agent</TableHead>
-            <TableHead>Due Date</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Priority</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {isLoading ? (
+  // Filter tasks by status
+  const pendingTasks = tasks.filter(task => task.status !== "completed")
+  const completedTasks = tasks.filter(task => task.status === "completed")
+
+  // Render task table
+  const renderTaskTable = (taskList: Task[]) => {
+    return (
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell colSpan={7} className="text-center py-6">
-                <div className="flex items-center justify-center">
-                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                  <span>Loading tasks...</span>
-                </div>
-              </TableCell>
+              <TableHead>Task</TableHead>
+              <TableHead>Agent</TableHead>
+              <TableHead>Transaction</TableHead>
+              <TableHead>Due Date</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Priority</TableHead>
             </TableRow>
-          ) : taskList.length > 0 ? (
-            taskList.map((task) => (
-              <TableRow 
-                key={task.id} 
-                className={task.status === "completed" ? "bg-green-50 dark:bg-green-900/20" : ""}
-              >
-                <TableCell>
-                  <div className="flex items-center gap-3">
-                    {task.status === "completed" ? (
-                      <CheckSquare className="h-5 w-5 text-green-500" />
-                    ) : (
-                      <CheckSquare className="h-5 w-5 text-muted-foreground" />
-                    )}
-                    <div>
-                      <div className="font-medium">{task.title}</div>
-                      <div className="text-xs text-muted-foreground">{task.property}</div>
+          </TableHeader>
+          <TableBody>
+            {taskList.length > 0 ? (
+              taskList.map(task => (
+                <TableRow key={task.id}>
+                  <TableCell className="font-medium">{task.title}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={task.agent.avatar} alt={task.agent.name} />
+                        <AvatarFallback>{task.agent.name.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                      <div>{task.agent.name}</div>
                     </div>
-                    {task.aiReminder && (
-                      <Badge
-                        variant="outline"
-                        className="ml-2 bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300"
-                      >
-                        AI Reminder
-                      </Badge>
-                    )}
-                  </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-col">
+                      <div className="font-medium">{task.transactionId}</div>
+                      <div className="text-sm text-muted-foreground">{task.property}</div>
+                      {task.transaction && (
+                        <div className="mt-1">{getTransactionStatusBadge(task.transaction.status)}</div>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>{task.dueDate}</TableCell>
+                  <TableCell>{getStatusBadge(task.status)}</TableCell>
+                  <TableCell>{getPriorityBadge(task.priority)}</TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={6} className="h-24 text-center">
+                  No tasks found.
                 </TableCell>
-                <TableCell className="hidden md:table-cell">
-                  <div>
-                    <div className="font-medium">{task.transactionId}</div>
-                    {task.transaction && (
-                      <div className="mt-1">
-                        {getTransactionStatusBadge(task.transaction.status)}
-                      </div>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell className="hidden md:table-cell">
-                  {task.transaction ? task.transaction.client : "Unknown Client"}
-                </TableCell>
-                <TableCell className="hidden md:table-cell">
-                  <div className="flex items-center gap-2">
-                    <Avatar className="h-6 w-6">
-                      <AvatarImage src={task.agent.avatar} alt={task.agent.name} />
-                      <AvatarFallback>{task.agent.name.substring(0, 2).toUpperCase()}</AvatarFallback>
-                    </Avatar>
-                    <span>{task.agent.name}</span>
-                  </div>
-                </TableCell>
-                <TableCell>{task.dueDate}</TableCell>
-                <TableCell>{getStatusBadge(task.status)}</TableCell>
-                <TableCell>{getPriorityBadge(task.priority)}</TableCell>
               </TableRow>
-            ))
-          ) : (
-            <TableRow>
-              <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
-                No tasks found
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
-    </div>
-  )
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    )
+  }
 
   // Show loading state
   if (isLoading) {
@@ -1223,12 +1038,12 @@ export default function TaskManagement() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="due-date">Due Date</Label>
+                  <Label htmlFor="dueDate">Due Date</Label>
                   <Input 
-                    id="due-date" 
+                    id="dueDate" 
                     type="date" 
                     value={newTask.dueDate}
-                    onChange={handleInputChange}
+                    onChange={(e) => handleSelectChange("dueDate", e.target.value)}
                     required
                   />
                 </div>
@@ -1252,30 +1067,39 @@ export default function TaskManagement() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="task-description">Description (Optional)</Label>
                 <Textarea 
-                  id="description" 
+                  id="task-description" 
                   placeholder="Enter task description" 
-                  rows={3} 
                   value={newTask.description}
                   onChange={handleInputChange}
+                  className="min-h-[100px]"
                 />
               </div>
 
-              <div className="flex justify-end">
-                <Button 
-                  type="submit" 
-                  className="flex items-center gap-2"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <PlusCircle className="h-4 w-4" />
-                  )}
-                  <span>{isSubmitting ? "Assigning..." : "Assign Task"}</span>
-                </Button>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="aiReminder"
+                  checked={newTask.aiReminder}
+                  onChange={(e) => handleSelectChange("aiReminder", e.target.checked.toString())}
+                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                />
+                <Label htmlFor="aiReminder" className="text-sm font-normal">
+                  Enable AI reminders for this task
+                </Label>
               </div>
+
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Assigning Task...
+                  </>
+                ) : (
+                  "Assign Task"
+                )}
+              </Button>
             </form>
           </CardContent>
         </Card>
@@ -1283,7 +1107,13 @@ export default function TaskManagement() {
         <Card>
           <CardHeader>
             <CardTitle>Task Overview</CardTitle>
-            <CardDescription>Current status of all tasks</CardDescription>
+            <CardDescription>
+              {lastRefreshed ? (
+                <span>Last updated: {lastRefreshed.toLocaleTimeString()}</span>
+              ) : (
+                "Task statistics and overview"
+              )}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -1296,7 +1126,6 @@ export default function TaskManagement() {
                   <div className="text-2xl font-bold">{pendingTasks.length}</div>
                 </div>
               </div>
-
 
 
               <div className="flex items-center p-4 rounded-lg bg-muted/50">
@@ -1353,4 +1182,3 @@ export default function TaskManagement() {
     </div>
   )
 }
-
