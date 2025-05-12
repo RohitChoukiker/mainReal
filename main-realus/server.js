@@ -1,7 +1,8 @@
-const { createServer } = require('http');
-const { parse } = require('url');
-const next = require('next');
-const path = require('path');
+import { createServer } from 'http';
+import { parse } from 'url';
+import next from 'next';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 // Set environment variables
 process.env.NODE_ENV = process.env.NODE_ENV || 'development';
@@ -36,25 +37,24 @@ app.prepare()
 
     // Initialize Socket.IO server
     try {
+      // Get the current file's directory
+      const __filename = fileURLToPath(import.meta.url);
+      const __dirname = path.dirname(__filename);
+      
       // Dynamically import the socket server module
       const socketServerPath = path.join(process.cwd(), 'utils', 'socketServer.ts');
       console.log(`Loading socket server from: ${socketServerPath}`);
       
-      // Use require for .js files and dynamic import for .ts files
-      if (socketServerPath.endsWith('.ts')) {
-        import('file://' + socketServerPath)
-          .then(({ initSocketServer }) => {
-            console.log('Socket server module loaded successfully');
-            initSocketServer(server);
-          })
-          .catch(err => {
-            console.error('Failed to import socket server module:', err);
-          });
-      } else {
-        const { initSocketServer } = require(socketServerPath);
-        console.log('Socket server module loaded successfully');
-        initSocketServer(server);
-      }
+      // Import the socket server module
+      const socketServerUrl = 'file://' + socketServerPath;
+      import(socketServerUrl)
+        .then((module) => {
+          console.log('Socket server module loaded successfully');
+          module.initSocketServer(server);
+        })
+        .catch(err => {
+          console.error('Failed to import socket server module:', err);
+        });
     } catch (err) {
       console.error('Error initializing socket server:', err);
     }

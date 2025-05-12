@@ -51,107 +51,110 @@ export default function DocumentReview() {
   const [apiTransactions, setApiTransactions] = useState<ApiTransaction[]>([])
   const [documents, setDocuments] = useState<Document[]>([])
 
-  // Fetch real transactions from the API
+  // Fetch transactions and documents from the API
   useEffect(() => {
-    const fetchTransactions = async () => {
+    const fetchData = async () => {
       try {
-        console.log('Fetching transactions from API...')
+        console.log('Fetching data for document review...')
         setIsLoading(true)
-        const response = await fetch('/api/tc/transactions')
         
-        if (!response.ok) {
-          console.error('API response not OK:', response.status, response.statusText)
-          throw new Error(`Failed to fetch transactions: ${response.status} ${response.statusText}`)
+        // Fetch transactions
+        console.log('Fetching transactions from API...')
+        const transactionsResponse = await fetch('/api/tc/transactions')
+        
+        if (!transactionsResponse.ok) {
+          console.error('Transactions API response not OK:', transactionsResponse.status, transactionsResponse.statusText)
+          throw new Error(`Failed to fetch transactions: ${transactionsResponse.status} ${transactionsResponse.statusText}`)
         }
         
-        let data
+        let transactionsData
         try {
-          data = await response.json()
-          console.log('Fetched transactions:', data)
+          transactionsData = await transactionsResponse.json()
+          console.log('Fetched transactions:', transactionsData)
         } catch (parseError) {
-          console.error('Error parsing JSON response:', parseError)
-          throw new Error('Failed to parse API response')
+          console.error('Error parsing transactions JSON response:', parseError)
+          throw new Error('Failed to parse transactions API response')
         }
         
-        if (data && data.transactions && Array.isArray(data.transactions)) {
-          console.log(`Successfully loaded ${data.transactions.length} transactions`)
-          setApiTransactions(data.transactions)
+        if (transactionsData && transactionsData.transactions && Array.isArray(transactionsData.transactions)) {
+          console.log(`Successfully loaded ${transactionsData.transactions.length} transactions`)
+          setApiTransactions(transactionsData.transactions)
+        }
+        
+        // Fetch documents
+        console.log('Fetching documents from API...')
+        let documentsData = null;
+        try {
+          const documentsResponse = await fetch('/api/tc/documents/list')
           
-          // Generate documents from transactions
-          const generatedDocs: Document[] = []
+          if (!documentsResponse.ok) {
+            console.error('Documents API response not OK:', documentsResponse.status, documentsResponse.statusText)
+            const errorText = await documentsResponse.text();
+            console.error('Error response body:', errorText);
+            throw new Error(`Failed to fetch documents: ${documentsResponse.status} ${documentsResponse.statusText}`)
+          }
           
-          // Process each transaction to extract documents
-          data.transactions.forEach((transaction: ApiTransaction) => {
-            // Format property address
-            const property = transaction.propertyAddress ? 
-              `${transaction.propertyAddress}${transaction.city ? `, ${transaction.city}` : ''}${transaction.state ? `, ${transaction.state}` : ''}` : 
-              "Address not available"
+          try {
+            documentsData = await documentsResponse.json()
+            console.log('Fetched documents:', documentsData)
+          } catch (parseError) {
+            console.error('Error parsing documents JSON response:', parseError)
+            throw new Error('Failed to parse documents API response')
+          }
+        } catch (fetchError) {
+          console.error('Error fetching documents:', fetchError)
+          toast.error('Failed to load documents. Please try again later.')
+          // Continue with the rest of the function, we'll use demo data
+        }
+        
+        if (documentsData && documentsData.documents && Array.isArray(documentsData.documents)) {
+          console.log(`Successfully loaded ${documentsData.documents.length} documents`)
+          
+          // Create a map of transactions for quick lookup
+          const transactionMap = new Map<string, ApiTransaction>();
+          if (transactionsData && transactionsData.transactions) {
+            transactionsData.transactions.forEach((transaction: ApiTransaction) => {
+              transactionMap.set(transaction.transactionId, transaction);
+            });
+          }
+          
+          // Process documents and add property information
+          const processedDocs: Document[] = documentsData.documents.map((doc: any) => {
+            console.log("Processing document:", doc);
             
-            // If the transaction has documents, add them
-            if (transaction.documents && transaction.documents.length > 0) {
-              transaction.documents.forEach((doc, index) => {
-                generatedDocs.push({
-                  id: `doc-${transaction.transactionId}-${index}`,
-                  name: doc.name || `Document ${index + 1}`,
-                  transactionId: transaction.transactionId,
-                  property,
-                  agent: {
-                    name: transaction.agentId || "Unknown Agent",
-                    avatar: "/placeholder.svg?height=40&width=40",
-                  },
-                  uploadDate: doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString() : "Unknown date",
-                  status: doc.approved ? "approved" : "pending",
-                  aiVerified: Math.random() > 0.3, // Random AI verification for demo
-                  aiScore: Math.floor(Math.random() * 100), // Random AI score for demo
-                })
-              })
-            } else {
-              // If no documents, generate some random ones for demo purposes
-              const docTypes = [
-                "Purchase Agreement", 
-                "Property Disclosure", 
-                "Inspection Report", 
-                "Title Report", 
-                "Financing Pre-Approval", 
-                "HOA Documents"
-              ]
-              
-              // Generate 1-3 random documents per transaction
-              const numDocs = Math.floor(Math.random() * 3) + 1
-              for (let i = 0; i < numDocs; i++) {
-                const docType = docTypes[Math.floor(Math.random() * docTypes.length)]
-                const aiVerified = Math.random() > 0.3
-                const aiScore = aiVerified ? Math.floor(Math.random() * 30) + 70 : Math.floor(Math.random() * 70)
-                const status = Math.random() > 0.7 ? (Math.random() > 0.5 ? "approved" : "rejected") : "pending"
-                
-                generatedDocs.push({
-                  id: `doc-${transaction.transactionId}-${i}`,
-                  name: docType,
-                  transactionId: transaction.transactionId,
-                  property,
-                  agent: {
-                    name: transaction.agentId || "Unknown Agent",
-                    avatar: "/placeholder.svg?height=40&width=40",
-                  },
-                  uploadDate: new Date(Date.now() - Math.floor(Math.random() * 10) * 24 * 60 * 60 * 1000).toLocaleDateString(),
-                  status: status as "pending" | "approved" | "rejected",
-                  aiVerified,
-                  aiScore,
-                  issues: !aiVerified ? [
-                    "Missing signature",
-                    "Incomplete information",
-                    "Outdated document"
-                  ].slice(0, Math.floor(Math.random() * 3) + 1) : undefined
-                })
-              }
-            }
-          })
+            // Find the associated transaction
+            const transaction = transactionMap.get(doc.transactionId);
+            console.log("Found transaction:", transaction);
+            
+            // Format property address
+            const property = transaction ? 
+              `${transaction.propertyAddress}${transaction.city ? `, ${transaction.city}` : ''}${transaction.state ? `, ${transaction.state}` : ''}` : 
+              "Address not available";
+            
+            // Default status to pending if not provided
+            const status = doc.status === "verifying" ? "pending" : (doc.status || "pending");
+            
+            return {
+              id: doc.id,
+              name: doc.name,
+              transactionId: doc.transactionId,
+              property,
+              agent: {
+                name: doc.agentId || "Unknown Agent",
+                avatar: "/placeholder.svg?height=40&width=40",
+              },
+              uploadDate: doc.uploadDate,
+              status: status as "pending" | "approved" | "rejected",
+              aiVerified: doc.aiVerified || false,
+              aiScore: doc.aiScore || 80,
+              issues: doc.issues || []
+            };
+          });
           
-          setDocuments(generatedDocs)
+          setDocuments(processedDocs);
         } else {
-          console.warn('API returned no transactions or invalid format:', data)
-          setApiTransactions([])
-          // Set some demo documents if no transactions are found
+          console.warn('API returned no documents or invalid format:', documentsData)
+          // Set some demo documents if no documents are found
           setDocuments([
             {
               id: "doc-1",
@@ -181,11 +184,11 @@ export default function DocumentReview() {
               aiVerified: true,
               aiScore: 98,
             }
-          ])
+          ]);
         }
       } catch (error) {
-        console.error('Error fetching transactions:', error)
-        toast.error('Failed to load transactions. Please try again later.')
+        console.error('Error fetching data:', error)
+        toast.error('Failed to load documents. Please try again later.')
         setApiTransactions([])
         // Set some demo documents if there's an error
         setDocuments([
@@ -209,19 +212,84 @@ export default function DocumentReview() {
       }
     }
     
-    fetchTransactions()
+    fetchData()
   }, [])
 
   const pendingDocuments = documents.filter((doc) => doc.status === "pending")
   const approvedDocuments = documents.filter((doc) => doc.status === "approved")
   const rejectedDocuments = documents.filter((doc) => doc.status === "rejected")
 
-  const handleApprove = (docId: string) => {
-    setDocuments(documents.map((doc) => (doc.id === docId ? { ...doc, status: "approved" } : doc)))
+  const handleApprove = async (docId: string) => {
+    try {
+      console.log(`Approving document with ID: ${docId}`);
+      
+      // Update UI optimistically
+      setDocuments(documents.map((doc) => (doc.id === docId ? { ...doc, status: "approved" } : doc)))
+      
+      // Send update to server
+      const response = await fetch('/api/tc/documents/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          documentId: docId,
+          status: 'approved'
+        }),
+      });
+      
+      const responseData = await response.json();
+      console.log('Document approval response:', responseData);
+      
+      if (!response.ok) {
+        throw new Error(responseData.message || 'Failed to approve document');
+      }
+      
+      toast.success('Document approved successfully');
+    } catch (error) {
+      console.error('Error approving document:', error);
+      toast.error('Failed to approve document. Please try again.');
+      
+      // Revert UI change on error
+      setDocuments(documents.map((doc) => (doc.id === docId ? { ...doc, status: "pending" } : doc)))
+    }
   }
 
-  const handleReject = (docId: string) => {
-    setDocuments(documents.map((doc) => (doc.id === docId ? { ...doc, status: "rejected" } : doc)))
+  const handleReject = async (docId: string) => {
+    try {
+      console.log(`Rejecting document with ID: ${docId}`);
+      
+      // Update UI optimistically
+      setDocuments(documents.map((doc) => (doc.id === docId ? { ...doc, status: "rejected" } : doc)))
+      
+      // Send update to server
+      const response = await fetch('/api/tc/documents/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          documentId: docId,
+          status: 'rejected',
+          comments: 'Document rejected by TC. Please resubmit with corrections.'
+        }),
+      });
+      
+      const responseData = await response.json();
+      console.log('Document rejection response:', responseData);
+      
+      if (!response.ok) {
+        throw new Error(responseData.message || 'Failed to reject document');
+      }
+      
+      toast.success('Document rejected successfully');
+    } catch (error) {
+      console.error('Error rejecting document:', error);
+      toast.error('Failed to reject document. Please try again.');
+      
+      // Revert UI change on error
+      setDocuments(documents.map((doc) => (doc.id === docId ? { ...doc, status: "pending" } : doc)))
+    }
   }
 
   const getStatusBadge = (status: string, aiVerified: boolean, aiScore: number) => {

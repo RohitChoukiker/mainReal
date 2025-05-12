@@ -1,9 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
+  // swcMinify is now enabled by default in Next.js 13+
+  // swcMinify: true,
+  serverExternalPackages: ['mongoose'],
   experimental: {
-    serverComponentsExternalPackages: ['mongoose'],
+    // serverComponentsExternalPackages is moved to serverExternalPackages
   },
   images: {
     domains: ['images.unsplash.com'],
@@ -25,4 +27,4 @@ const nextConfig = {
   },
 }
 
-module.exports = nextConfig
+export default nextConfig;

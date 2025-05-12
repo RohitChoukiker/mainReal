@@ -1,6 +1,6 @@
 import { Server as NetServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
-import { NextApiRequest } from 'next';
+import type { NextApiRequest } from 'next';
 import { parse } from 'cookie';
 import jwt from 'jsonwebtoken';
 
