@@ -111,6 +111,7 @@ export default function ComplaintsManagement() {
   
   // Handle respond to complaint
   const handleRespondClick = (complaint: Complaint) => {
+    console.log("Opening respond dialog for complaint:", complaint.id)
     setSelectedComplaint(complaint)
     setResponseText("")
     setRespondDialogOpen(true)
@@ -118,9 +119,13 @@ export default function ComplaintsManagement() {
   
   // Handle submit response
   const handleSubmitResponse = async () => {
-    if (!selectedComplaint || !responseText.trim()) return
+    if (!selectedComplaint || !responseText.trim()) {
+      console.log("Missing complaint or response text")
+      return
+    }
     
     try {
+      console.log("Submitting response for complaint:", selectedComplaint.id)
       setIsSubmitting(true)
       
       const response = await fetch('/api/tc/complaints', {
@@ -135,8 +140,11 @@ export default function ComplaintsManagement() {
         }),
       })
       
+      console.log("API response status:", response.status)
+      
       if (response.ok) {
         const data = await response.json()
+        console.log("Response data:", data)
         
         // Update the complaint in the local state
         setComplaints(prevComplaints => 
@@ -155,7 +163,9 @@ export default function ComplaintsManagement() {
         // Close the dialog
         setRespondDialogOpen(false)
       } else {
-        throw new Error('Failed to update complaint')
+        const errorData = await response.json().catch(() => ({}))
+        console.error("Error response:", errorData)
+        throw new Error(`Failed to update complaint: ${errorData.message || response.statusText}`)
       }
     } catch (error) {
       console.error('Error updating complaint:', error)
@@ -595,7 +605,9 @@ export default function ComplaintsManagement() {
       </Dialog>
       
       {/* Respond to Complaint Dialog */}
-      <Dialog open={respondDialogOpen} onOpenChange={setRespondDialogOpen}>
+      <Dialog open={respondDialogOpen} onOpenChange={(open) => {
+        if (!isSubmitting) setRespondDialogOpen(open);
+      }}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>Respond to Complaint</DialogTitle>
@@ -624,17 +636,19 @@ export default function ComplaintsManagement() {
             </div>
           </div>
           
-          <DialogFooter>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
             <Button 
               variant="outline" 
               onClick={() => setRespondDialogOpen(false)}
               disabled={isSubmitting}
+              className="w-full sm:w-auto"
             >
               Cancel
             </Button>
             <Button 
               onClick={handleSubmitResponse}
               disabled={isSubmitting || !responseText.trim()}
+              className="w-full sm:w-auto"
             >
               {isSubmitting ? (
                 <>
