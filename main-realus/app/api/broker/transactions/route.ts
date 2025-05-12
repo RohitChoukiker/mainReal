@@ -112,6 +112,26 @@ export const GET = catchAsync(async (req: NextRequest) => {
         .limit(limit);
       
       console.log(`Found ${transactions.length} transactions in database`);
+      
+      // Add agent names to transactions
+      for (let i = 0; i < transactions.length; i++) {
+        try {
+          const agent = await User.findById(transactions[i].agentId);
+          if (agent) {
+            // Add agent name to transaction
+            (transactions[i] as any).agentName = agent.name || `${agent.firstName || ''} ${agent.lastName || ''}`.trim() || "Unknown Agent";
+            console.log(`Added agent name "${(transactions[i] as any).agentName}" to transaction ${transactions[i].transactionId || transactions[i]._id}`);
+          } else {
+            // If agent not found, set a default name
+            (transactions[i] as any).agentName = "Unknown Agent";
+            console.log(`Agent not found for transaction ${transactions[i].transactionId || transactions[i]._id}, using default name`);
+          }
+        } catch (error) {
+          console.error(`Error finding agent for transaction ${transactions[i].transactionId || transactions[i]._id}:`, error);
+          // Set a default name in case of error
+          (transactions[i] as any).agentName = "Unknown Agent";
+        }
+      }
     } catch (dbError) {
       console.error("Database query error:", dbError);
       // Return empty array instead of failing
@@ -132,6 +152,32 @@ export const GET = catchAsync(async (req: NextRequest) => {
             // Get ALL in-memory transactions without filtering
             transactions = data.transactions;
             console.log(`Using all ${transactions.length} in-memory transactions`);
+            
+            // Add agent names to in-memory transactions
+            for (let i = 0; i < transactions.length; i++) {
+              try {
+                const agent = await User.findById(transactions[i].agentId);
+                if (agent) {
+                  // Add agent name to transaction
+                  (transactions[i] as any).agentName = agent.name || `${agent.firstName || ''} ${agent.lastName || ''}`.trim() || "Unknown Agent";
+                  console.log(`Added agent name "${(transactions[i] as any).agentName}" to in-memory transaction ${i}`);
+                } else {
+                  // If agent not found, set a default name
+                  (transactions[i] as any).agentName = "Unknown Agent";
+                  console.log(`Agent not found for in-memory transaction ${i}, using default name`);
+                }
+              } catch (error) {
+                console.error(`Error finding agent for in-memory transaction ${i}:`, error);
+                // Set a default name in case of error
+                (transactions[i] as any).agentName = "Unknown Agent";
+              }
+            }
+            
+            // Log all transactions with their agent names
+            console.log("In-memory transactions with agent names:");
+            transactions.forEach((tx: any, index: number) => {
+              console.log(`Transaction ${index} agent name:`, tx.agentName);
+            });
             
             // Apply pagination
             total = transactions.length;

@@ -62,8 +62,9 @@ export async function GET(req: NextRequest) {
     // Format complaints for broker view
     const formattedComplaints = complaints.map(complaint => {
       // Get agent name from agentId (in a real app, you would query the agent database)
-      // For now, we'll use a placeholder
+      // For now, we'll use a placeholder with a more visible name
       const agentName = "Agent " + complaint.agentId.substring(complaint.agentId.length - 3);
+      console.log("Setting agent name:", agentName);
       
       return {
         id: complaint.id,

@@ -389,12 +389,15 @@ export const POST = catchAsync(async (req: NextRequest) => {
         );
       }
       
+      // Log the agent ID for debugging
+      console.log("Creating task for agent:", body.agentId);
+      
       // Create new task
       const newTask = new TaskModel({
         title: body.title,
         transactionId: body.transactionId,
         propertyAddress: body.propertyAddress,
-        agentId: body.agentId,
+        agentId: body.agentId, // This is the agent's name from the dropdown
         dueDate: new Date(body.dueDate),
         status: body.status || TaskStatus.Pending,
         priority: body.priority || TaskPriority.Medium,

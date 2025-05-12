@@ -257,7 +257,8 @@ export default function TaskManagement() {
           // Create a map of transactions by ID for quick lookup
           const transactionMap = new Map<string, Transaction>();
           if (transactionsData && transactionsData.transactions) {
-            formattedTransactions.forEach(transaction => {
+            // Use the transactions array that was already processed and stored in state
+            transactions.forEach(transaction => {
               transactionMap.set(transaction.id, transaction);
             });
           }
@@ -429,13 +430,17 @@ export default function TaskManagement() {
       const taskData = {
         title: newTask.title,
         transactionId: newTask.transactionId,
-        agentId: newTask.agentId,
+        agentId: newTask.agentId, // This is the agent's name from the dropdown
         propertyAddress,
         dueDate: newTask.dueDate,
         priority: newTask.priority,
         description: newTask.description,
-        aiReminder: newTask.aiReminder || false
+        aiReminder: newTask.aiReminder || false,
+        assignedBy: "TC Manager", // Add who assigned this task
+        status: "pending" // Ensure the initial status is pending
       }
+      
+      console.log("Task assigned to agent:", newTask.agentId)
       
       console.log("Sending task data to API:", taskData)
       

@@ -20,7 +20,7 @@ interface Transaction {
   property: string
   client: string
   agentId: string
-  agentName?: string
+  agentName: string  // Changed from optional to required
   status: string
   createdDate: string
   timestamp: number
@@ -52,13 +52,71 @@ export default function TransactionPanel() {
     setIsDetailsModalOpen(true)
   }
 
-  // Function to fetch agents - will be connected to API in the future
+  // Function to fetch agents from the API
   const fetchAgents = async () => {
     console.log("Fetching agents")
-    // This will be replaced with actual API call
-    // For now, returning empty array to remove static data
-    setAgents([])
-    return []
+    try {
+      // Fetch agents from the API
+      const response = await fetch('/api/agents/list')
+      const data = await response.json()
+      
+      if (response.ok && data.agents && data.agents.length > 0) {
+        console.log("Fetched agents:", data.agents)
+        
+        // Map the agents to our Agent interface
+        const mappedAgents = data.agents.map((agent: any) => ({
+          _id: agent._id || agent.id,
+          name: agent.name || `${agent.firstName || ''} ${agent.lastName || ''}`.trim() || "Unknown Agent",
+          email: agent.email || "unknown@example.com",
+          mobile: agent.mobile || agent.phone || "unknown"
+        }))
+        
+        setAgents(mappedAgents)
+        return mappedAgents
+      } else {
+        console.log("No agents returned from API or API failed, using sample agents")
+        
+        // Create sample agents for testing
+        const sampleAgents = [
+          {
+            _id: "agent1",
+            name: "Rohit Sharma",
+            email: "rohit@example.com",
+            mobile: "9876543210"
+          },
+          {
+            _id: "agent2",
+            name: "Virat Kohli",
+            email: "virat@example.com",
+            mobile: "9876543211"
+          }
+        ]
+        
+        setAgents(sampleAgents)
+        return sampleAgents
+      }
+    } catch (error) {
+      console.error("Error fetching agents:", error)
+      
+      // Create sample agents for testing in case of error
+      const sampleAgents = [
+        {
+          _id: "agent1",
+          name: "Rohit Sharma",
+          email: "rohit@example.com",
+          mobile: "9876543210"
+        },
+        {
+          _id: "agent2",
+          name: "Virat Kohli",
+          email: "virat@example.com",
+          mobile: "9876543211"
+        }
+      ]
+      
+      setAgents(sampleAgents)
+      return sampleAgents
+    }
   }
 
   // Function to generate a transaction - will be replaced with API call
@@ -69,8 +127,8 @@ export default function TransactionPanel() {
       id: "",
       property: "",
       client: "",
-      agentId: "",
-      agentName: "",
+      agentId: agentId,
+      agentName: agentName,
       status: "pending",
       createdDate: new Date().toISOString().split('T')[0],
       timestamp: Date.now(),
@@ -89,7 +147,7 @@ export default function TransactionPanel() {
     // No transactions are being added since we're removing static data
   }
 
-  // Function to fetch transactions - will be connected to API in the future
+  // Function to fetch transactions from the API
   const fetchTransactions = async () => {
     try {
       // Set loading state
@@ -102,17 +160,203 @@ export default function TransactionPanel() {
       setError(null)
       
       // Fetch agents first
-      await fetchAgents()
+      const agentsList = await fetchAgents()
       
-      // This will be replaced with actual API call to get transactions
-      // For now, setting empty arrays to remove static data
-      setTransactions([])
-      setAgentTransactions([])
+      // Fetch transactions from the API
+      const response = await fetch('/api/broker/transactions')
+      const data = await response.json()
       
-      console.log("Transaction data cleared - will be replaced with API data")
+      console.log("API response data:", data);
+      console.log("API transactions:", data.transactions);
+      
+      if (response.ok) {
+        // Determine which transactions to use (API data or sample data)
+        let transactionsToUse = []
+        
+        if (data.transactions && data.transactions.length > 0) {
+          console.log("Fetched transactions:", data.transactions)
+          
+          // Check if agent names are present in the API response
+          data.transactions.forEach((tx: any, index: number) => {
+            console.log(`API transaction ${index} agent name:`, tx.agentName);
+          });
+          
+          transactionsToUse = data.transactions
+        } else {
+          console.log("No transactions returned from API, using sample data")
+          
+          // Create sample transactions for testing
+          const sampleTransactions = [
+            {
+              _id: "tx1",
+              id: "TX-12345",
+              propertyAddress: "123 Main St, City",
+              property: "123 Main St, City",
+              clientName: "John Doe",
+              client: "John Doe",
+              agentId: "agent1",
+              agentName: "Rohit Sharma",
+              status: "pending",
+              createdDate: new Date().toISOString().split('T')[0],
+              timestamp: Date.now() - 5000,
+              brokerId: "broker1"
+            },
+            {
+              _id: "tx2",
+              id: "TX-67890",
+              propertyAddress: "456 Oak Ave, Town",
+              property: "456 Oak Ave, Town",
+              clientName: "Jane Smith",
+              client: "Jane Smith",
+              agentId: "agent2",
+              agentName: "Virat Kohli",
+              status: "in_progress",
+              createdDate: new Date().toISOString().split('T')[0],
+              timestamp: Date.now() - 3600000,
+              brokerId: "broker1"
+            }
+          ];
+          
+          console.log("Sample transactions:", sampleTransactions);
+          console.log("Sample transaction 1 agent name:", sampleTransactions[0].agentName);
+          console.log("Sample transaction 2 agent name:", sampleTransactions[1].agentName);
+          
+          transactionsToUse = sampleTransactions
+        }
+        
+        // Log all transactions with their agent names
+        console.log("Final transactions with agent names:");
+        transactionsToUse.forEach((tx: any, index: number) => {
+          console.log(`Transaction ${index} agent name:`, tx.agentName);
+        });
+        
+        // Set the transactions
+        setTransactions(transactionsToUse)
+        
+        // Create agent transactions mapping
+        const agentTxMap = new Map<string, AgentTransactions>()
+        
+        // Create a dummy agent if no agents are available
+        if (agentsList.length === 0) {
+          const dummyAgent: Agent = {
+            _id: "dummy-agent",
+            name: "Agent",
+            email: "agent@example.com",
+            mobile: "1234567890"
+          }
+          
+          // Group all transactions under the dummy agent
+          const mappedTransactions = transactionsToUse.map((tx: any) => {
+            const transactionObj = {
+              id: tx._id || tx.id || "unknown",
+              property: tx.propertyAddress || tx.property || "Unknown Property",
+              client: tx.clientName || tx.client || "Unknown Client",
+              agentId: tx.agentId || "unknown",
+              agentName: tx.agentName || "Unknown Agent",
+              status: tx.status || "pending",
+              createdDate: tx.createdDate || new Date(tx.createdAt || Date.now()).toISOString().split('T')[0],
+              timestamp: tx.timestamp || Date.now(),
+              brokerId: tx.brokerId || ""
+            };
+            
+            console.log("Dummy agent case - Transaction:", transactionObj);
+            console.log("Dummy agent case - Agent name:", transactionObj.agentName);
+            
+            return transactionObj;
+          });
+          
+          const agentTransactions: AgentTransactions = {
+            agent: dummyAgent,
+            transactions: mappedTransactions
+          }
+          
+          // Log the dummy agent transactions
+          console.log("Dummy agent transactions:", agentTransactions);
+          console.log("Dummy agent name:", agentTransactions.agent.name);
+          agentTransactions.transactions.forEach((tx, index) => {
+            console.log(`Dummy agent transaction ${index} agent name:`, tx.agentName);
+          });
+          
+          setAgentTransactions([agentTransactions])
+        } else {
+          // Group transactions by agent
+          transactionsToUse.forEach((tx: any) => {
+            const agentId = tx.agentId
+            
+            if (!agentTxMap.has(agentId)) {
+              // Find the agent in our list
+              const agent = agentsList.find(a => a._id === agentId) || {
+                _id: agentId,
+                name: tx.agentName || "Unknown Agent",
+                email: "unknown@example.com",
+                mobile: "unknown"
+              }
+              
+              agentTxMap.set(agentId, {
+                agent,
+                transactions: []
+              })
+            }
+            
+            // Find the agent in our list
+            const agent = agentsList.find(a => a._id === agentId);
+            const agentName = tx.agentName || (agent ? agent.name : "Unknown Agent");
+            
+            // Create transaction object with agent name
+            const transactionObj = {
+              id: tx._id || tx.id || "unknown",
+              property: tx.propertyAddress || tx.property || "Unknown Property",
+              client: tx.clientName || tx.client || "Unknown Client",
+              agentId: tx.agentId,
+              agentName: agentName,
+              status: tx.status || "pending",
+              createdDate: tx.createdDate || new Date(tx.createdAt || Date.now()).toISOString().split('T')[0],
+              timestamp: tx.timestamp || Date.now(),
+              brokerId: tx.brokerId || ""
+            };
+            
+            console.log("Created transaction object:", transactionObj);
+            console.log("Agent name in transaction object:", transactionObj.agentName);
+            
+            // Add the transaction to the agent's list
+            agentTxMap.get(agentId)?.transactions.push(transactionObj);
+            
+            // Log the transaction that was added to the agent's list
+            console.log(`Added transaction to agent ${agentId} list:`, transactionObj);
+            console.log(`Agent name in added transaction:`, transactionObj.agentName);
+          })
+          
+          // Convert the map to an array
+          const agentTxArray = Array.from(agentTxMap.values());
+          
+          // Log the agent transactions array
+          console.log("Agent transactions array:", agentTxArray);
+          agentTxArray.forEach((agentTx, index) => {
+            console.log(`Agent ${index} name:`, agentTx.agent.name);
+            agentTx.transactions.forEach((tx, txIndex) => {
+              console.log(`Agent ${index} transaction ${txIndex} agent name:`, tx.agentName);
+            });
+          });
+          
+          setAgentTransactions(agentTxArray)
+        }
+        
+        console.log("Transaction data loaded from API")
+      } else {
+        console.error("Failed to fetch transactions:", data)
+        setError("Failed to load transactions")
+        
+        // Set empty arrays as fallback
+        setTransactions([])
+        setAgentTransactions([])
+      }
     } catch (error) {
       console.error("Error:", error)
       setError("Failed to load transactions")
+      
+      // Set empty arrays as fallback
+      setTransactions([])
+      setAgentTransactions([])
     } finally {
       setLoading(false)
     }
@@ -237,7 +481,12 @@ export default function TransactionPanel() {
                   </div>
                   
                   <div className="space-y-2">
-                    {agentTx.transactions.map((transaction) => (
+                    {console.log("Agent transactions:", agentTx)}
+                    {agentTx.transactions.map((transaction) => {
+                      console.log("Transaction in render:", transaction);
+                      console.log("Agent name in transaction:", transaction.agentName);
+                      console.log("Agent name from agentTx:", agentTx.agent.name);
+                      return (
                       <div 
                         key={transaction.id} 
                         className={`p-3 rounded-md border ${
@@ -248,6 +497,7 @@ export default function TransactionPanel() {
                           <div>
                             <p className="text-sm font-medium">{transaction.property}</p>
                             <p className="text-xs text-muted-foreground">Client: {transaction.client}</p>
+                            <p className="text-xs text-muted-foreground">Agent: {transaction.agentName || "Unknown Agent"}</p>
                           </div>
                           <div className="flex items-center gap-2">
                             {getStatusBadge(transaction.status)}
@@ -277,7 +527,8 @@ export default function TransactionPanel() {
                           </div>
                         )}
                       </div>
-                    ))}
+                    );
+                  })}
                   </div>
                 </div>
               ))

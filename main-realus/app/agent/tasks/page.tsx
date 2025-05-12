@@ -41,40 +41,102 @@ interface ApiTask {
 export default function TasksAssigned() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [newTasksCount, setNewTasksCount] = useState(0)
+  const [lastFetchTime, setLastFetchTime] = useState(Date.now())
   
-  // Fetch tasks from API
+  // Fetch tasks from API with real-time updates
   useEffect(() => {
     const fetchTasks = async () => {
       try {
         setIsLoading(true)
         
-        // Fetch tasks from API
-        const response = await fetch('/api/agent/tasks')
+        // Fetch tasks from API with a timestamp to prevent caching
+        const timestamp = new Date().getTime()
+        console.log('Fetching agent tasks at:', new Date().toISOString())
+        const response = await fetch(`/api/agent/tasks?t=${timestamp}&limit=50`, {
+          credentials: 'include', // Include cookies for authentication
+          cache: 'no-store' // Ensure we don't use cached data
+        })
         
         if (!response.ok) {
           throw new Error(`Failed to fetch tasks: ${response.status}`)
         }
         
         const data = await response.json()
+        console.log('Fetched agent tasks:', data)
         
         // Process tasks data
         if (data && data.tasks && Array.isArray(data.tasks)) {
+          console.log(`Processing ${data.tasks.length} tasks from API`);
+          
+          // Log all tasks for debugging
+          data.tasks.forEach((task: ApiTask, index: number) => {
+            console.log(`Task ${index + 1}:`, {
+              id: task._id,
+              title: task.title,
+              agentId: task.agentId,
+              assignedBy: task.assignedBy
+            });
+          });
+          
           // Convert API tasks to the format expected by the UI
           const formattedTasks: Task[] = data.tasks.map((apiTask: ApiTask) => {
+            // Format the due date with a fallback
+            let formattedDueDate = "No due date";
+            try {
+              if (apiTask.dueDate) {
+                formattedDueDate = new Date(apiTask.dueDate).toLocaleDateString();
+              }
+            } catch (e) {
+              console.error("Error formatting due date:", e);
+            }
+            
             return {
-              id: apiTask._id,
+              id: apiTask._id || `task-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
               title: apiTask.title,
-              transactionId: apiTask.transactionId,
+              transactionId: apiTask.transactionId || "Unknown Transaction",
               property: apiTask.propertyAddress || "Address not available",
               assignedBy: apiTask.assignedBy || "TC Manager",
-              dueDate: new Date(apiTask.dueDate).toLocaleDateString(),
-              status: apiTask.status,
-              priority: apiTask.priority,
-              description: apiTask.description,
-              aiReminder: apiTask.aiReminder
+              dueDate: formattedDueDate,
+              status: apiTask.status || "pending",
+              priority: apiTask.priority || "medium",
+              description: apiTask.description || "",
+              aiReminder: apiTask.aiReminder || false
             }
-          })
+          });
           
+          // Check for new tasks by comparing with the last fetch time
+          if (!isLoading) { // Skip on initial load
+            const newTasks = data.tasks.filter((task: ApiTask) => {
+              // If task has no createdAt, consider it new
+              if (!task.createdAt) return true;
+              
+              try {
+                const taskCreatedAt = new Date(task.createdAt).getTime();
+                return taskCreatedAt > lastFetchTime;
+              } catch (e) {
+                console.error("Error parsing task creation date:", e);
+                return false;
+              }
+            });
+            
+            if (newTasks.length > 0) {
+              console.log(`Found ${newTasks.length} new tasks!`);
+              setNewTasksCount(prev => prev + newTasks.length);
+              
+              // Show notification for new tasks
+              if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === "granted") {
+                new Notification("New Tasks Assigned", {
+                  body: `You have ${newTasks.length} new task(s) assigned to you.`
+                });
+              }
+            }
+          }
+          
+          // Update the last fetch time
+          setLastFetchTime(Date.now());
+          
+          console.log(`Setting ${formattedTasks.length} formatted tasks`);
           setTasks(formattedTasks)
         } else {
           // If no tasks are found, use demo data
@@ -126,7 +188,17 @@ export default function TasksAssigned() {
       }
     }
     
+    // Initial fetch
     fetchTasks()
+    
+    // Set up polling for real-time updates (every 10 seconds)
+    const pollingInterval = setInterval(() => {
+      console.log('Polling for new tasks...')
+      fetchTasks()
+    }, 10000) // 10 seconds
+    
+    // Clean up interval on component unmount
+    return () => clearInterval(pollingInterval)
   }, [])
 
   const pendingTasks = tasks.filter((task) => task.status === "pending" || task.status === "in_progress")
@@ -195,29 +267,41 @@ export default function TasksAssigned() {
 
   const handleCompleteTask = async (taskId: string) => {
     try {
+      // Store original tasks in case we need to revert
+      const originalTasks = [...tasks]
+      
       // Update task status in UI immediately for better UX
       setTasks(tasks.map((task) => (task.id === taskId ? { ...task, status: "completed" } : task)))
       
-      // In a real implementation, you would update the task status in the database
-      // For now, we'll just log it
-      console.log(`Task ${taskId} marked as completed`)
+      // Implement API call to update task status
+      const response = await fetch(`/api/agent/tasks/${taskId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: 'completed' }),
+        credentials: 'include' // Include cookies for authentication
+      })
       
-      // TODO: Implement API call to update task status
-      // const response = await fetch(`/api/agent/tasks/${taskId}`, {
-      //   method: 'PATCH',
-      //   headers: {
-      //     'Content-Type': 'application/json'
-      //   },
-      //   body: JSON.stringify({ status: 'completed' })
-      // })
+      if (!response.ok) {
+        throw new Error(`Failed to update task: ${response.status}`)
+      }
       
-      // if (!response.ok) {
-      //   throw new Error(`Failed to update task: ${response.status}`)
-      // }
+      const data = await response.json()
+      console.log(`Task ${taskId} marked as completed:`, data)
+      
+      // Show success message
+      // If you have a toast notification system, you can use it here
+      console.log('Task completed successfully')
     } catch (error) {
       console.error("Error updating task:", error)
       // Revert the UI change if the API call fails
-      // setTasks(originalTasks)
+      setTasks(tasks.map((task) => 
+        task.id === taskId ? { ...task, status: "pending" } : task
+      ))
+      
+      // Show error message
+      console.error('Failed to complete task')
     }
   }
 
@@ -242,7 +326,13 @@ export default function TasksAssigned() {
                   <div className="flex items-center gap-3">
                     <CheckSquare className="h-5 w-5 text-muted-foreground" />
                     <div>
-                      <div className="font-medium">{task.title}</div>
+                      <div className="font-medium">
+                        {task.title}
+                        {/* Add a "NEW" badge for tasks created in the last hour */}
+                        {new Date(task.id.substring(0, 8) + "0000000000000", 16).getTime() > Date.now() - 3600000 && (
+                          <Badge className="ml-2 bg-red-500 text-white animate-pulse">NEW</Badge>
+                        )}
+                      </div>
                       <div className="text-xs text-muted-foreground">{task.property}</div>
                     </div>
                     {task.aiReminder && (
@@ -294,7 +384,21 @@ export default function TasksAssigned() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold tracking-tight">Tasks Assigned</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold tracking-tight">Tasks Assigned</h1>
+        
+        {newTasksCount > 0 && (
+          <div className="bg-red-500 text-white px-3 py-1 rounded-full animate-pulse flex items-center">
+            <span className="mr-1">{newTasksCount} New</span>
+            <button 
+              className="ml-2 text-xs bg-white text-red-500 rounded-full w-5 h-5 flex items-center justify-center"
+              onClick={() => setNewTasksCount(0)}
+            >
+              ×
+            </button>
+          </div>
+        )}
+      </div>
       
       {isLoading && (
         <div className="flex justify-center items-center h-[200px]">

@@ -82,6 +82,8 @@ export default function BrokerComplaints() {
         console.log("Received complaints data:", data)
         
         if (data.complaints && data.complaints.length > 0) {
+          // Log the first complaint to check agent data
+          console.log("First complaint agent data:", data.complaints[0].agent)
           setComplaints(data.complaints)
         } else {
           console.log("No complaints found")
@@ -346,7 +348,7 @@ export default function BrokerComplaints() {
           <TableRow>
             <TableHead>Complaint</TableHead>
             <TableHead className="hidden md:table-cell">Transaction</TableHead>
-            <TableHead className="hidden md:table-cell">Agent</TableHead>
+            <TableHead className="md:table-cell">Agent</TableHead>
             <TableHead className="hidden md:table-cell">Submitted</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="hidden md:table-cell">Assigned To</TableHead>
@@ -376,13 +378,13 @@ export default function BrokerComplaints() {
                   </div>
                 </TableCell>
                 <TableCell className="hidden md:table-cell">{complaint.transactionId}</TableCell>
-                <TableCell className="hidden md:table-cell">
+                <TableCell className="md:table-cell">
                   <div className="flex items-center gap-2">
                     <Avatar className="h-6 w-6">
                       <AvatarImage src={complaint.agent.avatar} alt={complaint.agent.name} />
                       <AvatarFallback>{complaint.agent.name.substring(0, 2).toUpperCase()}</AvatarFallback>
                     </Avatar>
-                    <span>{complaint.agent.name}</span>
+                    <span className="font-medium text-primary">{complaint.agent.name || "Unknown Agent"}</span>
                   </div>
                 </TableCell>
                 <TableCell className="hidden md:table-cell">{complaint.submittedDate}</TableCell>

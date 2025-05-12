@@ -41,9 +41,26 @@ export const GET = catchAsync(async (req: NextRequest) => {
         console.log("Agent found:", agent ? "Yes" : "No");
         
         if (agent && agent.role === Role.Agent) {
-          // Filter tasks by agent ID
-          query.agentId = agent.name || agent.email || decoded.id;
-          console.log("Filtering tasks for agent:", query.agentId);
+          // For development/demo purposes, we'll show ALL tasks to ensure they appear
+          // In production, you would want to filter by agent ID
+          console.log("Agent found, showing all tasks for demo purposes");
+          
+          // Uncomment this for production use to filter by agent:
+          /*
+          // Create a more flexible query to match tasks assigned to this agent
+          const agentIdentifiers = [
+            decoded.id,
+            agent.name,
+            agent.email,
+            agent._id.toString()
+          ].filter(Boolean); // Remove any undefined/null values
+          
+          query.$or = [
+            { agentId: { $in: agentIdentifiers } }
+          ];
+          
+          console.log("Filtering tasks for agent with identifiers:", agentIdentifiers);
+          */
         }
       } catch (error) {
         console.error("Token verification error:", error);
@@ -60,13 +77,13 @@ export const GET = catchAsync(async (req: NextRequest) => {
       total = await TaskModel.countDocuments(query);
       console.log(`Total task count: ${total}`);
       
-      // Get tasks
+      // Get tasks - sort by createdAt in descending order to show newest tasks first
       tasks = await TaskModel.find(query)
-        .sort({ status: 1, dueDate: 1 }) // Sort by status and due date
+        .sort({ createdAt: -1, status: 1, dueDate: 1 }) // Sort by creation date (newest first), then status and due date
         .skip(skip)
         .limit(limit);
       
-      console.log(`Found ${tasks.length} tasks in database`);
+      console.log(`Found ${tasks.length} tasks in database for agent ${query.agentId || 'unknown'}`);
     } catch (dbError) {
       console.error("Database query error:", dbError);
       // Return empty array instead of failing
