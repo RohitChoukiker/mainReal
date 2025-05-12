@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/utils/dbConnect";
 import DocumentModel from "@/models/document";
+import { updateTransactionStatusIfReady } from "@/utils/transactionUtils";
+import { emitToRole } from "@/utils/socketServer";
+import { Role } from "@/models/userModel";
 
 export async function POST(req: NextRequest) {
   console.log("TC documents update API called");
@@ -74,6 +77,25 @@ export async function POST(req: NextRequest) {
       
       await document.save();
       console.log(`Document ${documentId} updated with status: ${status}`);
+      
+      // If document is approved, check if transaction is ready for closure
+      if (status === "approved" && document.transactionId) {
+        console.log(`Checking if transaction ${document.transactionId} is ready for closure`);
+        const result = await updateTransactionStatusIfReady(document.transactionId);
+        
+        if (result.success && result.transaction) {
+          console.log(`Transaction ${document.transactionId} is now ready for closure`);
+          
+          // Emit to all TCs that a transaction is ready for closure
+          emitToRole(Role.Tc, 'transaction_ready_for_closure', {
+            transactionId: document.transactionId,
+            updatedAt: new Date().toISOString(),
+            message: "Transaction is now ready for closure"
+          });
+        } else {
+          console.log(`Transaction ${document.transactionId} status check: ${result.message}`);
+        }
+      }
       
       return NextResponse.json({
         message: "Document updated successfully",

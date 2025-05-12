@@ -5,6 +5,7 @@ import User, { Role } from "@/models/userModel";
 import jwt from "jsonwebtoken";
 import catchAsync from "@/utils/catchAsync";
 import { emitToRole, emitToTask } from "@/utils/socketServer";
+import { updateTransactionStatusIfReady } from "@/utils/transactionUtils";
 
 const JWT_SECRET = "123123123 " as string;
 
@@ -136,6 +137,25 @@ export const PATCH = catchAsync(async (req: NextRequest, context: { params: { id
             id: task._id
           }
         });
+        
+        // Check if the transaction is ready for closure
+        if (task.transactionId) {
+          console.log(`Checking if transaction ${task.transactionId} is ready for closure`);
+          const result = await updateTransactionStatusIfReady(task.transactionId);
+          
+          if (result.success && result.transaction) {
+            console.log(`Transaction ${task.transactionId} is now ready for closure`);
+            
+            // Emit to all TCs that a transaction is ready for closure
+            emitToRole(Role.Tc, 'transaction_ready_for_closure', {
+              transactionId: task.transactionId,
+              updatedAt: new Date().toISOString(),
+              message: "Transaction is now ready for closure"
+            });
+          } else {
+            console.log(`Transaction ${task.transactionId} status check: ${result.message}`);
+          }
+        }
       } else {
         // For other status updates
         emitToTask(taskId, 'task_updated', {
