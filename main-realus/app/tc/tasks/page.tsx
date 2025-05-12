@@ -13,6 +13,8 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
+import { TaskMessageDialog } from "@/components/task-message-dialog"
+import { UnreadMessageBadge } from "@/components/unread-message-badge"
 
 interface ApiTask {
   _id: string;
@@ -89,6 +91,10 @@ export default function TaskManagement() {
   const [apiTransactions, setApiTransactions] = useState<ApiTransaction[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
+  
+  // Message dialog state
+  const [messageDialogOpen, setMessageDialogOpen] = useState(false)
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   
   // Form state
   const [newTask, setNewTask] = useState({
@@ -737,9 +743,18 @@ export default function TaskManagement() {
                       <Calendar className="h-4 w-4" />
                       <span className="sr-only">Reschedule</span>
                     </Button>
-                    <Button variant="ghost" size="icon">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="flex items-center gap-1"
+                      onClick={() => {
+                        setSelectedTask(task);
+                        setMessageDialogOpen(true);
+                      }}
+                    >
                       <MessageSquare className="h-4 w-4" />
-                      <span className="sr-only">Message</span>
+                      <span className="hidden sm:inline">Message</span>
+                      <UnreadMessageBadge taskId={task.id} userRole="tc" />
                     </Button>
                     {task.status !== "completed" && (
                       <Button variant="ghost" size="icon" className="text-green-500">
@@ -765,6 +780,18 @@ export default function TaskManagement() {
 
   return (
     <div className="space-y-6">
+      {/* Message Dialog */}
+      {selectedTask && (
+        <TaskMessageDialog
+          isOpen={messageDialogOpen}
+          onClose={() => setMessageDialogOpen(false)}
+          taskId={selectedTask.id}
+          taskTitle={selectedTask.title}
+          transactionId={selectedTask.transactionId}
+          currentUserRole="tc"
+        />
+      )}
+      
       <h1 className="text-3xl font-bold tracking-tight">Task Management</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

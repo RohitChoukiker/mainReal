@@ -9,6 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { CheckSquare, Clock, AlertTriangle, CheckCircle, FileText, MessageSquare, Loader2 } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
 import { toast } from "sonner"
+import { TaskMessageDialog } from "@/components/task-message-dialog"
+import { UnreadMessageBadge } from "@/components/unread-message-badge"
 
 interface Task {
   id: string
@@ -44,6 +46,8 @@ export default function TasksAssigned() {
   const [isLoading, setIsLoading] = useState(true)
   const [newTasksCount, setNewTasksCount] = useState(0)
   const [lastFetchTime, setLastFetchTime] = useState(Date.now())
+  const [messageDialogOpen, setMessageDialogOpen] = useState(false)
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   
   // Fetch tasks from API with real-time updates
   useEffect(() => {
@@ -267,6 +271,12 @@ export default function TasksAssigned() {
   }
 
   const [completingTaskId, setCompletingTaskId] = useState<string | null>(null);
+  
+  // Handler for opening the message modal
+  const handleOpenMessageModal = (task: Task) => {
+    setSelectedTask(task);
+    setIsMessageModalOpen(true);
+  };
 
   const handleCompleteTask = async (taskId: string) => {
     try {
@@ -398,9 +408,14 @@ export default function TasksAssigned() {
                       variant="outline" 
                       size="sm"
                       className="flex items-center gap-1"
+                      onClick={() => {
+                        setSelectedTask(task);
+                        setMessageDialogOpen(true);
+                      }}
                     >
                       <MessageSquare className="h-4 w-4" />
                       <span className="hidden sm:inline">Message</span>
+                      <UnreadMessageBadge taskId={task.id} userRole="agent" />
                     </Button>
                     
                     {task.status !== "completed" ? (
@@ -452,6 +467,18 @@ export default function TasksAssigned() {
 
   return (
     <div className="space-y-6">
+      {/* Message Dialog */}
+      {selectedTask && (
+        <TaskMessageDialog
+          isOpen={messageDialogOpen}
+          onClose={() => setMessageDialogOpen(false)}
+          taskId={selectedTask.id}
+          taskTitle={selectedTask.title}
+          transactionId={selectedTask.transactionId}
+          currentUserRole="agent"
+        />
+      )}
+      
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold tracking-tight">Tasks Assigned</h1>
         
