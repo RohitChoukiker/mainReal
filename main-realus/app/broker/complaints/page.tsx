@@ -32,6 +32,7 @@ interface Complaint {
   agent: {
     name: string
     avatar: string
+    id: string // MongoDB ID of the agent
   }
   submittedDate: string
   status: "new" | "in_progress" | "resolved" | "escalated"
@@ -118,6 +119,7 @@ export default function BrokerComplaints() {
           c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
           c.property.toLowerCase().includes(searchQuery.toLowerCase()) ||
           c.agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          c.agent.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
           c.transactionId.toLowerCase().includes(searchQuery.toLowerCase()),
       )
     : complaints
@@ -529,7 +531,10 @@ export default function BrokerComplaints() {
                           <AvatarImage src={selectedComplaint.agent.avatar} alt={selectedComplaint.agent.name} />
                           <AvatarFallback>{selectedComplaint.agent.name.substring(0, 2).toUpperCase()}</AvatarFallback>
                         </Avatar>
-                        <span>{selectedComplaint.agent.name}</span>
+                        <div className="flex flex-col">
+                          <span>{selectedComplaint.agent.name}</span>
+                          <span className="text-xs text-muted-foreground">ID: {selectedComplaint.agent.id}</span>
+                        </div>
                       </div>
                     </div>
                     

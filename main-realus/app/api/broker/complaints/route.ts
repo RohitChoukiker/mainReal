@@ -73,6 +73,7 @@ export async function GET(req: NextRequest) {
         agent: {
           name: agentName,
           avatar: "/placeholder.svg?height=40&width=40",
+          id: complaint.agentId, // Include the MongoDB ID of the agent
         },
         submittedDate: complaint.submittedDate,
         status: complaint.status,
