@@ -19,7 +19,9 @@ export async function POST(req: NextRequest) {
     
     // Parse the request body
     const body = await req.json();
-    const { documentId, status, comments } = body;
+    const { documentId, status, comments, _id } = body;
+    
+    console.log("Request body:", body);
     
     if (!documentId || !status) {
       return NextResponse.json(
@@ -32,7 +34,28 @@ export async function POST(req: NextRequest) {
     try {
       console.log(`Updating document with ID: ${documentId} to status: ${status}`);
       
-      const document = await DocumentModel.findOne({ documentId });
+      // Try to find the document by documentId
+      let document = await DocumentModel.findOne({ documentId });
+      
+      // If not found and _id is provided, try to find by _id
+      if (!document && _id) {
+        try {
+          document = await DocumentModel.findById(_id);
+          console.log("Found document by _id instead of documentId");
+        } catch (err) {
+          console.log("Error finding document by _id:", err);
+        }
+      }
+      
+      // If still not found and documentId looks like a MongoDB _id, try that
+      if (!document && documentId && documentId.length === 24) {
+        try {
+          document = await DocumentModel.findById(documentId);
+          console.log("Found document by using documentId as _id");
+        } catch (err) {
+          console.log("Error finding document by using documentId as _id:", err);
+        }
+      }
       
       if (!document) {
         console.error(`Document not found with ID: ${documentId}`);

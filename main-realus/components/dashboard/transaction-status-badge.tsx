@@ -11,8 +11,9 @@ const transactionStatusVariants = cva("", {
       completed: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
       at_risk: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
       delayed: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300",
-      cancelled: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300",
+      cancelled: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-800 dark:text-gray-300",
       new: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300",
+      ready_for_closure: "bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-300",
     },
   },
   defaultVariants: {

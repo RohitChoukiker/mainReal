@@ -62,16 +62,14 @@ export async function POST(req: NextRequest) {
     
     // For development purposes, we'll create a simulated file URL
     // In a production environment, you would upload the file to a storage service
-    console.log("Creating simulated file URL for development...");
+    console.log("Creating file URL for development...");
     
-    // Generate a unique filename
-    const timestamp = Date.now();
-    const uniqueId = Math.floor(Math.random() * 10000);
-    const safeFileName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
+    // In a real application, this would be where you upload the file to cloud storage
+    // For this demo, we'll use a public PDF for testing
     
-    // Create a simulated file URL
-    const fileUrl = `https://example-storage.com/${transactionId}/${documentType.replace(/\s+/g, '_')}_${timestamp}_${uniqueId}_${safeFileName}`;
-    console.log("Simulated file URL:", fileUrl);
+    // Use a real PDF for testing - Mozilla's sample PDF
+    const fileUrl = "https://raw.githubusercontent.com/mozilla/pdf.js/ba2edeae/web/compressed.tracemonkey-pldi-09.pdf";
+    console.log("Using sample PDF URL for testing:", fileUrl);
     
     // Create a new document in the database
     console.log("Creating document in database...");

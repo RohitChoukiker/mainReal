@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
         documentType: "Test Document",
         fileName: "test-document.pdf",
         fileSize: 1024 * 1024, // 1MB
-        fileUrl: "https://example.com/test-document.pdf",
+        fileUrl: "https://raw.githubusercontent.com/mozilla/pdf.js/ba2edeae/web/compressed.tracemonkey-pldi-09.pdf",
         status: "pending",
         aiVerified: false,
         uploadDate: new Date(),

@@ -55,20 +55,26 @@ export async function GET(req: NextRequest) {
     }
     
     // Format the documents for the frontend
-    const formattedDocuments = documents.map(doc => ({
-      id: doc.documentId,
-      name: doc.documentType,
-      transactionId: doc.transactionId,
-      agentId: doc.agentId,
-      fileName: doc.fileName,
-      uploadDate: doc.uploadDate ? doc.uploadDate.toLocaleDateString() : new Date().toLocaleDateString(),
-      status: doc.status || "pending", // Use "pending" for TC review
-      aiVerified: doc.aiVerified || false,
-      aiScore: doc.aiScore || Math.floor(Math.random() * 30) + 70, // Random score if not available
-      issues: doc.issues || [],
-      fileSize: `${((doc.fileSize || 0) / (1024 * 1024)).toFixed(1)} MB`,
-      fileUrl: doc.fileUrl,
-    }));
+    const formattedDocuments = documents.map(doc => {
+      // Log the document ID for debugging
+      console.log(`Document ID: ${doc.documentId}, MongoDB _id: ${doc._id}`);
+      
+      return {
+        id: doc.documentId, // Use documentId as the primary ID
+        _id: doc._id?.toString(), // Include MongoDB _id as a backup
+        name: doc.documentType,
+        transactionId: doc.transactionId,
+        agentId: doc.agentId,
+        fileName: doc.fileName,
+        uploadDate: doc.uploadDate ? doc.uploadDate.toLocaleDateString() : new Date().toLocaleDateString(),
+        status: doc.status === "verifying" ? "pending" : (doc.status || "pending"), // Map "verifying" to "pending" for TC review
+        aiVerified: doc.aiVerified || false,
+        aiScore: doc.aiScore || Math.floor(Math.random() * 30) + 70, // Random score if not available
+        issues: doc.issues || [],
+        fileSize: `${((doc.fileSize || 0) / (1024 * 1024)).toFixed(1)} MB`,
+        fileUrl: doc.fileUrl,
+      };
+    });
     
     // Return the documents
     return NextResponse.json({

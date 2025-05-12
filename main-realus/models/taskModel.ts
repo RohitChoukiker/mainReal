@@ -18,6 +18,7 @@ export interface ITask extends Document {
   transactionId: string;
   propertyAddress?: string;
   agentId?: string;
+  agentName?: string;
   dueDate: Date;
   status: TaskStatus;
   priority: TaskPriority;
@@ -34,6 +35,7 @@ const TaskSchema: Schema = new Schema(
     transactionId: { type: String, required: true },
     propertyAddress: { type: String },
     agentId: { type: String, index: true }, // Add index for faster queries
+    agentName: { type: String }, // Store the agent's name for display
     dueDate: { type: Date, required: true },
     status: { 
       type: String, 

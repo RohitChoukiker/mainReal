@@ -35,7 +35,7 @@ interface Transaction {
     name: string
     avatar: string
   }
-  status: "pending" | "in_progress" | "at_risk" | "completed" | "cancelled" | "New" | "new"
+  status: "pending" | "in_progress" | "at_risk" | "completed" | "cancelled" | "New" | "new" | "ready_for_closure"
   createdDate: string
   closingDate: string
   price?: string
@@ -214,8 +214,9 @@ export default function TCTransactions() {
     }
   }, [apiTransactions, isLoading]);
 
-  const activeTransactions = transactions.filter((t) => t.status !== "completed" && t.status !== "cancelled")
+  const activeTransactions = transactions.filter((t) => t.status !== "completed" && t.status !== "cancelled" && t.status !== "ready_for_closure")
   const atRiskTransactions = transactions.filter((t) => t.status === "at_risk")
+  const readyForClosureTransactions = transactions.filter((t) => t.status === "ready_for_closure")
   const completedTransactions = transactions.filter((t) => t.status === "completed")
 
   // Apply filters
@@ -327,6 +328,15 @@ export default function TCTransactions() {
                       <Eye className="h-4 w-4" />
                       <span className="sr-only">View details</span>
                     </Button>
+                    {transaction.status === "ready_for_closure" && (
+                      <Button 
+                        variant="default" 
+                        size="sm"
+                        onClick={() => window.location.href = `/tc/ready-for-closure?transaction=${transaction.id}`}
+                      >
+                        Forward to Broker
+                      </Button>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>
@@ -437,6 +447,7 @@ export default function TCTransactions() {
                     <SelectItem value="pending">Pending</SelectItem>
                     <SelectItem value="in_progress">In Progress</SelectItem>
                     <SelectItem value="at_risk">At Risk</SelectItem>
+                    <SelectItem value="ready_for_closure">Ready for Closure</SelectItem>
                     <SelectItem value="completed">Completed</SelectItem>
                     <SelectItem value="cancelled">Cancelled</SelectItem>
                   </SelectContent>
@@ -446,9 +457,10 @@ export default function TCTransactions() {
           </CardHeader>
           <CardContent className="p-0">
             <Tabs defaultValue="active">
-              <TabsList className="grid w-full grid-cols-3 mb-4 mx-4 mt-2">
+              <TabsList className="grid w-full grid-cols-4 mb-4 mx-4 mt-2">
                 <TabsTrigger value="active">Active ({activeTransactions.length})</TabsTrigger>
                 <TabsTrigger value="at_risk">At Risk ({atRiskTransactions.length})</TabsTrigger>
+                <TabsTrigger value="ready_for_closure">Ready for Closure ({readyForClosureTransactions.length})</TabsTrigger>
                 <TabsTrigger value="completed">Completed ({completedTransactions.length})</TabsTrigger>
               </TabsList>
 
@@ -460,6 +472,10 @@ export default function TCTransactions() {
 
               <TabsContent value="at_risk">
                 {renderTransactionTable(filteredTransactions.filter((t) => t.status === "at_risk"))}
+              </TabsContent>
+
+              <TabsContent value="ready_for_closure">
+                {renderTransactionTable(filteredTransactions.filter((t) => t.status === "ready_for_closure"))}
               </TabsContent>
 
               <TabsContent value="completed">

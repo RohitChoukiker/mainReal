@@ -42,10 +42,41 @@ export default function ReadyForClosure() {
   const [forwardDialogOpen, setForwardDialogOpen] = useState(false)
   const [selectedTransactionForForward, setSelectedTransactionForForward] = useState<Transaction | null>(null)
 
-  // Fetch transactions data
+  // Fetch transactions data and check for transaction ID in URL
   useEffect(() => {
     fetchTransactions()
-  }, [])
+    
+    // Check if there's a transaction ID in the URL
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search)
+      const transactionId = urlParams.get('transaction')
+      
+      if (transactionId) {
+        console.log("Transaction ID found in URL:", transactionId)
+        setSelectedTransaction(transactionId)
+        
+        // Wait for transactions to load, then find and open the forward dialog
+        const checkTransactionsAndOpenDialog = () => {
+          const transaction = transactions.find(t => t.id === transactionId)
+          if (transaction) {
+            openForwardDialog(transaction)
+          } else if (transactions.length > 0) {
+            // If transactions are loaded but the ID wasn't found
+            toast({
+              title: "Transaction Not Found",
+              description: `Transaction ${transactionId} was not found or is not ready for closure.`,
+              variant: "destructive"
+            })
+          } else {
+            // Try again in a moment if transactions aren't loaded yet
+            setTimeout(checkTransactionsAndOpenDialog, 500)
+          }
+        }
+        
+        checkTransactionsAndOpenDialog()
+      }
+    }
+  }, [transactions.length])
 
   // Function to fetch transactions
   const fetchTransactions = async () => {

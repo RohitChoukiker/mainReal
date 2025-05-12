@@ -139,7 +139,7 @@ export function Sidebar({ items, title, icon, onLogout, taskPanel }: SidebarProp
                 )}
                 
                 {/* Task Panel for TC */}
-                {taskPanel && (
+                {taskPanel && title === "TC Panel" && (
                   <div className="mt-6">
                     {taskPanel}
                   </div>
@@ -194,7 +194,7 @@ export function Sidebar({ items, title, icon, onLogout, taskPanel }: SidebarProp
             )}
             
             {/* Task Panel for TC */}
-            {taskPanel && (
+            {taskPanel && title === "TC Panel" && (
               <div className="mt-6">
                 {taskPanel}
               </div>

@@ -32,6 +32,7 @@ interface ApiTransaction {
 
 interface Document {
   id: string
+  _id?: string // MongoDB _id as a backup
   name: string
   transactionId: string
   property: string
@@ -44,6 +45,8 @@ interface Document {
   aiVerified: boolean
   aiScore: number
   issues?: string[]
+  fileUrl?: string // URL to the document file
+  fileName?: string // Original file name
 }
 
 export default function DocumentReview() {
@@ -134,8 +137,12 @@ export default function DocumentReview() {
             // Default status to pending if not provided
             const status = doc.status === "verifying" ? "pending" : (doc.status || "pending");
             
+            // Log the document ID for debugging
+            console.log(`Using document ID: ${doc.id}`);
+            
             return {
-              id: doc.id,
+              id: doc.id, // This is the documentId from the database
+              _id: doc._id, // This is the MongoDB _id (backup)
               name: doc.name,
               transactionId: doc.transactionId,
               property,
@@ -147,7 +154,9 @@ export default function DocumentReview() {
               status: status as "pending" | "approved" | "rejected",
               aiVerified: doc.aiVerified || false,
               aiScore: doc.aiScore || 80,
-              issues: doc.issues || []
+              issues: doc.issues || [],
+              fileUrl: doc.fileUrl, // URL to the document file
+              fileName: doc.fileName // Original file name
             };
           });
           
@@ -169,6 +178,8 @@ export default function DocumentReview() {
               status: "pending",
               aiVerified: true,
               aiScore: 95,
+              fileUrl: "https://raw.githubusercontent.com/mozilla/pdf.js/ba2edeae/web/compressed.tracemonkey-pldi-09.pdf",
+              fileName: "purchase-agreement.pdf"
             },
             {
               id: "doc-2",
@@ -183,6 +194,8 @@ export default function DocumentReview() {
               status: "pending",
               aiVerified: true,
               aiScore: 98,
+              fileUrl: "https://raw.githubusercontent.com/mozilla/pdf.js/ba2edeae/web/compressed.tracemonkey-pldi-09.pdf",
+              fileName: "property-disclosure.pdf"
             }
           ]);
         }
@@ -205,6 +218,8 @@ export default function DocumentReview() {
             status: "pending",
             aiVerified: true,
             aiScore: 95,
+            fileUrl: "https://raw.githubusercontent.com/mozilla/pdf.js/ba2edeae/web/compressed.tracemonkey-pldi-09.pdf",
+            fileName: "purchase-agreement.pdf"
           }
         ])
       } finally {
@@ -223,6 +238,14 @@ export default function DocumentReview() {
     try {
       console.log(`Approving document with ID: ${docId}`);
       
+      // Find the document in our state
+      const docToUpdate = documents.find(doc => doc.id === docId);
+      if (!docToUpdate) {
+        console.error(`Document with ID ${docId} not found in state`);
+        toast.error('Document not found');
+        return;
+      }
+      
       // Update UI optimistically
       setDocuments(documents.map((doc) => (doc.id === docId ? { ...doc, status: "approved" } : doc)))
       
@@ -234,7 +257,8 @@ export default function DocumentReview() {
         },
         body: JSON.stringify({
           documentId: docId,
-          status: 'approved'
+          status: 'approved',
+          _id: docToUpdate._id // Include MongoDB _id as a backup
         }),
       });
       
@@ -246,6 +270,11 @@ export default function DocumentReview() {
       }
       
       toast.success('Document approved successfully');
+      
+      // Refresh the documents list after successful update
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
     } catch (error) {
       console.error('Error approving document:', error);
       toast.error('Failed to approve document. Please try again.');
@@ -259,6 +288,14 @@ export default function DocumentReview() {
     try {
       console.log(`Rejecting document with ID: ${docId}`);
       
+      // Find the document in our state
+      const docToUpdate = documents.find(doc => doc.id === docId);
+      if (!docToUpdate) {
+        console.error(`Document with ID ${docId} not found in state`);
+        toast.error('Document not found');
+        return;
+      }
+      
       // Update UI optimistically
       setDocuments(documents.map((doc) => (doc.id === docId ? { ...doc, status: "rejected" } : doc)))
       
@@ -271,7 +308,8 @@ export default function DocumentReview() {
         body: JSON.stringify({
           documentId: docId,
           status: 'rejected',
-          comments: 'Document rejected by TC. Please resubmit with corrections.'
+          comments: 'Document rejected by TC. Please resubmit with corrections.',
+          _id: docToUpdate._id // Include MongoDB _id as a backup
         }),
       });
       
@@ -283,12 +321,94 @@ export default function DocumentReview() {
       }
       
       toast.success('Document rejected successfully');
+      
+      // Refresh the documents list after successful update
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
     } catch (error) {
       console.error('Error rejecting document:', error);
       toast.error('Failed to reject document. Please try again.');
       
       // Revert UI change on error
       setDocuments(documents.map((doc) => (doc.id === docId ? { ...doc, status: "pending" } : doc)))
+    }
+  }
+  
+  // Handler for viewing a document
+  const handleViewDocument = async (doc: Document) => {
+    console.log(`Viewing document: ${doc.name} (${doc.id})`);
+    
+    try {
+      // Show loading toast
+      toast.loading('Loading document...');
+      
+      // Fetch the document URL from the API
+      const response = await fetch(`/api/tc/documents/view?documentId=${doc.id}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to view document');
+      }
+      
+      const data = await response.json();
+      console.log('Document view response:', data);
+      
+      if (!data.viewUrl) {
+        throw new Error('Document URL not available');
+      }
+      
+      // Dismiss loading toast
+      toast.dismiss();
+      
+      // Open the document in a new tab
+      window.open(data.viewUrl, '_blank');
+      
+      toast.success('Document opened in new tab');
+    } catch (error) {
+      console.error('Error viewing document:', error);
+      toast.error('Failed to view document. Please try again.');
+    }
+  }
+  
+  // Handler for downloading a document
+  const handleDownloadDocument = async (doc: Document) => {
+    console.log(`Downloading document: ${doc.name} (${doc.id})`);
+    
+    try {
+      // Show loading toast
+      toast.loading('Preparing download...');
+      
+      // Fetch the document URL from the API
+      const response = await fetch(`/api/tc/documents/download?documentId=${doc.id}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to download document');
+      }
+      
+      const data = await response.json();
+      console.log('Document download response:', data);
+      
+      if (!data.downloadUrl) {
+        throw new Error('Document URL not available');
+      }
+      
+      // Dismiss loading toast
+      toast.dismiss();
+      
+      // Create a temporary anchor element
+      const link = document.createElement('a');
+      link.href = data.downloadUrl;
+      link.download = doc.fileName || `${doc.name}.pdf`; // Use fileName if available, otherwise create a name
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success('Document download started');
+    } catch (error) {
+      console.error('Error downloading document:', error);
+      toast.error('Failed to download document. Please try again.');
     }
   }
 
@@ -374,11 +494,21 @@ export default function DocumentReview() {
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
-                    <Button variant="ghost" size="icon">
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => handleViewDocument(doc)}
+                      title="View document"
+                    >
                       <Eye className="h-4 w-4" />
                       <span className="sr-only">View document</span>
                     </Button>
-                    <Button variant="ghost" size="icon">
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => handleDownloadDocument(doc)}
+                      title="Download document"
+                    >
                       <Download className="h-4 w-4" />
                       <span className="sr-only">Download</span>
                     </Button>

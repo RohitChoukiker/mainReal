@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
@@ -14,7 +14,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 // Message dialog removed
-import { io, Socket } from "socket.io-client"
 
 interface ApiTask {
   _id: string;
@@ -22,6 +21,7 @@ interface ApiTask {
   transactionId: string;
   propertyAddress?: string;
   agentId?: string;
+  agentName?: string; // Added agent name field
   dueDate: string;
   status: "pending" | "completed" | "overdue" | "in_progress";
   priority: "low" | "medium" | "high";
@@ -49,9 +49,11 @@ interface Transaction {
   property: string
   client: string
   agent: {
+    id: string
     name: string
     avatar: string
   }
+  agentId?: string // Raw agent ID for filtering
   status: "pending" | "in_progress" | "at_risk" | "completed" | "cancelled" | "New" | "new"
   createdDate: string
   closingDate: string
@@ -74,6 +76,7 @@ interface Task {
   transactionId: string
   property: string
   agent: {
+    id: string
     name: string
     avatar: string
   }
@@ -85,12 +88,21 @@ interface Task {
   transaction?: Transaction // Add transaction information to task
 }
 
+// Define an interface for agents
+interface Agent {
+  id: string
+  name: string
+  email: string
+  phone: string
+}
+
 export default function TaskManagement() {
   const [isLoading, setIsLoading] = useState(true)
   const [apiTasks, setApiTasks] = useState<ApiTask[]>([])
   const [apiTransactions, setApiTransactions] = useState<ApiTransaction[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [agents, setAgents] = useState<Agent[]>([])
   
   // Task state
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
@@ -106,107 +118,101 @@ export default function TaskManagement() {
     aiReminder: false
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const socketRef = useRef<Socket | null>(null)
-  const [socketConnected, setSocketConnected] = useState(false)
+  const [autoRefreshActive, setAutoRefreshActive] = useState(false)
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null)
 
-  // Setup WebSocket connection for real-time updates
+  // Set up polling for task updates
   useEffect(() => {
-    // Initialize socket connection
-    if (!socketRef.current) {
-      console.log('Initializing socket connection...')
-      socketRef.current = io({
-        path: '/api/socket',
-        autoConnect: true,
-        reconnection: true,
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000
-      })
-      
-      // Socket connection event handlers
-      socketRef.current.on('connect', () => {
-        console.log('Socket connected:', socketRef.current?.id)
-        setSocketConnected(true)
+    // Function to fetch tasks
+    const fetchTasks = async () => {
+      try {
+        console.log('Polling for task updates...')
         
-        // Get token from cookies
-        const cookies = document.cookie.split(';').reduce((acc, cookie) => {
-          const [key, value] = cookie.trim().split('=')
-          acc[key] = value
-          return acc
-        }, {} as Record<string, string>)
+        // Fetch tasks from API
+        const tasksResponse = await fetch('/api/tc/tasks', {
+          credentials: 'include' // Include cookies for authentication
+        })
         
-        // Authenticate with the socket server
-        if (cookies.token) {
-          socketRef.current?.emit('authenticate', cookies.token)
+        if (!tasksResponse.ok) {
+          console.error('Tasks API response not OK:', tasksResponse.status, tasksResponse.statusText)
+          return
         }
-      })
-      
-      socketRef.current.on('authenticated', (data) => {
-        console.log('Socket authenticated:', data)
-        toast.success('Real-time updates connected')
-      })
-      
-      socketRef.current.on('connect_error', (error) => {
-        console.error('Socket connection error:', error)
-      })
-      
-      socketRef.current.on('disconnect', (reason) => {
-        console.log('Socket disconnected:', reason)
-        setSocketConnected(false)
-      })
-    }
-    
-    // Cleanup function
-    return () => {
-      if (socketRef.current) {
-        console.log('Cleaning up socket connection')
-        socketRef.current.disconnect()
-        socketRef.current = null
+        
+        const tasksData = await tasksResponse.json()
+        console.log('Fetched tasks:', tasksData)
+        
+        if (tasksData && tasksData.tasks && Array.isArray(tasksData.tasks)) {
+          setApiTasks(tasksData.tasks)
+          
+          // Create a map of transactions by ID for quick lookup
+          const transactionMap = new Map<string, Transaction>()
+          transactions.forEach(transaction => {
+            transactionMap.set(transaction.id, transaction)
+          })
+          
+          // Convert API tasks to the format expected by the UI
+          const formattedTasks: Task[] = tasksData.tasks.map((apiTask: ApiTask) => {
+            // Find the associated transaction
+            const associatedTransaction = transactionMap.get(apiTask.transactionId)
+            
+            return {
+              id: apiTask._id,
+              title: apiTask.title,
+              transactionId: apiTask.transactionId,
+              property: apiTask.propertyAddress || "Address not available",
+              agent: {
+                id: apiTask.agentId || "unknown-agent",
+                name: apiTask.agentName || apiTask.agentId || "Unknown Agent",
+                avatar: "/placeholder.svg?height=40&width=40",
+              },
+              dueDate: new Date(apiTask.dueDate).toLocaleDateString(),
+              status: apiTask.status,
+              priority: apiTask.priority,
+              description: apiTask.description,
+              aiReminder: apiTask.aiReminder,
+              transaction: associatedTransaction
+            }
+          })
+          
+          // Check if there are any new tasks
+          const currentTaskIds = new Set(tasks.map(task => task.id))
+          const newTasks = formattedTasks.filter(task => !currentTaskIds.has(task.id))
+          
+          if (newTasks.length > 0) {
+            console.log('Found new tasks:', newTasks)
+            toast.success(`${newTasks.length} new task(s) available`, {
+              duration: 3000
+            })
+          }
+          
+          // Update tasks state
+          setTasks(formattedTasks)
+          setAutoRefreshActive(true) // Use this state for "Auto-refresh active" indicator
+          setLastRefreshed(new Date()) // Update last refreshed timestamp
+        }
+      } catch (error) {
+        console.error('Error polling for tasks:', error)
+        setAutoRefreshActive(false) // Use this state for "Auto-refresh inactive" indicator
       }
     }
-  }, [])
-
-  // Listen for task updates via WebSocket
-  useEffect(() => {
-    if (!socketRef.current) return
     
-    // Listen for task completed events
-    const handleTaskCompleted = (data: any) => {
-      console.log('Task completed event received:', data)
-      
-      // Show notification
-      toast.success(`Task "${data.task?.title || 'Unknown'}" was completed by an agent`, {
-        duration: 5000
-      })
-      
-      // Update the tasks list
-      setTasks(prevTasks => {
-        return prevTasks.map(task => {
-          if (task.id === data.taskId || task._id === data.taskId) {
-            return {
-              ...task,
-              status: 'completed',
-              updatedAt: data.updatedAt
-            }
-          }
-          return task
-        })
-      })
-    }
+    // Initial fetch
+    fetchTasks()
     
-    // Register event handlers
-    socketRef.current.on('task_completed', handleTaskCompleted)
+    // Set up polling interval (every 10 seconds)
+    const pollingInterval = setInterval(fetchTasks, 10000)
     
     // Cleanup function
     return () => {
-      socketRef.current?.off('task_completed', handleTaskCompleted)
+      clearInterval(pollingInterval)
     }
-  }, [])
+  }, [transactions])
 
-  // Fetch real tasks and transactions from the API
+  // Fetch real tasks, transactions, and agents from the API
   useEffect(() => {
     const fetchData = async () => {
       try {
-        console.log('Fetching tasks and transactions from API...')
+        console.log('Fetching tasks, transactions, and agents from API...')
         setIsLoading(true)
         
         // Fetch tasks
@@ -233,6 +239,11 @@ export default function TaskManagement() {
           credentials: 'include' // Include cookies for authentication
         })
         
+        // Fetch agents
+        const agentsResponse = await fetch('/api/tc/agents', {
+          credentials: 'include' // Include cookies for authentication
+        })
+        
         if (!transactionsResponse.ok) {
           console.error('Transactions API response not OK:', transactionsResponse.status, transactionsResponse.statusText)
           throw new Error(`Failed to fetch transactions: ${transactionsResponse.status} ${transactionsResponse.statusText}`)
@@ -245,6 +256,28 @@ export default function TaskManagement() {
         } catch (parseError) {
           console.error('Error parsing transactions JSON response:', parseError)
           throw new Error('Failed to parse transactions API response')
+        }
+        
+        // Process agents response
+        if (!agentsResponse.ok) {
+          console.error('Agents API response not OK:', agentsResponse.status, agentsResponse.statusText)
+          console.warn('Will use fallback agents data')
+        } else {
+          try {
+            const agentsData = await agentsResponse.json()
+            console.log('Fetched agents:', agentsData)
+            
+            if (agentsData && agentsData.agents && Array.isArray(agentsData.agents)) {
+              console.log(`Successfully loaded ${agentsData.agents.length} agents`)
+              setAgents(agentsData.agents)
+            } else {
+              console.warn('API returned no agents or invalid format:', agentsData)
+              setAgents([]) // Empty array if no agents found
+            }
+          } catch (parseError) {
+            console.error('Error parsing agents JSON response:', parseError)
+            setAgents([]) // Empty array if error parsing agents
+          }
         }
         
         // Process transactions data
@@ -295,9 +328,11 @@ export default function TaskManagement() {
                   "Address not available",
                 client: t.clientName || "Unknown Client",
                 agent: {
+                  id: t.agentId || "unknown-agent", // Store the agent ID
                   name: t.agentId || "Unknown Agent",
                   avatar: "/placeholder.svg?height=40&width=40",
                 },
+                agentId: t.agentId, // Also store the raw agentId for filtering
                 status: (t.status || "pending") as any,
                 createdDate,
                 closingDate,
@@ -320,9 +355,11 @@ export default function TaskManagement() {
                 property: "Error loading property details",
                 client: "Unknown",
                 agent: {
+                  id: "unknown-agent",
                   name: "Unknown Agent",
                   avatar: "/placeholder.svg?height=40&width=40",
                 },
+                agentId: "unknown-agent",
                 status: "pending" as any,
                 createdDate: "N/A",
                 closingDate: "N/A",
@@ -374,7 +411,8 @@ export default function TaskManagement() {
               transactionId: apiTask.transactionId,
               property: apiTask.propertyAddress || "Address not available",
               agent: {
-                name: apiTask.agentId || "Unknown Agent",
+                id: apiTask.agentId || "unknown-agent",
+                name: apiTask.agentName || apiTask.agentId || "Unknown Agent",
                 avatar: "/placeholder.svg?height=40&width=40",
               },
               dueDate: new Date(apiTask.dueDate).toLocaleDateString(),
@@ -421,9 +459,39 @@ export default function TaskManagement() {
   
   // Handle select changes
   const handleSelectChange = (id: string, value: string) => {
-    setNewTask({
-      ...newTask,
-      [id]: value
+    if (id === "agentId") {
+      // When agent changes, reset the transaction selection
+      setNewTask({
+        ...newTask,
+        [id]: value,
+        transactionId: "" // Reset transaction when agent changes
+      })
+    } else {
+      setNewTask({
+        ...newTask,
+        [id]: value
+      })
+    }
+  }
+  
+  // Get transactions for the selected agent
+  const getAgentTransactions = () => {
+    if (!newTask.agentId) return []
+    
+    // Filter transactions by the selected agent
+    return transactions.filter(transaction => {
+      // Check if the transaction has an agent property
+      if (transaction.agent) {
+        // Check if the agent ID or name matches
+        return transaction.agent.id === newTask.agentId || 
+               transaction.agent.name === newTask.agentId
+      } 
+      // For API transactions that might have agentId directly
+      else if (transaction.agentId) {
+        return transaction.agentId === newTask.agentId
+      }
+      
+      return false
     })
   }
   
@@ -443,13 +511,29 @@ export default function TaskManagement() {
       
       // Get property address from selected transaction
       const selectedTransaction = transactions.find(t => t.id === newTask.transactionId)
-      const propertyAddress = selectedTransaction ? selectedTransaction.property : ""
+      let propertyAddress = ""
+      
+      // Handle fallback transactions
+      if (selectedTransaction) {
+        propertyAddress = selectedTransaction.property
+      } else if (newTask.transactionId === "TR-7829") {
+        propertyAddress = "123 Main St, San Francisco, CA"
+      } else if (newTask.transactionId === "TR-6543") {
+        propertyAddress = "456 Oak Ave, Los Angeles, CA"
+      } else if (newTask.transactionId === "TR-9021") {
+        propertyAddress = "789 Pine Rd, San Diego, CA"
+      }
+      
+      // Get the selected agent's name
+      const selectedAgent = agents.find(a => a.id === newTask.agentId)
+      const agentName = selectedAgent ? selectedAgent.name : newTask.agentId
       
       // Prepare task data
       const taskData = {
         title: newTask.title,
         transactionId: newTask.transactionId,
-        agentId: newTask.agentId, // This is the agent's name from the dropdown
+        agentId: newTask.agentId, // This is the agent's ID from the database
+        agentName: agentName, // Include the agent's name for display purposes
         propertyAddress,
         dueDate: newTask.dueDate,
         priority: newTask.priority,
@@ -485,7 +569,7 @@ export default function TaskManagement() {
       console.log("API success response:", data)
       
       // Show success message
-      toast.success("Task assigned successfully")
+      toast.success("Task assigned successfully!")
       
       // Reset form
       setNewTask({
@@ -497,6 +581,61 @@ export default function TaskManagement() {
         description: "",
         aiReminder: false
       })
+      
+      // Trigger an immediate refresh of the task list
+      const refreshTasks = async () => {
+        try {
+          const tasksResponse = await fetch('/api/tc/tasks', {
+            credentials: 'include'
+          })
+          
+          if (tasksResponse.ok) {
+            const tasksData = await tasksResponse.json()
+            
+            if (tasksData && tasksData.tasks && Array.isArray(tasksData.tasks)) {
+              setApiTasks(tasksData.tasks)
+              
+              // Create a map of transactions by ID for quick lookup
+              const transactionMap = new Map<string, Transaction>()
+              transactions.forEach(transaction => {
+                transactionMap.set(transaction.id, transaction)
+              })
+              
+              // Convert API tasks to the format expected by the UI
+              const formattedTasks: Task[] = tasksData.tasks.map((apiTask: ApiTask) => {
+                // Find the associated transaction
+                const associatedTransaction = transactionMap.get(apiTask.transactionId)
+                
+                return {
+                  id: apiTask._id,
+                  title: apiTask.title,
+                  transactionId: apiTask.transactionId,
+                  property: apiTask.propertyAddress || "Address not available",
+                  agent: {
+                    name: apiTask.agentId || "Unknown Agent",
+                    avatar: "/placeholder.svg?height=40&width=40",
+                  },
+                  dueDate: new Date(apiTask.dueDate).toLocaleDateString(),
+                  status: apiTask.status,
+                  priority: apiTask.priority,
+                  description: apiTask.description,
+                  aiReminder: apiTask.aiReminder,
+                  transaction: associatedTransaction
+                }
+              })
+              
+              setTasks(formattedTasks)
+              setLastRefreshed(new Date()) // Update last refreshed timestamp
+              toast.info("Task list refreshed", { duration: 2000 })
+            }
+          }
+        } catch (error) {
+          console.error("Error refreshing tasks:", error)
+        }
+      }
+      
+      // Refresh tasks after a short delay
+      setTimeout(refreshTasks, 500)
       
       // Add the newly created task to the current tasks list
       // This ensures we see the new task immediately without waiting for a refresh
@@ -684,6 +823,85 @@ export default function TaskManagement() {
 
   const renderTaskTable = (taskList: Task[]) => (
     <div className="rounded-md border">
+      <div className="flex justify-between items-center p-2 text-xs text-muted-foreground">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="text-xs flex items-center gap-1"
+          onClick={() => {
+            toast.info("Refreshing task list...", { duration: 1000 })
+            // Trigger an immediate refresh of the task list
+            const refreshTasks = async () => {
+              try {
+                const tasksResponse = await fetch('/api/tc/tasks', {
+                  credentials: 'include'
+                })
+                
+                if (tasksResponse.ok) {
+                  const tasksData = await tasksResponse.json()
+                  
+                  if (tasksData && tasksData.tasks && Array.isArray(tasksData.tasks)) {
+                    setApiTasks(tasksData.tasks)
+                    
+                    // Create a map of transactions by ID for quick lookup
+                    const transactionMap = new Map<string, Transaction>()
+                    transactions.forEach(transaction => {
+                      transactionMap.set(transaction.id, transaction)
+                    })
+                    
+                    // Convert API tasks to the format expected by the UI
+                    const formattedTasks: Task[] = tasksData.tasks.map((apiTask: ApiTask) => {
+                      // Find the associated transaction
+                      const associatedTransaction = transactionMap.get(apiTask.transactionId)
+                      
+                      return {
+                        id: apiTask._id,
+                        title: apiTask.title,
+                        transactionId: apiTask.transactionId,
+                        property: apiTask.propertyAddress || "Address not available",
+                        agent: {
+                          name: apiTask.agentId || "Unknown Agent",
+                          avatar: "/placeholder.svg?height=40&width=40",
+                        },
+                        dueDate: new Date(apiTask.dueDate).toLocaleDateString(),
+                        status: apiTask.status,
+                        priority: apiTask.priority,
+                        description: apiTask.description,
+                        aiReminder: apiTask.aiReminder,
+                        transaction: associatedTransaction
+                      }
+                    })
+                    
+                    setTasks(formattedTasks)
+                    setLastRefreshed(new Date())
+                    toast.success("Task list refreshed", { duration: 2000 })
+                  }
+                }
+              } catch (error) {
+                console.error("Error refreshing tasks:", error)
+                toast.error("Failed to refresh tasks", { duration: 2000 })
+              }
+            }
+            
+            refreshTasks()
+          }}
+        >
+          <Clock className="h-3 w-3" />
+          <span>Refresh Now</span>
+        </Button>
+        
+        {lastRefreshed ? (
+          <div className="flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            <span>Last updated: {lastRefreshed.toLocaleTimeString()}</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            <span>Updating...</span>
+          </div>
+        )}
+      </div>
       <Table>
         <TableHeader>
           <TableRow>
@@ -776,13 +994,24 @@ export default function TaskManagement() {
     <div className="space-y-6">
       {/* Message Dialog removed */}
       
-      <h1 className="text-3xl font-bold tracking-tight">Task Management</h1>
+      <div className="flex items-center gap-3">
+        <h1 className="text-3xl font-bold tracking-tight">Task Management</h1>
+        {autoRefreshActive ? (
+          <Badge variant="outline" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+            Auto-refresh Active
+          </Badge>
+        ) : (
+          <Badge variant="outline" className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300">
+            Auto-refresh Inactive
+          </Badge>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="md:col-span-2" id="assign-task">
           <CardHeader>
             <CardTitle>Assign New Task</CardTitle>
-            <CardDescription>Create and assign a new task to an agent</CardDescription>
+            <CardDescription>Create and assign a new task to an agent. Tasks will appear in the list automatically.</CardDescription>
           </CardHeader>
           <CardContent>
             <form className="space-y-4" onSubmit={handleSubmitTask}>
@@ -799,33 +1028,6 @@ export default function TaskManagement() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="transactionId">Transaction</Label>
-                  <Select 
-                    value={newTask.transactionId} 
-                    onValueChange={(value) => handleSelectChange("transactionId", value)}
-                  >
-                    <SelectTrigger id="transactionId">
-                      <SelectValue placeholder="Select transaction" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {transactions.length > 0 ? (
-                        transactions.map((transaction) => (
-                          <SelectItem key={transaction.id} value={transaction.id}>
-                            {transaction.id} - {transaction.property}
-                          </SelectItem>
-                        ))
-                      ) : (
-                        <>
-                          <SelectItem value="TR-7829">TR-7829 - 123 Main St</SelectItem>
-                          <SelectItem value="TR-6543">TR-6543 - 456 Oak Ave</SelectItem>
-                          <SelectItem value="TR-9021">TR-9021 - 789 Pine Rd</SelectItem>
-                        </>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
                   <Label htmlFor="agentId">Assign To</Label>
                   <Select 
                     value={newTask.agentId} 
@@ -835,19 +1037,56 @@ export default function TaskManagement() {
                       <SelectValue placeholder="Select agent" />
                     </SelectTrigger>
                     <SelectContent>
-                      {transactions.length > 0 ? (
-                        // Get unique agents from transactions
-                        [...new Set(transactions.map(t => t.agent.name))].map((agentName) => (
-                          <SelectItem key={agentName} value={agentName}>
-                            {agentName}
+                      {agents.length > 0 ? (
+                        agents.map((agent) => (
+                          <SelectItem key={agent.id} value={agent.id}>
+                            {agent.name}
                           </SelectItem>
                         ))
                       ) : (
+                        // Fallback data if no agents are available
                         <>
-                          <SelectItem value="Sarah Johnson">Sarah Johnson</SelectItem>
-                          <SelectItem value="John Smith">John Smith</SelectItem>
-                          <SelectItem value="Michael Brown">Michael Brown</SelectItem>
+                          <SelectItem value="agent-1">Sarah Johnson</SelectItem>
+                          <SelectItem value="agent-2">John Smith</SelectItem>
+                          <SelectItem value="agent-3">Michael Brown</SelectItem>
                         </>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="transactionId">Transaction</Label>
+                  <Select 
+                    value={newTask.transactionId} 
+                    onValueChange={(value) => handleSelectChange("transactionId", value)}
+                    disabled={!newTask.agentId} // Disable until agent is selected
+                  >
+                    <SelectTrigger id="transactionId">
+                      <SelectValue placeholder={newTask.agentId ? "Select transaction" : "Select agent first"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {newTask.agentId ? (
+                        getAgentTransactions().length > 0 ? (
+                          getAgentTransactions().map((transaction) => (
+                            <SelectItem key={transaction.id} value={transaction.id}>
+                              {transaction.id} - {transaction.property}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          // Fallback data for the selected agent
+                          newTask.agentId === "agent-1" ? (
+                            <SelectItem value="TR-7829">TR-7829 - 123 Main St</SelectItem>
+                          ) : newTask.agentId === "agent-2" ? (
+                            <SelectItem value="TR-6543">TR-6543 - 456 Oak Ave</SelectItem>
+                          ) : newTask.agentId === "agent-3" ? (
+                            <SelectItem value="TR-9021">TR-9021 - 789 Pine Rd</SelectItem>
+                          ) : (
+                            <SelectItem value="" disabled>No transactions for this agent</SelectItem>
+                          )
+                        )
+                      ) : (
+                        <SelectItem value="" disabled>Please select an agent first</SelectItem>
                       )}
                     </SelectContent>
                   </Select>

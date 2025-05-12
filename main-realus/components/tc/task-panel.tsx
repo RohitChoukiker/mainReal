@@ -144,23 +144,29 @@ export default function TaskPanel() {
       // Clear error
       setError(null)
       
-      // Fetch tasks from API
-      const tasksResponse = await fetch("/api/tc/tasks")
+      // Fetch tasks from API with credentials to include cookies
+      const tasksResponse = await fetch("/api/tc/tasks", {
+        credentials: 'include' // Include cookies for authentication
+      })
       
       if (!tasksResponse.ok) {
         throw new Error(`Failed to fetch tasks: ${tasksResponse.status}`)
       }
       
       const tasksData = await tasksResponse.json()
+      console.log("Tasks data received:", tasksData)
       
-      // Fetch transactions from API
-      const transactionsResponse = await fetch("/api/tc/transactions")
+      // Fetch transactions from API with credentials
+      const transactionsResponse = await fetch("/api/tc/transactions", {
+        credentials: 'include' // Include cookies for authentication
+      })
       
       if (!transactionsResponse.ok) {
         throw new Error(`Failed to fetch transactions: ${transactionsResponse.status}`)
       }
       
       const transactionsData = await transactionsResponse.json()
+      console.log("Transactions data received:", transactionsData)
       
       // Process transactions data
       let formattedTransactions: Transaction[] = [];
@@ -272,14 +278,18 @@ export default function TaskPanel() {
         // Sort tasks by status priority (overdue > pending > in_progress > completed)
         formattedTasks.sort((a, b) => {
           // First sort by status priority (overdue > pending > in_progress > completed)
-          const statusPriority = {
+          const statusPriority: Record<string, number> = {
             "overdue": 0,
             "pending": 1,
             "in_progress": 2,
             "completed": 3
           }
           
-          const statusDiff = statusPriority[a.status] - statusPriority[b.status]
+          // Get priority values with fallbacks for unknown statuses
+          const aPriority = statusPriority[a.status] ?? 99
+          const bPriority = statusPriority[b.status] ?? 99
+          
+          const statusDiff = aPriority - bPriority
           if (statusDiff !== 0) return statusDiff
           
           // Then sort by due date (earlier dates first)
@@ -386,7 +396,10 @@ export default function TaskPanel() {
   }, [socketRef.current, socketConnected])
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
+    // Normalize status to lowercase for case-insensitive comparison
+    const normalizedStatus = status?.toLowerCase() || "pending";
+    
+    switch (normalizedStatus) {
       case "pending":
         return (
           <Badge variant="outline" className="flex items-center gap-1 text-xs">
@@ -416,7 +429,7 @@ export default function TaskPanel() {
           </Badge>
         )
       default:
-        return <Badge variant="outline" className="text-xs">{status}</Badge>
+        return <Badge variant="outline" className="text-xs">{status || "Unknown"}</Badge>
     }
   }
 
