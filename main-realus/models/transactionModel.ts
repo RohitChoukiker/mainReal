@@ -14,6 +14,8 @@ export enum TransactionStatus {
   InProgress = "InProgress",
   PendingDocuments = "PendingDocuments",
   UnderReview = "UnderReview",
+  ReadyForClosure = "ReadyForClosure",
+  ForwardedToBroker = "ForwardedToBroker",
   Approved = "Approved",
   Closed = "Closed",
   Cancelled = "Cancelled",

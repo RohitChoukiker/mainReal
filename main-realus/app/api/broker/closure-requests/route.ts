@@ -4,6 +4,7 @@ import TransactionModel from "@/models/transactionModel";
 import ClosureRequestModel from "@/models/closureRequestModel";
 import User from "@/models/userModel";
 import jwt from "jsonwebtoken";
+import { sendEmail } from '@/lib/email';
 
 const JWT_SECRET = "123123123 " as string;
 
@@ -197,6 +198,28 @@ export async function POST(request: NextRequest) {
         
         updatedRequest = closureRequest;
         console.log(`Closure request ${requestId} updated in database`);
+
+        // Send email notifications
+        const transaction = await TransactionModel.findById(closureRequest.transactionId)
+          .populate('agent')
+          .populate('tc');
+
+        if (transaction) {
+          const emailData = {
+            to: [transaction.agent.email, transaction.tc.email],
+            subject: `Closure Request ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+            template: 'closure-status-update',
+            data: {
+              transactionId: transaction.id,
+              status: status,
+              notes: notes || '',
+              property: transaction.property,
+              closingDate: transaction.closingDate
+            }
+          };
+
+          await sendEmail(emailData);
+        }
       }
       
       // Update the transaction status if needed

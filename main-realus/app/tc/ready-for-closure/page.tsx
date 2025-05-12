@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { CheckCircle, Eye, ArrowUpCircle, FileCheck, Calendar, AlertCircle, Loader2, RefreshCw } from "lucide-react"
+import { CheckCircle, Eye, ArrowUpCircle, FileCheck, Calendar, AlertCircle, Loader2, RefreshCw, Bell } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { toast } from "@/components/ui/use-toast"
@@ -41,6 +41,7 @@ export default function ReadyForClosure() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [forwardDialogOpen, setForwardDialogOpen] = useState(false)
   const [selectedTransactionForForward, setSelectedTransactionForForward] = useState<Transaction | null>(null)
+  const [reminders, setReminders] = useState<{id: string, date: Date, message: string}[]>([])
 
   // Fetch transactions data and check for transaction ID in URL
   useEffect(() => {
@@ -226,6 +227,32 @@ export default function ReadyForClosure() {
       setIsSubmitting(false)
     }
   }
+
+  // Function to check for upcoming closings and set reminders
+  const checkUpcomingClosings = () => {
+    const now = new Date()
+    const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+    
+    const upcomingClosings = readyTransactions.filter(transaction => {
+      const closingDate = new Date(transaction.closingDate)
+      return closingDate >= now && closingDate <= sevenDaysFromNow
+    })
+
+    const newReminders = upcomingClosings.map(transaction => ({
+      id: transaction.id,
+      date: new Date(transaction.closingDate),
+      message: `Closing for ${transaction.property} is scheduled for ${new Date(transaction.closingDate).toLocaleDateString()}`
+    }))
+
+    setReminders(newReminders)
+  }
+
+  // Check for reminders when transactions are loaded
+  useEffect(() => {
+    if (readyTransactions.length > 0) {
+      checkUpcomingClosings()
+    }
+  }, [readyTransactions])
 
   return (
     <div className="space-y-6">
@@ -607,6 +634,36 @@ export default function ReadyForClosure() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Add Reminders Section */}
+      {reminders.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Bell className="h-5 w-5" />
+              Upcoming Closing Reminders
+            </CardTitle>
+            <CardDescription>Important reminders for upcoming closings</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {reminders.map(reminder => (
+                <div key={reminder.id} className="flex items-start gap-3 p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20">
+                  <Calendar className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                      {reminder.message}
+                    </p>
+                    <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+                      Make sure to forward to broker at least 48 hours before closing
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

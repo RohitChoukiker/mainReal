@@ -60,6 +60,7 @@ export default function TCTransactions() {
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Function to open transaction details modal
   const openTransactionModal = (transaction: Transaction) => {
@@ -238,6 +239,49 @@ export default function TCTransactions() {
     )
   }
 
+  const handleMarkAsReadyForClosure = async (transactionId: string) => {
+    try {
+      setIsSubmitting(true);
+      console.log("Marking transaction as ready for closure:", transactionId);
+      
+      const response = await fetch('/api/tc/ready-for-closure', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          transactionId: transactionId,
+          status: 'ReadyForClosure'
+        }),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Response data:", data);
+        
+        // Update the transaction in the local state
+        setTransactions(prevTransactions => 
+          prevTransactions.map(t => 
+            t.id === transactionId 
+              ? { ...t, status: 'ready_for_closure' } 
+              : t
+          )
+        );
+        
+        toast("The transaction has been marked as ready for closure.");
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Error response:", errorData);
+        throw new Error(`Failed to update transaction: ${errorData.message || response.statusText}`);
+      }
+    } catch (error) {
+      console.error('Error updating transaction:', error);
+      toast("Failed to update transaction. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const renderTransactionTable = (transactionList: Transaction[]) => (
     <div className="rounded-md border">
       <Table>
@@ -335,6 +379,28 @@ export default function TCTransactions() {
                         onClick={() => window.location.href = `/tc/ready-for-closure?transaction=${transaction.id}`}
                       >
                         Forward to Broker
+                      </Button>
+                    )}
+                    {transaction.status !== "ready_for_closure" && 
+                     transaction.status !== "completed" && 
+                     transaction.status !== "cancelled" && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleMarkAsReadyForClosure(transaction.id)}
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            <span>Processing...</span>
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            <span>Mark Ready for Closure</span>
+                          </>
+                        )}
                       </Button>
                     )}
                   </div>
