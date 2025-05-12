@@ -60,7 +60,6 @@ export default function TCTransactions() {
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [error, setError] = useState<string | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Function to open transaction details modal
   const openTransactionModal = (transaction: Transaction) => {
@@ -239,48 +238,7 @@ export default function TCTransactions() {
     )
   }
 
-  const handleMarkAsReadyForClosure = async (transactionId: string) => {
-    try {
-      setIsSubmitting(true);
-      console.log("Marking transaction as ready for closure:", transactionId);
-      
-      const response = await fetch('/api/tc/ready-for-closure', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          transactionId: transactionId,
-          status: 'ReadyForClosure'
-        }),
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log("Response data:", data);
-        
-        // Update the transaction in the local state
-        setTransactions(prevTransactions => 
-          prevTransactions.map(t => 
-            t.id === transactionId 
-              ? { ...t, status: 'ready_for_closure' } 
-              : t
-          )
-        );
-        
-        toast("The transaction has been marked as ready for closure.");
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        console.error("Error response:", errorData);
-        throw new Error(`Failed to update transaction: ${errorData.message || response.statusText}`);
-      }
-    } catch (error) {
-      console.error('Error updating transaction:', error);
-      toast("Failed to update transaction. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+
 
   const renderTransactionTable = (transactionList: Transaction[]) => (
     <div className="rounded-md border">
@@ -292,14 +250,13 @@ export default function TCTransactions() {
             <TableHead className="hidden md:table-cell">Agent</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="hidden md:table-cell">Closing Date</TableHead>
-            <TableHead>Progress</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {isLoading ? (
             <TableRow>
-              <TableCell colSpan={7} className="text-center py-6">
+              <TableCell colSpan={6} className="text-center py-6">
                 <div className="flex items-center justify-center">
                   <Loader2 className="h-5 w-5 animate-spin mr-2" />
                   <span>Loading transactions...</span>
@@ -333,36 +290,27 @@ export default function TCTransactions() {
                   <TransactionStatusBadge status={transaction.status} />
                 </TableCell>
                 <TableCell className="hidden md:table-cell">{transaction.closingDate}</TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className={`h-full ${
-                          transaction.completionPercentage < 30
-                            ? "bg-red-500"
-                            : transaction.completionPercentage < 70
-                              ? "bg-yellow-500"
-                              : "bg-green-500"
-                        }`}
-                        style={{ width: `${transaction.completionPercentage}%` }}
-                      ></div>
-                    </div>
-                    <span className="text-xs font-medium">{transaction.completionPercentage}%</span>
-                  </div>
-                </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
-                    <Button variant="ghost" size="icon" asChild>
-                      <a href={`/tc/document-review?transaction=${transaction.id}`}>
-                        <FileText className="h-4 w-4" />
-                        <span className="sr-only">Review documents</span>
-                      </a>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => {
+                        window.location.href = `/tc/document-review?transaction=${transaction.id}`;
+                      }}
+                    >
+                      <FileText className="h-4 w-4" />
+                      <span className="sr-only">Review documents</span>
                     </Button>
-                    <Button variant="ghost" size="icon" asChild>
-                      <a href={`/tc/tasks?transaction=${transaction.id}`}>
-                        <CheckSquare className="h-4 w-4" />
-                        <span className="sr-only">Manage tasks</span>
-                      </a>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => {
+                        window.location.href = `/tc/tasks?transaction=${transaction.id}`;
+                      }}
+                    >
+                      <CheckSquare className="h-4 w-4" />
+                      <span className="sr-only">Manage tasks</span>
                     </Button>
                     <Button 
                       variant="ghost" 
@@ -376,31 +324,11 @@ export default function TCTransactions() {
                       <Button 
                         variant="default" 
                         size="sm"
-                        onClick={() => window.location.href = `/tc/ready-for-closure?transaction=${transaction.id}`}
+                        onClick={() => {
+                          window.location.href = `/tc/ready-for-closure?transaction=${transaction.id}`;
+                        }}
                       >
                         Forward to Broker
-                      </Button>
-                    )}
-                    {transaction.status !== "ready_for_closure" && 
-                     transaction.status !== "completed" && 
-                     transaction.status !== "cancelled" && (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleMarkAsReadyForClosure(transaction.id)}
-                        disabled={isSubmitting}
-                      >
-                        {isSubmitting ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                            <span>Processing...</span>
-                          </>
-                        ) : (
-                          <>
-                            <CheckCircle className="h-4 w-4 mr-2" />
-                            <span>Mark Ready for Closure</span>
-                          </>
-                        )}
                       </Button>
                     )}
                   </div>
@@ -409,7 +337,7 @@ export default function TCTransactions() {
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
+              <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
                 No transactions found
               </TableCell>
             </TableRow>
@@ -492,7 +420,6 @@ export default function TCTransactions() {
               <div className="flex flex-col md:flex-row gap-2">
                 <div className="relative w-full md:w-64">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input type="search" placeholder="Search transactions..." />
                   <Input
                     type="search"
                     placeholder="Search transactions..."
@@ -602,11 +529,30 @@ export default function TCTransactions() {
                 </div>
 
                 <div className="flex justify-end gap-2">
-                  <Button variant="outline" size="sm" asChild>
-                    <a href={`/tc/document-review?transaction=${transaction.id}`}>Review Documents</a>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      window.location.href = `/tc/document-review?transaction=${transaction.id}`;
+                    }}
+                  >
+                    Review Documents
                   </Button>
-                  <Button variant="outline" size="sm" asChild>
-                    <a href={`/tc/tasks?transaction=${transaction.id}`}>Manage Tasks</a>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      window.location.href = `/tc/tasks?transaction=${transaction.id}`;
+                    }}
+                  >
+                    Manage Tasks
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => openTransactionModal(transaction)}
+                  >
+                    View Details
                   </Button>
                 </div>
               </div>

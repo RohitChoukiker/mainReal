@@ -15,6 +15,12 @@ const TaskPanel = dynamic(
   { ssr: false }
 );
 
+// Dynamically import the TransactionPanel to avoid SSR issues with real-time data
+const TransactionPanel = dynamic(
+  () => import("@/components/tc/transaction-panel").then(mod => mod.default),
+  { ssr: false }
+);
+
 // Define the task interface
 interface ApiTask {
   _id: string;
@@ -183,7 +189,14 @@ export default function TCLayout({
         title="TC Panel" 
         icon={<ClipboardCheck className="h-5 w-5" />} 
         onLogout={handleLogout}
-        taskPanel={<TaskPanel />}
+        taskPanel={
+          <>
+            <TaskPanel />
+            <div className="mt-4">
+              <TransactionPanel />
+            </div>
+          </>
+        }
       />
       <div className="md:ml-64 min-h-screen">
         <div className="container mx-auto px-4 py-6">

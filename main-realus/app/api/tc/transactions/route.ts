@@ -49,9 +49,19 @@ export async function GET(req: NextRequest) {
       }
     }
     
-    // Create an empty query - we'll show ALL transactions by default
-    // This matches the broker's view of transactions
+    // Create a query to show transactions assigned to this TC
+    // If no TC ID is available, show all transactions (for development/testing)
     const query: any = {};
+    
+    if (tcId) {
+      // Filter by transactions assigned to this TC
+      // Either directly assigned or unassigned (transactionCoordinatorId is null or undefined)
+      query.$or = [
+        { transactionCoordinatorId: tcId },
+        { transactionCoordinatorId: { $exists: false } },
+        { transactionCoordinatorId: null }
+      ];
+    }
     
     console.log("Final query:", JSON.stringify(query));
     

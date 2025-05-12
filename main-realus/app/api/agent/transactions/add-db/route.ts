@@ -125,11 +125,32 @@ export async function POST(req: NextRequest) {
     const transactionId = "TR-" + Math.floor(10000 + Math.random() * 90000);
     console.log("Generated transaction ID:", transactionId);
 
+    // Find a TC to assign the transaction to
+    let transactionCoordinatorId = null;
+    try {
+      // Find TCs in the system
+      const tcs = await User.find({ role: "Tc" });
+      console.log(`Found ${tcs.length} TCs in the system`);
+      
+      if (tcs.length > 0) {
+        // Simple round-robin assignment - get a random TC
+        const randomIndex = Math.floor(Math.random() * tcs.length);
+        transactionCoordinatorId = tcs[randomIndex]._id.toString();
+        console.log(`Assigned transaction to TC with ID: ${transactionCoordinatorId}`);
+      } else {
+        console.log("No TCs found in the system, transaction will be unassigned");
+      }
+    } catch (tcError) {
+      console.error("Error finding TCs:", tcError);
+      // Continue without assigning a TC
+    }
+
     // Create new transaction
     const transaction = new TransactionModel({
       transactionId,
       agentId: agentId,
       brokerId: brokerId,
+      transactionCoordinatorId: transactionCoordinatorId, // Assign to TC
       clientName: body.clientName,
       clientEmail: body.clientEmail,
       clientPhone: body.clientPhone,
