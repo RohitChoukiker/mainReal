@@ -1,16 +1,17 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { FileCheck, Eye, CheckCircle, XCircle, Calendar, Clock, AlertTriangle, Download } from "lucide-react"
+import { FileCheck, Eye, CheckCircle, XCircle, Calendar, Clock, AlertTriangle, Download, Loader2, RefreshCw } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
+import { toast } from "@/components/ui/use-toast"
 
 interface ClosureRequest {
   id: string
@@ -37,131 +38,231 @@ interface ClosureRequest {
 
 export default function ClosureRequests() {
   const [selectedRequest, setSelectedRequest] = useState<string | null>(null)
-
-  const [closureRequests, setClosureRequests] = useState<ClosureRequest[]>([
-    {
-      id: "CR-1001",
-      transactionId: "TR-5432",
-      property: "321 Elm St, San Antonio, TX",
-      client: "Lisa Martinez",
-      agent: {
-        name: "John Smith",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      tc: {
-        name: "Sarah Johnson",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      closingDate: "Apr 15, 2025",
-      status: "pending",
-      submittedDate: "Apr 10, 2025",
-      notes: "All documents have been verified and tasks completed. Ready for final approval.",
-      documents: {
-        total: 8,
-        verified: 8,
-      },
-    },
-    {
-      id: "CR-1002",
-      transactionId: "TR-6789",
-      property: "567 Maple Dr, Austin, TX",
-      client: "Thomas Wilson",
-      agent: {
-        name: "Sarah Johnson",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      tc: {
-        name: "Michael Brown",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      closingDate: "Apr 18, 2025",
-      status: "pending",
-      submittedDate: "Apr 12, 2025",
-      notes: "Client has requested an expedited closing. All documents are in order.",
-      documents: {
-        total: 10,
-        verified: 10,
-      },
-    },
-    {
-      id: "CR-1003",
-      transactionId: "TR-3456",
-      property: "890 Cedar Ln, Houston, TX",
-      client: "Amanda Garcia",
-      agent: {
-        name: "Michael Brown",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      tc: {
-        name: "Sarah Johnson",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      closingDate: "Apr 22, 2025",
-      status: "approved",
-      submittedDate: "Apr 8, 2025",
-      notes: "Approved for closing. Title company has been notified.",
-      documents: {
-        total: 9,
-        verified: 9,
-      },
-    },
-    {
-      id: "CR-1004",
-      transactionId: "TR-2345",
-      property: "234 Birch Ave, Dallas, TX",
-      client: "James Taylor",
-      agent: {
-        name: "John Smith",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      tc: {
-        name: "Michael Brown",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      closingDate: "Apr 5, 2025",
-      status: "completed",
-      submittedDate: "Mar 30, 2025",
-      notes: "Transaction successfully closed. All parties have received final documents.",
-      documents: {
-        total: 8,
-        verified: 8,
-      },
-    },
-    {
-      id: "CR-1005",
-      transactionId: "TR-8765",
-      property: "654 Birch Blvd, Fort Worth, TX",
-      client: "David Wilson",
-      agent: {
-        name: "Sarah Johnson",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      tc: {
-        name: "Sarah Johnson",
-        avatar: "/placeholder.svg?height=40&width=40",
-      },
-      closingDate: "Apr 25, 2025",
-      status: "rejected",
-      submittedDate: "Apr 11, 2025",
-      notes: "Missing final walkthrough documentation. Please complete and resubmit.",
-      documents: {
-        total: 8,
-        verified: 6,
-      },
-    },
-  ])
+  const [closureRequests, setClosureRequests] = useState<ClosureRequest[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [brokerNotes, setBrokerNotes] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  // Fetch closure requests data
+  useEffect(() => {
+    fetchClosureRequests()
+  }, [])
+  
+  // Function to fetch closure requests
+  const fetchClosureRequests = async () => {
+    try {
+      setIsLoading(true)
+      console.log("Fetching closure requests data...")
+      
+      // Add timestamp to prevent caching
+      const timestamp = new Date().getTime()
+      const response = await fetch(`/api/broker/closure-requests?_=${timestamp}`)
+      
+      if (response.ok) {
+        const data = await response.json()
+        console.log("Received closure requests data:", data)
+        
+        if (data.closureRequests && data.closureRequests.length > 0) {
+          setClosureRequests(data.closureRequests)
+        } else {
+          console.log("No closure requests found")
+          setClosureRequests([])
+        }
+      } else {
+        console.error("Error response from API:", response.status)
+        toast({
+          title: "Error",
+          description: "Failed to fetch closure requests data",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      console.error("Error fetching closure requests:", error)
+      toast({
+        title: "Error",
+        description: "Failed to fetch closure requests data",
+        variant: "destructive"
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const pendingRequests = closureRequests.filter((req) => req.status === "pending")
   const approvedRequests = closureRequests.filter((req) => req.status === "approved")
   const completedRequests = closureRequests.filter((req) => req.status === "completed")
   const rejectedRequests = closureRequests.filter((req) => req.status === "rejected")
 
-  const handleApprove = (requestId: string) => {
-    setClosureRequests(closureRequests.map((req) => (req.id === requestId ? { ...req, status: "approved" } : req)))
+  const handleApprove = async (requestId: string) => {
+    try {
+      setIsSubmitting(true)
+      console.log("Approving closure request:", requestId)
+      
+      const response = await fetch('/api/broker/closure-requests', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          requestId: requestId,
+          status: 'approved',
+          notes: brokerNotes
+        }),
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        console.log("Response data:", data)
+        
+        // Update the request in the local state
+        setClosureRequests(prevRequests => 
+          prevRequests.map(req => 
+            req.id === requestId 
+              ? { ...req, status: 'approved' } 
+              : req
+          )
+        )
+        
+        toast({
+          title: "Request Approved",
+          description: "The closure request has been approved.",
+        })
+        
+        // Clear notes
+        setBrokerNotes("")
+      } else {
+        const errorData = await response.json().catch(() => ({}))
+        console.error("Error response:", errorData)
+        throw new Error(`Failed to approve request: ${errorData.message || response.statusText}`)
+      }
+    } catch (error) {
+      console.error('Error approving request:', error)
+      toast({
+        title: "Error",
+        description: "Failed to approve request. Please try again.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
-  const handleReject = (requestId: string) => {
-    setClosureRequests(closureRequests.map((req) => (req.id === requestId ? { ...req, status: "rejected" } : req)))
+  const handleReject = async (requestId: string) => {
+    try {
+      setIsSubmitting(true)
+      console.log("Rejecting closure request:", requestId)
+      
+      if (!brokerNotes.trim()) {
+        toast({
+          title: "Notes Required",
+          description: "Please provide notes explaining the rejection reason.",
+          variant: "destructive"
+        })
+        setIsSubmitting(false)
+        return
+      }
+      
+      const response = await fetch('/api/broker/closure-requests', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          requestId: requestId,
+          status: 'rejected',
+          notes: brokerNotes
+        }),
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        console.log("Response data:", data)
+        
+        // Update the request in the local state
+        setClosureRequests(prevRequests => 
+          prevRequests.map(req => 
+            req.id === requestId 
+              ? { ...req, status: 'rejected' } 
+              : req
+          )
+        )
+        
+        toast({
+          title: "Request Rejected",
+          description: "The closure request has been rejected.",
+        })
+        
+        // Clear notes
+        setBrokerNotes("")
+      } else {
+        const errorData = await response.json().catch(() => ({}))
+        console.error("Error response:", errorData)
+        throw new Error(`Failed to reject request: ${errorData.message || response.statusText}`)
+      }
+    } catch (error) {
+      console.error('Error rejecting request:', error)
+      toast({
+        title: "Error",
+        description: "Failed to reject request. Please try again.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+  
+  const handleMarkAsCompleted = async (requestId: string) => {
+    try {
+      setIsSubmitting(true)
+      console.log("Marking closure request as completed:", requestId)
+      
+      const response = await fetch('/api/broker/closure-requests', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          requestId: requestId,
+          status: 'completed',
+          notes: brokerNotes
+        }),
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        console.log("Response data:", data)
+        
+        // Update the request in the local state
+        setClosureRequests(prevRequests => 
+          prevRequests.map(req => 
+            req.id === requestId 
+              ? { ...req, status: 'completed' } 
+              : req
+          )
+        )
+        
+        toast({
+          title: "Transaction Closed",
+          description: "The transaction has been marked as closed.",
+        })
+        
+        // Clear notes
+        setBrokerNotes("")
+      } else {
+        const errorData = await response.json().catch(() => ({}))
+        console.error("Error response:", errorData)
+        throw new Error(`Failed to complete transaction: ${errorData.message || response.statusText}`)
+      }
+    } catch (error) {
+      console.error('Error completing transaction:', error)
+      toast({
+        title: "Error",
+        description: "Failed to complete transaction. Please try again.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const getStatusBadge = (status: string) => {

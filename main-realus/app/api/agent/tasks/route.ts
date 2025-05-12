@@ -84,63 +84,11 @@ export const GET = catchAsync(async (req: NextRequest) => {
       console.log("Using empty tasks array due to database error");
     }
     
-    // If we don't have any tasks from the database, generate some demo tasks
+    // If we don't have any tasks from the database, return empty array
     if (tasks.length === 0) {
-      console.log("No tasks found in database, generating demo tasks");
-      
-      // Mock data for demonstration
-      tasks = [
-        {
-          _id: "task-1",
-          title: "Schedule home inspection",
-          transactionId: "TR-7829",
-          propertyAddress: "123 Main St, Austin, TX",
-          agentId: "agent-123",
-          dueDate: new Date(Date.now() + 86400000 * 3).toISOString(), // 3 days from now
-          status: "pending",
-          priority: "high",
-          description: "Contact the inspector and schedule a home inspection as soon as possible.",
-          aiReminder: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          assignedBy: "TC Manager"
-        },
-        {
-          _id: "task-2",
-          title: "Collect HOA documents",
-          transactionId: "TR-7829",
-          propertyAddress: "123 Main St, Austin, TX",
-          agentId: "agent-123",
-          dueDate: new Date(Date.now() + 86400000 * 6).toISOString(), // 6 days from now
-          status: "in_progress",
-          priority: "medium",
-          description: "Obtain all HOA documents including bylaws, financials, and meeting minutes.",
-          aiReminder: false,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date(Date.now() - 60000).toISOString(), // 1 minute ago
-          assignedBy: "TC Manager"
-        },
-        {
-          _id: "task-3",
-          title: "Submit financing application",
-          transactionId: "TR-6543",
-          propertyAddress: "456 Oak Ave, Dallas, TX",
-          agentId: "agent-123",
-          dueDate: new Date(Date.now() - 86400000 * 2).toISOString(), // 2 days ago
-          status: "overdue",
-          priority: "high",
-          description: "Complete and submit the mortgage application with all required documentation.",
-          aiReminder: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          assignedBy: "TC Manager"
-        }
-      ];
-      
-      total = tasks.length;
-      
-      // Apply pagination
-      tasks = tasks.slice(skip, skip + limit);
+      console.log("No tasks found in database, returning empty array");
+      tasks = [];
+      total = 0;
     }
     
     // Check for overdue tasks and update their status
