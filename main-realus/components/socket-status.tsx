@@ -1,44 +1,16 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { useSocket } from "@/utils/useSocket"
 import { Badge } from "@/components/ui/badge"
 
+// This component has been modified to remove socket functionality
 export function SocketStatus() {
-  const { socket, isConnected, isAuthenticated, error } = useSocket()
-  const [status, setStatus] = useState<string>("Initializing...")
-  
-  useEffect(() => {
-    if (error) {
-      // Simply convert to string to avoid type issues
-      setStatus(`Error: ${String(error)}`)
-    } else if (!socket) {
-      setStatus("Initializing socket...")
-    } else if (!isConnected) {
-      setStatus("Connecting...")
-    } else if (!isAuthenticated) {
-      setStatus("Authenticating...")
-    } else {
-      setStatus("Connected")
-    }
-  }, [socket, isConnected, isAuthenticated, error])
-  
+  // Return a static badge indicating socket functionality is disabled
   return (
     <div className="flex items-center gap-2">
-      <div className={`w-2 h-2 rounded-full ${getStatusColor(status)}`} />
+      <div className="w-2 h-2 rounded-full bg-gray-400" />
       <Badge variant="outline" className="text-xs">
-        Socket: {status}
+        Socket: Disabled
       </Badge>
     </div>
   )
-}
-
-function getStatusColor(status: string): string {
-  if (status === "Connected") {
-    return "bg-green-500"
-  } else if (status.startsWith("Error")) {
-    return "bg-red-500"
-  } else {
-    return "bg-yellow-500 animate-pulse"
-  }
 }
