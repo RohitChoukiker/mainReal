@@ -25,37 +25,45 @@ export default function TeamModal({ onClose }: TeamModalProps) {
   ];
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+    <motion.div 
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+    >
       <motion.div
-        className="bg-white rounded-xl shadow-xl w-full max-w-4xl relative max-h-[90vh] overflow-y-auto my-8"
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.9 }}
+        className="bg-white dark:bg-gray-900 rounded-xl shadow-xl w-full max-w-4xl relative max-h-[90vh] overflow-y-auto my-8"
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9, y: 20 }}
         transition={{ duration: 0.3 }}
+        onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 z-10"
+          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 z-10 p-2 rounded-full bg-gray-100 dark:bg-gray-800"
         >
           <X className="h-5 w-5" />
         </button>
 
-        <div className="p-6">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-gray-900">Our Team</h2>
-            <p className="text-gray-600 mt-2">
+        <div className="p-4 sm:p-6">
+          <div className="text-center mb-6 sm:mb-8">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Our Team</h2>
+            <p className="text-gray-600 dark:text-gray-400 mt-2">
               Meet the talented people behind Realus
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {teamMembers.map((member, index) => (
               <motion.div
                 key={index}
-                className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
+                className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.1 }}
+                whileHover={{ y: -5 }}
               >
                 <div className="aspect-square relative">
                   <Image
@@ -63,22 +71,28 @@ export default function TeamModal({ onClose }: TeamModalProps) {
                     alt={member.name}
                     fill
                     className="object-cover"
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    priority={index < 2}
                   />
                 </div>
                 <div className="p-4">
-                  <h3 className="text-lg font-semibold text-gray-900">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                     {member.name}
                   </h3>
                   <p className="text-sm text-primary font-medium">
                     {member.role}
                   </p>
-                  {/* <p className="mt-2 text-sm text-gray-600">{member.bio}</p> */}
 
-                  <div className="mt-4 flex space-x-3">
-                   
-                    <a href="#" className="text-gray-400 hover:text-gray-700">
+                  <div className="mt-4 flex space-x-4">
+                    <a 
+                      href="https://github.com" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                      aria-label="GitHub"
+                    >
                       <svg
-                        className="h-5 w-5"
+                        className="h-6 w-6"
                         fill="currentColor"
                         viewBox="0 0 24 24"
                         aria-hidden="true"
@@ -90,18 +104,20 @@ export default function TeamModal({ onClose }: TeamModalProps) {
                         />
                       </svg>
                     </a>
-                    <a href="#" className="text-gray-400 hover:text-gray-700">
-                      <svg
-                        className="h-5 w-5"
-                        fill="currentColor"
+                    <a 
+                      href="https://linkedin.com" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                      aria-label="LinkedIn"
+                    >
+                      <svg 
+                        className="h-6 w-6" 
+                        fill="currentColor" 
                         viewBox="0 0 24 24"
                         aria-hidden="true"
                       >
-                        <path
-                          fillRule="evenodd"
-                          d="M12 2c5.514 0 10 4.486 10 10s-4.486 10-10 10-10-4.486-10-10 4.486-10 10-10zm0 2c-4.411 0-8 3.589-8 8 0 3.35 2.072 6.21 5 7.4v-2.65c-0.845 0.184-1.477 0.247-2 0.247-0.845 0-1.654-0.462-2.064-1.272-0.424-0.836-0.696-1.499-1.48-1.963-0.277-0.171-0.414-0.354-0.414-0.708 0-0.438 0.468-0.552 0.643-0.552 0.921 0 1.858 0.932 2.007 1.304 0.696 1.195 1.306 1.431 2.025 1.431 0.845 0 1.457-0.124 1.898-0.307 0.248-0.93 0.645-1.772 1.268-2.173-3.257-0.364-5.577-1.579-5.577-5.159 0-1.18 0.408-2.215 1.089-3.019-0.216-0.762-0.512-2.316 0.111-2.939 1.525 0 2.442 0.994 2.65 1.26 0.764-0.262 1.584-0.402 2.444-0.402s1.68 0.14 2.444 0.402c0.208-0.266 1.125-1.26 2.65-1.26 0.623 0.623 0.327 2.177 0.111 2.939 0.681 0.804 1.089 1.839 1.089 3.019 0 3.58-2.32 4.795-5.577 5.159 0.645 0.398 1.05 1.501 1.05 2.284v3.475c2.928-1.19 5-4.05 5-7.4 0-4.411-3.589-8-8-8z"
-                          clipRule="evenodd"
-                        />
+                        <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
                       </svg>
                     </a>
                   </div>
@@ -110,24 +126,26 @@ export default function TeamModal({ onClose }: TeamModalProps) {
             ))}
           </div>
 
-          <div className="mt-10 text-center">
-            <h3 className="text-xl font-semibold text-gray-900 mb-4">
+          <div className="mt-8 sm:mt-10 text-center">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">
               Join Our Team
             </h3>
-            <p className="text-gray-600 max-w-2xl mx-auto">
+            <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
               We're always looking for talented individuals to join our team. If
               you're passionate about real estate and technology, check out our
               open positions.
             </p>
-            <button
+            <motion.button
               type="button"
-              className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+              className="mt-4 inline-flex items-center px-5 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
               View Open Positions
-            </button>
+            </motion.button>
           </div>
         </div>
       </motion.div>
-    </div>
+    </motion.div>
   );
 }

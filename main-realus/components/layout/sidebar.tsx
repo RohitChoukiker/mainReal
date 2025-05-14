@@ -84,12 +84,12 @@ export function Sidebar({ items, title, icon, onLogout, taskPanel }: SidebarProp
       {/* Mobile sidebar */}
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
-          <Button variant="outline" size="icon" className="md:hidden fixed top-4 left-4 z-40">
+          <Button variant="outline" size="icon" className="md:hidden fixed top-4 left-4 z-40 shadow-md bg-background/95 backdrop-blur-sm">
             <Menu className="h-5 w-5" />
             <span className="sr-only">Toggle Menu</span>
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="p-0 w-64">
+        <SheetContent side="left" className="p-0 w-[85%] max-w-[300px] sm:max-w-[350px]">
           <div className="h-full flex flex-col">
             <div className="p-4 border-b flex items-center justify-between">
               <div className="flex items-center gap-2 font-semibold">
@@ -109,7 +109,7 @@ export function Sidebar({ items, title, icon, onLogout, taskPanel }: SidebarProp
                       key={index}
                       href={item.href}
                       className={cn(
-                        "flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors",
+                        "flex items-center justify-between rounded-md px-4 py-3 text-base transition-colors",
                         pathname === item.href ? "bg-primary text-primary-foreground" : "hover:bg-muted",
                       )}
                     >
@@ -119,7 +119,7 @@ export function Sidebar({ items, title, icon, onLogout, taskPanel }: SidebarProp
                       </div>
                       {item.badge && (
                         <span className={cn(
-                          "ml-auto flex h-5 w-5 items-center justify-center rounded-full text-xs font-medium",
+                          "ml-auto flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium",
                           item.badgeVariant === "destructive" 
                             ? "bg-destructive text-destructive-foreground" 
                             : "bg-primary text-primary-foreground"
@@ -149,11 +149,11 @@ export function Sidebar({ items, title, icon, onLogout, taskPanel }: SidebarProp
             <div className="p-4 border-t flex justify-between items-center">
               <Button 
                 variant="ghost" 
-                size="sm" 
+                size="default" 
                 onClick={handleLogout}
-                className="text-red-500 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/20"
+                className="text-red-500 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/20 h-10"
               >
-                <LogOut className="h-4 w-4 mr-2" />
+                <LogOut className="h-5 w-5 mr-2" />
                 Logout
               </Button>
               <ModeToggle />

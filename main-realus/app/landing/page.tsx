@@ -9,7 +9,6 @@ import {
   Briefcase,
   Phone,
   DollarSign,
-  Users,
   ChevronRight,
   Mail,
   Building,
@@ -22,6 +21,7 @@ import {
   MessageSquare,
   BarChart,
   Menu,
+  Users,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -29,7 +29,7 @@ import Image from "next/image";
 import LoginModal from "@/components/landing/login-modal";
 import SignupModal from "@/components/landing/signup-modal";
 import PricingModal from "@/components/landing/pricing-modal";
-import TeamModal from "@/components/landing/team-modal";
+
 import MobileMenu from "@/components/landing/mobile-menu";
 
 export default function LandingPage() {
@@ -37,7 +37,6 @@ export default function LandingPage() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
-  const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [scrollY, setScrollY] = useState(0);
 
@@ -164,13 +163,6 @@ export default function LandingPage() {
                 <DollarSign className="h-4 w-4" />
                 <span>Pricing</span>
               </button>
-              <button
-                onClick={() => setIsTeamModalOpen(true)}
-                className="flex items-center space-x-1 text-gray-600 hover:text-primary"
-              >
-                <Users className="h-4 w-4" />
-                <span>Our Team</span>
-              </button>
             </div>
             <div className="hidden md:block">
               <button
@@ -201,7 +193,6 @@ export default function LandingPage() {
             scrollToSection={scrollToSection}
             openLoginModal={openLoginModal}
             openPricingModal={() => setIsPricingModalOpen(true)}
-            openTeamModal={() => setIsTeamModalOpen(true)}
           />
         )}
       </AnimatePresence>
@@ -945,14 +936,7 @@ export default function LandingPage() {
                     Pricing
                   </button>
                 </li>
-                <li>
-                  <button
-                    onClick={() => setIsTeamModalOpen(true)}
-                    className="text-gray-400 hover:text-white"
-                  >
-                    Our Team
-                  </button>
-                </li>
+
               </ul>
             </div>
 
@@ -1033,9 +1017,10 @@ export default function LandingPage() {
       </footer>
 
       {/* Modals */}
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
         {isLoginModalOpen && (
           <LoginModal
+            key="login-modal"
             onClose={() => setIsLoginModalOpen(false)}
             onSignupClick={openSignupModal}
           />
@@ -1043,17 +1028,17 @@ export default function LandingPage() {
 
         {isSignupModalOpen && (
           <SignupModal
+            key="signup-modal"
             onClose={() => setIsSignupModalOpen(false)}
             onLoginClick={openLoginModal}
           />
         )}
 
         {isPricingModalOpen && (
-          <PricingModal onClose={() => setIsPricingModalOpen(false)} />
-        )}
-
-        {isTeamModalOpen && (
-          <TeamModal onClose={() => setIsTeamModalOpen(false)} />
+          <PricingModal 
+            key="pricing-modal"
+            onClose={() => setIsPricingModalOpen(false)} 
+          />
         )}
       </AnimatePresence>
     </div>
