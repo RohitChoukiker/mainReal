@@ -24,6 +24,8 @@ interface Document {
   aiScore?: number
   issues?: string[]
   fileSize?: string
+  fileUrl?: string
+  fileName?: string
 }
 
 interface Transaction {

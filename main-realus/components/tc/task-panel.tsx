@@ -341,7 +341,7 @@ export default function TaskPanel() {
       // Update the tasks list
       setTasks(prevTasks => {
         return prevTasks.map(task => {
-          if (task.id === data.taskId || task._id === data.taskId) {
+          if (task.id === data.taskId) {
             return {
               ...task,
               status: 'completed',
@@ -366,7 +366,7 @@ export default function TaskPanel() {
       // Update the tasks list
       setTasks(prevTasks => {
         return prevTasks.map(task => {
-          if (task.id === data.taskId || task._id === data.taskId) {
+          if (task.id === data.taskId) {
             return {
               ...task,
               status: data.status,

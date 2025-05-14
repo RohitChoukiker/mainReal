@@ -162,3 +162,6 @@ export function getUserFromRequest(req: NextApiRequest): { userId: string, role:
     return null;
   }
 }
+
+// These functions are already exported individually above
+// No need to re-export them here

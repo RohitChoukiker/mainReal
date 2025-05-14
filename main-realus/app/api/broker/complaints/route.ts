@@ -1,16 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/utils/dbConnect";
-import mongoose from "mongoose";
+import mongoose, { Schema, Document, Model } from "mongoose";
+
+// Define the Complaint interface
+interface Complaint extends Document {
+  id: string;
+  title: string;
+  transactionId: string;
+  property: string;
+  submittedDate: string;
+  status: "new" | "in_progress" | "resolved" | "escalated";
+  priority: "low" | "medium" | "high";
+  description: string;
+  category: string;
+  response?: string;
+  agentId: string;
+  assignedTo?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 // Define a simple schema for complaints if it doesn't exist
-let ComplaintModel;
+let ComplaintModel: Model<Complaint>;
 
 try {
   // Try to get the existing model
-  ComplaintModel = mongoose.model("Complaint");
+  ComplaintModel = mongoose.model<Complaint>("Complaint");
 } catch (error) {
   // Model doesn't exist yet, create it
-  const ComplaintSchema = new mongoose.Schema(
+  const ComplaintSchema = new Schema<Complaint>(
     {
       id: { type: String, required: true, unique: true },
       title: { type: String, required: true },
@@ -36,7 +54,7 @@ try {
     { timestamps: true }
   );
 
-  ComplaintModel = mongoose.model("Complaint", ComplaintSchema);
+  ComplaintModel = mongoose.model<Complaint>("Complaint", ComplaintSchema);
 }
 
 // GET handler to fetch all complaints for broker

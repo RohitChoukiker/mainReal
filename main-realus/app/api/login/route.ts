@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
     );
 
     // Normalize the role for frontend consistency
-    let normalizedRole = user.role;
+    let normalizedRole: string = user.role;
     if (user.role === "TransactionCoordinator") {
       normalizedRole = "Tc";
     }

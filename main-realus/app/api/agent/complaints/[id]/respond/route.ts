@@ -28,14 +28,16 @@ async function dbConnect() {
 
 // POST handler to respond to a complaint
 export async function POST(
-  req: NextRequest,
-  { params }: { params: { id: string } }
+  req: NextRequest
 ) {
   try {
     // Connect to database
     await dbConnect();
     
-    const complaintId = params.id;
+    // Extract the complaint ID from the URL path
+    const url = new URL(req.url);
+    const pathParts = url.pathname.split('/');
+    const complaintId = pathParts[pathParts.length - 2]; // Get the ID from the URL path
     
     // Parse request body
     const body = await req.json();

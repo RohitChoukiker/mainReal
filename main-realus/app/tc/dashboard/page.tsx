@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from "react"
 import { TransactionOverviewCard } from "@/components/dashboard/transaction-overview-card"
-import { AIInsightsCard } from "@/components/dashboard/ai-insights-card"
-import { QuickActionsPanel } from "@/components/dashboard/quick-actions-panel"
-import { LiveNotificationsPanel } from "@/components/dashboard/live-notifications-panel"
-import { TransactionListTable } from "@/components/dashboard/transaction-list-table"
-import { AIDelayPredictionWidget } from "@/components/dashboard/ai-delay-prediction-widget"
+import { AIInsightsCard, Insight } from "@/components/dashboard/ai-insights-card"
+import { QuickActionsPanel, Action } from "@/components/dashboard/quick-actions-panel"
+import { LiveNotificationsPanel, Notification } from "@/components/dashboard/live-notifications-panel"
+import { TransactionListTable, Transaction as UITableTransaction } from "@/components/dashboard/transaction-list-table"
+import { AIDelayPredictionWidget, DelayPrediction } from "@/components/dashboard/ai-delay-prediction-widget"
 import { FileCheck, CheckSquare, AlertCircle, CheckCircle, RefreshCcw } from "lucide-react"
 import { toast } from "sonner"
 import { TransactionDetailsModal } from "@/components/dashboard/transaction-details-modal"
@@ -25,10 +25,22 @@ interface ApiTransaction {
   price: number;
 }
 
+
+
+interface ProcessedTransaction {
+  id: string;
+  property: string;
+  client: string;
+  agent: string;
+  status: string; // This is a string that might not match the expected literal types
+  dueDate: string;
+  riskLevel?: string;
+}
+
 export default function TCDashboard() {
   const [isLoading, setIsLoading] = useState(true)
   const [apiTransactions, setApiTransactions] = useState<ApiTransaction[]>([])
-  const [transactionsData, setTransactionsData] = useState<any[]>([])
+  const [transactionsData, setTransactionsData] = useState<ProcessedTransaction[]>([])
   const [transactionStats, setTransactionStats] = useState({
     total: 0,
     completed: 0,
@@ -36,12 +48,12 @@ export default function TCDashboard() {
     atRisk: 0
   })
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
-  const [selectedTransaction, setSelectedTransaction] = useState<any | null>(null)
+  const [selectedTransaction, setSelectedTransaction] = useState<ProcessedTransaction | null>(null)
 
   // Function to open transaction details modal
   const handleViewDetails = (id: string) => {
     console.log(`View details for transaction ${id}`)
-    const transaction = transactionsData.find(t => t.id === id)
+    const transaction = transactionsData.find((t: ProcessedTransaction) => t.id === id)
     if (transaction) {
       setSelectedTransaction(transaction)
       setIsDetailsModalOpen(true)
@@ -112,8 +124,8 @@ export default function TCDashboard() {
           
           // Calculate stats
           const total = processed.length
-          const completed = processed.filter(t => t.status === "completed").length
-          const atRisk = processed.filter(t => t.status === "at_risk").length
+          const completed = processed.filter((t: ProcessedTransaction) => t.status === "completed").length
+          const atRisk = processed.filter((t: ProcessedTransaction) => t.status === "at_risk").length
           const pending = total - completed - atRisk
           
           setTransactionStats({
@@ -141,7 +153,7 @@ export default function TCDashboard() {
   }, [])
 
   // Sample data for demonstration
-  const aiInsightsData = [
+  const aiInsightsData: Insight[] = [
     {
       id: "1",
       type: "warning",
@@ -159,7 +171,7 @@ export default function TCDashboard() {
     },
   ]
 
-  const quickActionsData = [
+  const quickActionsData: Action[] = [
     {
       icon: <FileCheck className="h-6 w-6" />,
       label: "Review Documents",
@@ -183,7 +195,7 @@ export default function TCDashboard() {
     },
   ]
 
-  const notificationsData = [
+  const notificationsData: Notification[] = [
     {
       id: "1",
       title: "New Documents Uploaded",
@@ -210,7 +222,7 @@ export default function TCDashboard() {
     },
   ]
 
-  const delayPredictions = [
+  const delayPredictions: DelayPrediction[] = [
     {
       transactionId: "TR-7829",
       property: "123 Main St, Austin, TX",
@@ -259,8 +271,24 @@ export default function TCDashboard() {
             atRisk={transactionStats.atRisk}
             isLoading={isLoading}
           />
+          {/* Map our ProcessedTransaction objects to the UITableTransaction type expected by the component */}
           <TransactionListTable
-            transactions={transactionsData}
+            transactions={transactionsData.map(t => ({
+              id: t.id,
+              property: t.property,
+              client: t.client,
+              agent: t.agent,
+              // Ensure status is one of the expected literal types
+              status: (t.status === "pending" || t.status === "in_progress" || 
+                      t.status === "completed" || t.status === "at_risk") 
+                      ? t.status as "pending" | "in_progress" | "completed" | "at_risk"
+                      : "pending", // Default to pending if not a valid status
+              dueDate: t.dueDate,
+              // Ensure riskLevel is one of the expected literal types or undefined
+              riskLevel: (t.riskLevel === "low" || t.riskLevel === "medium" || t.riskLevel === "high") 
+                        ? t.riskLevel as "low" | "medium" | "high" 
+                        : undefined
+            }))}
             title="Active Transactions"
             description="Transactions currently assigned to you"
             onViewDetails={handleViewDetails}

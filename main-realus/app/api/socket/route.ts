@@ -4,6 +4,7 @@ import { createServer } from "http";
 import jwt from "jsonwebtoken";
 import User, { Role } from "@/models/userModel";
 import dbConnect from "@/utils/dbConnect";
+import { setSocketServer } from "@/utils/socketEmitter";
 
 // Global socket.io instance
 let io: SocketIOServer | null = null;
@@ -90,11 +91,14 @@ const initSocketServer = () => {
     console.log("Socket.io server listening on port 3001");
   });
   
+  // Set the socket server in our utility
+  setSocketServer(io);
+  
   return io;
 };
 
 // Get socket.io server instance
-export const getSocketServer = () => {
+const getSocketServer = () => {
   if (!io) {
     return initSocketServer();
   }

@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
         }
         
         console.log('Broker found for agent list:', {
-            id: broker._id.toString(),
+            id: String(broker._id),
             name: broker.name,
             role: broker.role
         });
@@ -51,10 +51,10 @@ export async function GET(req: NextRequest) {
         // Find all agents and TCs that belong to this broker
         const agents = await User.find({ 
             role: { $in: [Role.Agent, Role.Tc] },
-            brokerId: broker.brokerId // Filter by the broker's ID
+            brokerId: String(broker._id) // Filter by the broker's ID
         });
         
-        console.log(`Found ${agents.length} total agents/TCs for broker ${broker.brokerId}`);
+        console.log(`Found ${agents.length} total agents/TCs for broker ${String(broker._id)}`);
         
         // Separate pending and approved agents
         const pendingAgents = agents.filter(agent => !agent.isApproved);
@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
         
         // Format the response data
         const formattedPendingAgents = pendingAgents.map(agent => ({
-            id: agent._id.toString(),
+            id: String(agent._id),
             name: agent.name,
             email: agent.email,
             phone: agent.mobile || 'N/A',
@@ -74,7 +74,7 @@ export async function GET(req: NextRequest) {
         }));
         
         const formattedApprovedAgents = approvedAgents.map(agent => ({
-            id: agent._id.toString(),
+            id: String(agent._id),
             name: agent.name,
             email: agent.email,
             phone: agent.mobile || 'N/A',

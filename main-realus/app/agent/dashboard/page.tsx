@@ -1,19 +1,26 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { TransactionOverviewCard } from "@/components/dashboard/transaction-overview-card"
 import { AIInsightsCard } from "@/components/dashboard/ai-insights-card"
 import { QuickActionsPanel } from "@/components/dashboard/quick-actions-panel"
-import { LiveNotificationsPanel } from "@/components/dashboard/live-notifications-panel"
-import { TransactionListTable } from "@/components/dashboard/transaction-list-table"
+import { TransactionListTable, Transaction } from "@/components/dashboard/transaction-list-table"
 import { AIDelayPredictionWidget } from "@/components/dashboard/ai-delay-prediction-widget"
 import AgentTaskPanel from "@/components/agent/task-panel"
 import { PlusCircle, Upload, CheckSquare, AlertCircle } from "lucide-react"
 import { TransactionStatus } from "@/models/transactionModel"
 
 export default function AgentDashboard() {
+  // Define Action type for QuickActionsPanel
+  type Action = {
+    icon: React.ReactNode;
+    label: string;
+    href: string;
+    variant?: "default" | "secondary" | "outline";
+  }
+
   // State for transactions data
-  const [transactions, setTransactions] = useState([])
+  const [transactions, setTransactions] = useState<Transaction[]>([])
   const [transactionStats, setTransactionStats] = useState({
     total: 0,
     completed: 0,
@@ -54,7 +61,7 @@ export default function AgentDashboard() {
             }
             
             // Process transactions for display
-            const formattedTransactions = data.transactions.map(transaction => {
+            const formattedTransactions: Transaction[] = data.transactions.map((transaction: any) => {
               console.log("Processing transaction:", transaction.transactionId || transaction.id)
               
               // Map transaction status to UI status
@@ -105,19 +112,19 @@ export default function AgentDashboard() {
             // Calculate transaction statistics
             const stats = {
               total: data.transactions.length,
-              completed: data.transactions.filter(t => 
+              completed: data.transactions.filter((t: any) => 
                 t.status === TransactionStatus.Closed || 
                 t.status === TransactionStatus.Approved || 
                 t.status === "Closed" || 
                 t.status === "Approved"
               ).length,
-              pending: data.transactions.filter(t => 
+              pending: data.transactions.filter((t: any) => 
                 t.status === TransactionStatus.New || 
                 t.status === TransactionStatus.InProgress || 
                 t.status === "New" || 
                 t.status === "InProgress"
               ).length,
-              atRisk: data.transactions.filter(t => 
+              atRisk: data.transactions.filter((t: any) => 
                 t.status === TransactionStatus.PendingDocuments || 
                 t.status === TransactionStatus.UnderReview || 
                 t.status === "PendingDocuments" || 
@@ -134,9 +141,9 @@ export default function AgentDashboard() {
             setTransactions(fallbackTransactions)
             setTransactionStats({
               total: fallbackTransactions.length,
-              completed: fallbackTransactions.filter(t => t.status === "completed").length,
-              pending: fallbackTransactions.filter(t => t.status === "pending").length,
-              atRisk: fallbackTransactions.filter(t => t.status === "at_risk").length
+              completed: fallbackTransactions.filter((t: Transaction) => t.status === "completed").length,
+              pending: fallbackTransactions.filter((t: Transaction) => t.status === "pending").length,
+              atRisk: fallbackTransactions.filter((t: Transaction) => t.status === "at_risk").length
             })
           }
         } catch (fetchError) {
@@ -146,9 +153,9 @@ export default function AgentDashboard() {
           setTransactions(fallbackTransactions)
           setTransactionStats({
             total: fallbackTransactions.length,
-            completed: fallbackTransactions.filter(t => t.status === "completed").length,
-            pending: fallbackTransactions.filter(t => t.status === "pending").length,
-            atRisk: fallbackTransactions.filter(t => t.status === "at_risk").length
+            completed: fallbackTransactions.filter((t: Transaction) => t.status === "completed").length,
+            pending: fallbackTransactions.filter((t: Transaction) => t.status === "pending").length,
+            atRisk: fallbackTransactions.filter((t: Transaction) => t.status === "at_risk").length
           })
         } finally {
           setIsLoading(false)
@@ -170,7 +177,11 @@ export default function AgentDashboard() {
   }, [])
   
   // Sample data for demonstration
-  const aiInsightsData = [
+  const aiInsightsData: {
+    id: string;
+    type: "tip" | "warning" | "delay" | "trend";
+    content: string;
+  }[] = [
     {
       id: "1",
       type: "tip",
@@ -188,7 +199,7 @@ export default function AgentDashboard() {
     },
   ]
 
-  const quickActionsData = [
+  const quickActionsData: Action[] = [
     {
       icon: <PlusCircle className="h-6 w-6" />,
       label: "New Transaction",
@@ -212,35 +223,8 @@ export default function AgentDashboard() {
     },
   ]
 
-  const notificationsData = [
-    {
-      id: "1",
-      title: "Document Rejected",
-      message: "The title report for 123 Main St was rejected. Please resubmit with corrections.",
-      time: "30 min ago",
-      read: false,
-      type: "error",
-    },
-    {
-      id: "2",
-      title: "New Task Assigned",
-      message: "You have been assigned a new task: Schedule home inspection for 456 Oak Ave.",
-      time: "2 hours ago",
-      read: false,
-      type: "info",
-    },
-    {
-      id: "3",
-      title: "Transaction Update",
-      message: "Transaction #TR-5432 has moved to the closing phase.",
-      time: "1 day ago",
-      read: true,
-      type: "success",
-    },
-  ]
-
   // Fallback data for when API data is not available
-  const fallbackTransactions = [
+  const fallbackTransactions: Transaction[] = [
     {
       id: "TR-7829",
       property: "123 Main St, Austin, TX",
@@ -316,7 +300,6 @@ export default function AgentDashboard() {
           atRisk={transactionStats.atRisk}
           isLoading={isLoading}
         />
-        <LiveNotificationsPanel notifications={notificationsData} />
         <QuickActionsPanel actions={quickActionsData} />
       </div>
 

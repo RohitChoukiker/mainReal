@@ -39,23 +39,23 @@ export async function POST(req: NextRequest) {
         
         if (agent && agent.role === Role.Agent) {
           // Valid agent found
-          agentId = agent._id.toString();
-          brokerId = agent.brokerId; // Get the broker ID from the agent's record
+          agentId = String(agent._id);
+          brokerId = agent.brokerId ? String(agent.brokerId) : "test-broker-id"; // Get the broker ID from the agent's record
           
           console.log("Agent ID:", agentId);
           console.log("Broker ID from agent record:", brokerId);
           
-          if (!brokerId) {
+          if (brokerId === "test-broker-id") {
             console.log("No broker ID found for agent, searching for a broker");
             // If the agent doesn't have a broker ID, try to find a broker
             try {
               const broker = await UserModel.findOne({ role: Role.Broker });
               if (broker) {
-                brokerId = broker._id.toString();
+                brokerId = String(broker._id);
                 console.log("Found broker:", brokerId);
                 
                 // Update the agent with this broker ID for future transactions
-                await UserModel.findByIdAndUpdate(agent._id, { brokerId: brokerId });
+                await UserModel.findByIdAndUpdate(String(agent._id), { brokerId: brokerId });
                 console.log("Updated agent with broker ID:", brokerId);
               }
             } catch (error) {

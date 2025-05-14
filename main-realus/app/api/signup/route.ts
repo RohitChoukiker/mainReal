@@ -14,8 +14,11 @@ export async function POST(req: NextRequest) {
         const { 
             name, email, password, confirmPassword, mobile, 
             companyName, teamName, address, companyPhone, 
-            city, state, pinCode, timeZone, brokerId, role 
+            city, state, pinCode, timeZone, role 
         } = body;
+        
+        // Use let for brokerId since we might need to modify it later
+        let brokerId = body.brokerId;
         
         console.log("Received role:", role);
         

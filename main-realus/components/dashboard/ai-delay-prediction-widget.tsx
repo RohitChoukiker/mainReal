@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress"
 import { Clock, AlertTriangle, CheckCircle } from "lucide-react"
 
-interface DelayPrediction {
+export interface DelayPrediction {
   transactionId: string
   property: string
   currentStage: string

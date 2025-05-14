@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/utils/dbConnect";
 import DocumentModel from "@/models/document";
 import { updateTransactionStatusIfReady } from "@/utils/transactionUtils";
-import { emitToRole } from "@/utils/socketServer";
+import * as socketServer from "@/utils/socketServer";
+const { emitToRole } = socketServer;
 import { Role } from "@/models/userModel";
 
 export async function POST(req: NextRequest) {

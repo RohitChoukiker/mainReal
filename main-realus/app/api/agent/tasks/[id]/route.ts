@@ -4,7 +4,8 @@ import TaskModel, { TaskStatus } from "@/models/taskModel";
 import User, { Role } from "@/models/userModel";
 import jwt from "jsonwebtoken";
 import catchAsync from "@/utils/catchAsync";
-import { emitToRole, emitToTask } from "@/utils/socketServer";
+import * as socketServer from "@/utils/socketServer";
+const { emitToRole, emitToTask } = socketServer;
 import { updateTransactionStatusIfReady } from "@/utils/transactionUtils";
 
 const JWT_SECRET = "123123123 " as string;

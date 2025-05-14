@@ -1,5 +1,18 @@
-import { getSocketServer } from "@/app/api/socket/route";
+import { Server as SocketIOServer } from "socket.io";
 import { Role } from "@/models/userModel";
+
+// Global variable to store the Socket.IO server instance
+let io: SocketIOServer | null = null;
+
+// Function to get or set the socket server instance
+export const getSocketServer = () => {
+  return io;
+};
+
+export const setSocketServer = (socketServer: SocketIOServer) => {
+  io = socketServer;
+  return io;
+};
 
 // Emit task created event to all TC users
 export const emitTaskCreated = (task: any) => {

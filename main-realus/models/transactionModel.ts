@@ -17,7 +17,9 @@ export enum TransactionStatus {
   ReadyForClosure = "ReadyForClosure",
   ForwardedToBroker = "ForwardedToBroker",
   Approved = "Approved",
-  Closed = "Closed",
+  ApprovedForClosure = "approved_for_closure",
+  ClosureRejected = "closure_rejected",
+  Closed = "closed",
   Cancelled = "Cancelled",
 }
 
@@ -39,6 +41,8 @@ export interface Transaction extends Document {
   closingDate: Date;
   status: TransactionStatus;
   notes?: string;
+  brokerNotes?: string;
+  closedDate?: Date;
   documents?: Array<{
     name: string;
     url: string;
@@ -77,6 +81,8 @@ const TransactionSchema: Schema<Transaction> = new Schema<Transaction>(
       default: TransactionStatus.New,
     },
     notes: { type: String },
+    brokerNotes: { type: String },
+    closedDate: { type: Date },
     documents: {
       type: [{
         name: { type: String, required: true },

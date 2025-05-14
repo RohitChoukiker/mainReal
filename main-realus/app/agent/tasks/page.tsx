@@ -323,7 +323,7 @@ export default function TasksAssigned() {
         // Create a new array with the updated task
         const updatedTasks = tasks.map(task => 
           task.id === taskId 
-            ? { ...task, status: "completed" } 
+            ? { ...task, status: "completed" as const } 
             : task
         );
         
@@ -361,7 +361,7 @@ export default function TasksAssigned() {
       // If API call is successful, update the UI
       const updatedTasks = tasks.map(task => 
         task.id === taskId 
-          ? { ...task, status: "completed" } 
+          ? { ...task, status: "completed" as const } 
           : task
       );
       
@@ -423,7 +423,19 @@ export default function TasksAssigned() {
                       <div className="font-medium">
                         {task.title}
                         {/* Add a "NEW" badge for tasks created in the last hour */}
-                        {new Date(task.id.substring(0, 8) + "0000000000000", 16).getTime() > Date.now() - 3600000 && (
+                        {task.id.startsWith('task-') && 
+                          (() => {
+                            try {
+                              const parts = task.id.split('-');
+                              if (parts.length >= 2) {
+                                const timestamp = parseInt(parts[1]);
+                                return !isNaN(timestamp) && timestamp > Date.now() - 3600000;
+                              }
+                              return false;
+                            } catch (e) {
+                              return false;
+                            }
+                          })() && (
                           <Badge className="ml-2 bg-red-500 text-white animate-pulse">NEW</Badge>
                         )}
                       </div>

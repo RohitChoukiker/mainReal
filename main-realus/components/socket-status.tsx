@@ -10,7 +10,8 @@ export function SocketStatus() {
   
   useEffect(() => {
     if (error) {
-      setStatus(`Error: ${error.message}`)
+      // Simply convert to string to avoid type issues
+      setStatus(`Error: ${String(error)}`)
     } else if (!socket) {
       setStatus("Initializing socket...")
     } else if (!isConnected) {

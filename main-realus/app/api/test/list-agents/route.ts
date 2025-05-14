@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
         console.log(`Found ${agents.length} total agents/TCs`);
         
         // Format the response data
-        const formattedAgents = agents.map(agent => ({
+        const formattedAgents = agents.map((agent: any) => ({
             id: agent._id.toString(),
             name: agent.name,
             email: agent.email,

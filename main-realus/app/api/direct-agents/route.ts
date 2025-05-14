@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '../../../utils/dbConnect';
-import User, { Role } from '../../../models/userModel';
+import User, { Role, User as UserType } from '../../../models/userModel';
 
 // This is a direct endpoint to list agents without authentication
 // USE THIS ONLY FOR TESTING
@@ -26,11 +26,7 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ message: 'Broker not found' }, { status: 404 });
         }
         
-        console.log('Broker found:', {
-            id: broker._id.toString(),
-            name: broker.name,
-            role: broker.role
-        });
+        
         
         // Find all agents and TCs that belong to this broker
         const agents = await User.find({ 
@@ -41,14 +37,14 @@ export async function GET(req: NextRequest) {
         console.log(`Found ${agents.length} total agents/TCs for broker ${brokerId}`);
         
         // Separate pending and approved agents
-        const pendingAgents = agents.filter(agent => !agent.isApproved);
-        const approvedAgents = agents.filter(agent => agent.isApproved);
+        const pendingAgents = agents.filter((agent: any) => !agent.isApproved);
+        const approvedAgents = agents.filter((agent: any) => agent.isApproved);
         
         console.log(`Pending agents: ${pendingAgents.length}, Approved agents: ${approvedAgents.length}`);
         
         // Format the response data
-        const formattedPendingAgents = pendingAgents.map(agent => ({
-            id: agent._id.toString(),
+        const formattedPendingAgents = pendingAgents.map((agent: any) => ({
+            id: agent._id ? agent._id.toString() : agent.id,
             name: agent.name,
             email: agent.email,
             phone: agent.mobile || 'N/A',
@@ -57,8 +53,8 @@ export async function GET(req: NextRequest) {
             appliedDate: agent.createdAt
         }));
         
-        const formattedApprovedAgents = approvedAgents.map(agent => ({
-            id: agent._id.toString(),
+        const formattedApprovedAgents = approvedAgents.map((agent: any) => ({
+            id: agent._id ? agent._id.toString() : agent.id,
             name: agent.name,
             email: agent.email,
             phone: agent.mobile || 'N/A',

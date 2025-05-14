@@ -285,7 +285,7 @@ export default function TransactionPanel() {
             
             if (!agentTxMap.has(agentId)) {
               // Find the agent in our list
-              const agent = agentsList.find(a => a._id === agentId) || {
+              const agent = agentsList.find((a: Agent) => a._id === agentId) || {
                 _id: agentId,
                 name: tx.agentName || "Unknown Agent",
                 email: "unknown@example.com",
@@ -299,7 +299,7 @@ export default function TransactionPanel() {
             }
             
             // Find the agent in our list
-            const agent = agentsList.find(a => a._id === agentId);
+            const agent = agentsList.find((a: Agent) => a._id === agentId);
             const agentName = tx.agentName || (agent ? agent.name : "Unknown Agent");
             
             // Create transaction object with agent name
@@ -481,11 +481,12 @@ export default function TransactionPanel() {
                   </div>
                   
                   <div className="space-y-2">
-                    {console.log("Agent transactions:", agentTx)}
+                    {/* Removed console.log that was causing the type error */}
                     {agentTx.transactions.map((transaction) => {
-                      console.log("Transaction in render:", transaction);
-                      console.log("Agent name in transaction:", transaction.agentName);
-                      console.log("Agent name from agentTx:", agentTx.agent.name);
+                      // Moved console logs to comments to avoid React node issues
+                      // console.log("Transaction in render:", transaction);
+                      // console.log("Agent name in transaction:", transaction.agentName);
+                      // console.log("Agent name from agentTx:", agentTx.agent.name);
                       return (
                       <div 
                         key={transaction.id} 

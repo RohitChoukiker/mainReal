@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/utils/dbConnect";
-import TransactionModel from "@/models/transactionModel";
+import TransactionModel, { TransactionStatus } from "@/models/transactionModel";
 import ClosureRequestModel from "@/models/closureRequestModel";
-import User from "@/models/userModel";
+import User, { Role } from "@/models/userModel";
 import jwt from "jsonwebtoken";
 import { sendEmail } from '@/lib/email';
 
@@ -30,9 +30,9 @@ export async function GET(request: NextRequest) {
         // Find the broker in the database
         const broker = await User.findById(decoded.id);
         
-        if (broker && broker.role === "broker") {
+        if (broker && broker.role === Role.Broker) {
           // Use the broker's ID
-          brokerId = broker._id.toString();
+          brokerId = String(broker._id);
           console.log("Found broker with ID:", brokerId);
         }
       } catch (error) {
@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
     const formattedRequests = closureRequests.map(request => {
       const totalDocuments = request.transaction.documents ? request.transaction.documents.length : 0;
       const verifiedDocuments = request.transaction.documents ? 
-        request.transaction.documents.filter(doc => doc.status === "verified").length : 0;
+        request.transaction.documents.filter((doc: { status: string }) => doc.status === "verified").length : 0;
       
       // Format dates
       const closingDate = request.transaction.closingDate instanceof Date ? 
@@ -164,9 +164,9 @@ export async function POST(request: NextRequest) {
         // Find the broker in the database
         const broker = await User.findById(decoded.id);
         
-        if (broker && broker.role === "broker") {
+        if (broker && broker.role === Role.Broker) {
           // Use the broker's ID
-          brokerId = broker._id.toString();
+          brokerId = String(broker._id);
           console.log("Found broker with ID:", brokerId);
         }
       } catch (error) {
@@ -216,15 +216,21 @@ export async function POST(request: NextRequest) {
           .populate('tc');
 
         if (transaction) {
+          // Type assertion for populated fields
+          const transactionWithPopulated = transaction as any;
+          
           const emailData = {
-            to: [transaction.agent.email, transaction.tc.email],
+            to: [
+              transactionWithPopulated.agent?.email || 'agent@example.com',
+              transactionWithPopulated.tc?.email || 'tc@example.com'
+            ],
             subject: `Closure Request ${status.charAt(0).toUpperCase() + status.slice(1)}`,
             template: 'closure-status-update',
             data: {
               transactionId: transaction.id,
               status: status,
               notes: notes || '',
-              property: transaction.property,
+              property: transactionWithPopulated.property || { address: 'Unknown' },
               closingDate: transaction.closingDate
             }
           };
@@ -235,7 +241,7 @@ export async function POST(request: NextRequest) {
       
       // Update the transaction status if needed
       if (status === "approved" || status === "rejected") {
-        const transactionStatus = status === "approved" ? "approved_for_closure" : "closure_rejected";
+        const transactionStatus = status === "approved" ? TransactionStatus.ApprovedForClosure : TransactionStatus.ClosureRejected;
         
         try {
           const transaction = await TransactionModel.findById(updatedRequest.transactionId);
@@ -259,7 +265,7 @@ export async function POST(request: NextRequest) {
           const transaction = await TransactionModel.findById(updatedRequest.transactionId);
           
           if (transaction) {
-            transaction.status = "closed";
+            transaction.status = TransactionStatus.Closed;
             transaction.brokerNotes = notes || "";
             transaction.closedDate = new Date();
             await transaction.save();

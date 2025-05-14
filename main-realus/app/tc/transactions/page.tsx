@@ -51,6 +51,51 @@ interface Transaction {
   completionPercentage: number
 }
 
+// Helper function to map API status strings to Transaction status enum values
+function mapApiStatusToTransactionStatus(apiStatus: string): Transaction["status"] {
+  // Convert to lowercase and remove spaces for consistent comparison
+  const normalizedStatus = apiStatus.toLowerCase().replace(/\s+/g, '');
+  
+  switch (normalizedStatus) {
+    case 'new':
+      return "New";
+    case 'inprogress':
+    case 'in_progress':
+    case 'in-progress':
+      return "InProgress";
+    case 'pendingdocuments':
+    case 'pending_documents':
+    case 'pending-documents':
+      return "PendingDocuments";
+    case 'underreview':
+    case 'under_review':
+    case 'under-review':
+    case 'at_risk':
+    case 'at-risk':
+      return "UnderReview";
+    case 'readyforclosure':
+    case 'ready_for_closure':
+    case 'ready-for-closure':
+      return "ReadyForClosure";
+    case 'forwardedtobroker':
+    case 'forwarded_to_broker':
+    case 'forwarded-to-broker':
+      return "ForwardedToBroker";
+    case 'approved':
+      return "Approved";
+    case 'closed':
+    case 'completed':
+      return "Closed";
+    case 'cancelled':
+    case 'canceled':
+      return "Cancelled";
+    default:
+      // Default to "New" if status is unknown
+      console.warn(`Unknown status: ${apiStatus}, defaulting to "New"`);
+      return "New";
+  }
+}
+
 export default function TCTransactions() {
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
@@ -163,7 +208,7 @@ export default function TCTransactions() {
               name: t.agentId || "Unknown Agent",
               avatar: "/placeholder.svg?height=40&width=40",
             },
-            status: (t.status || "pending") as any,
+            status: (t.status ? mapApiStatusToTransactionStatus(t.status) : "New") as Transaction["status"],
             createdDate,
             closingDate,
             price: formattedPrice,
@@ -188,7 +233,7 @@ export default function TCTransactions() {
               name: "Unknown Agent",
               avatar: "/placeholder.svg?height=40&width=40",
             },
-            status: "pending" as any,
+            status: "New" as Transaction["status"],
             createdDate: "N/A",
             closingDate: "N/A",
             price: "$0",
@@ -214,10 +259,10 @@ export default function TCTransactions() {
     }
   }, [apiTransactions, isLoading]);
 
-  const activeTransactions = transactions.filter((t) => t.status !== "completed" && t.status !== "cancelled" && t.status !== "ready_for_closure")
-  const atRiskTransactions = transactions.filter((t) => t.status === "at_risk")
-  const readyForClosureTransactions = transactions.filter((t) => t.status === "ready_for_closure")
-  const completedTransactions = transactions.filter((t) => t.status === "completed")
+  const activeTransactions = transactions.filter((t) => t.status !== "Closed" && t.status !== "Cancelled" && t.status !== "ReadyForClosure")
+  const atRiskTransactions = transactions.filter((t) => t.status === "UnderReview") // Using UnderReview as equivalent to at_risk
+  const readyForClosureTransactions = transactions.filter((t) => t.status === "ReadyForClosure")
+  const completedTransactions = transactions.filter((t) => t.status === "Closed")
 
   // Apply filters
   let filteredTransactions = transactions
@@ -437,12 +482,15 @@ export default function TCTransactions() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="in_progress">In Progress</SelectItem>
-                    <SelectItem value="at_risk">At Risk</SelectItem>
-                    <SelectItem value="ready_for_closure">Ready for Closure</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                    <SelectItem value="New">New</SelectItem>
+                    <SelectItem value="InProgress">In Progress</SelectItem>
+                    <SelectItem value="PendingDocuments">Pending Documents</SelectItem>
+                    <SelectItem value="UnderReview">Under Review</SelectItem>
+                    <SelectItem value="ReadyForClosure">Ready for Closure</SelectItem>
+                    <SelectItem value="ForwardedToBroker">Forwarded to Broker</SelectItem>
+                    <SelectItem value="Approved">Approved</SelectItem>
+                    <SelectItem value="Closed">Closed</SelectItem>
+                    <SelectItem value="Cancelled">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -459,20 +507,20 @@ export default function TCTransactions() {
 
               <TabsContent value="active">
                 {renderTransactionTable(
-                  filteredTransactions.filter((t) => t.status !== "completed" && t.status !== "cancelled"),
+                  filteredTransactions.filter((t) => t.status !== "Closed" && t.status !== "Cancelled"),
                 )}
               </TabsContent>
 
               <TabsContent value="at_risk">
-                {renderTransactionTable(filteredTransactions.filter((t) => t.status === "at_risk"))}
+                {renderTransactionTable(filteredTransactions.filter((t) => t.status === "UnderReview"))}
               </TabsContent>
 
               <TabsContent value="ready_for_closure">
-                {renderTransactionTable(filteredTransactions.filter((t) => t.status === "ready_for_closure"))}
+                {renderTransactionTable(filteredTransactions.filter((t) => t.status === "ReadyForClosure"))}
               </TabsContent>
 
               <TabsContent value="completed">
-                {renderTransactionTable(filteredTransactions.filter((t) => t.status === "completed"))}
+                {renderTransactionTable(filteredTransactions.filter((t) => t.status === "Closed"))}
               </TabsContent>
             </Tabs>
           </CardContent>

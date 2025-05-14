@@ -29,10 +29,12 @@ export async function GET(request: NextRequest) {
       let agentName = "Unknown Agent";
       let agentAvatar = "/placeholder.svg?height=40&width=40";
       
-      if (transaction.agent) {
-        if (typeof transaction.agent === 'object') {
-          agentName = transaction.agent.name || "Agent";
-          agentAvatar = transaction.agent.avatar || "/placeholder.svg?height=40&width=40";
+      // Use type assertion to safely check for agent property
+      const transactionAny = transaction as any;
+      if (transactionAny.agent) {
+        if (typeof transactionAny.agent === 'object') {
+          agentName = transactionAny.agent.name || "Agent";
+          agentAvatar = transactionAny.agent.avatar || "/placeholder.svg?height=40&width=40";
         } else {
           agentName = `Agent ${transaction.agentId}`;
         }
@@ -51,11 +53,11 @@ export async function GET(request: NextRequest) {
         completionPercentage: calculateCompletionPercentage(transaction),
         documents: {
           total: transaction.documents?.length || 0,
-          verified: transaction.documents?.filter(doc => doc.approved).length || 0
+          verified: transaction.documents?.filter((doc: any) => doc.approved).length || 0
         },
         tasks: {
-          total: transaction.tasks?.length || 0,
-          completed: transaction.tasks?.filter(task => task.completed).length || 0
+          total: (transactionAny.tasks?.length) || 0,
+          completed: (transactionAny.tasks?.filter((task: any) => task.completed).length) || 0
         }
       };
     });
@@ -72,12 +74,15 @@ export async function GET(request: NextRequest) {
 
 // Helper function to calculate completion percentage
 function calculateCompletionPercentage(transaction: any): number {
-  const totalItems = (transaction.documents?.length || 0) + (transaction.tasks?.length || 0);
+  // Cast to any to safely access properties that might not be in the interface
+  const transactionAny = transaction as any;
+  
+  const totalItems = (transaction.documents?.length || 0) + (transactionAny.tasks?.length || 0);
   if (totalItems === 0) return 0;
   
   const completedItems = 
-    (transaction.documents?.filter(doc => doc.approved).length || 0) + 
-    (transaction.tasks?.filter(task => task.completed).length || 0);
+    (transaction.documents?.filter((doc: any) => doc.approved).length || 0) + 
+    (transactionAny.tasks?.filter((task: any) => task.completed).length || 0);
   
   return Math.round((completedItems / totalItems) * 100);
 }
@@ -159,11 +164,13 @@ export async function POST(request: NextRequest) {
 
         // Send email notification to broker if broker email is available
         try {
-          if (transaction.broker && transaction.broker.email) {
-            console.log(`Sending email notification to broker: ${transaction.broker.email}`);
+          // Cast to any to safely access broker property
+          const transactionAny = transaction as any;
+          if (transactionAny.broker && transactionAny.broker.email) {
+            console.log(`Sending email notification to broker: ${transactionAny.broker.email}`);
             
             const emailData = {
-              to: transaction.broker.email,
+              to: transactionAny.broker.email,
               subject: "New Closure Request",
               template: 'new-closure-request',
               data: {
@@ -174,7 +181,7 @@ export async function POST(request: NextRequest) {
               }
             };
             await sendEmail(emailData);
-            console.log(`Email notification sent to broker: ${transaction.broker.email}`);
+            console.log(`Email notification sent to broker: ${transactionAny.broker.email}`);
           } else {
             console.log("Broker email not available, skipping email notification");
           }

@@ -52,10 +52,12 @@ export function useMessagePolling({
       setError(null);
     } catch (error) {
       console.error("Error fetching messages:", error);
-      setError(error);
+      // Convert unknown error to Error object
+      const errorObject = error instanceof Error ? error : new Error(String(error));
+      setError(errorObject);
       
       if (onError) {
-        onError(error);
+        onError(errorObject);
       }
     } finally {
       if (showLoading) {
@@ -87,10 +89,12 @@ export function useMessagePolling({
       return true;
     } catch (error) {
       console.error("Error sending message:", error);
-      setError(error);
+      // Convert unknown error to Error object
+      const errorObject = error instanceof Error ? error : new Error(String(error));
+      setError(errorObject);
       
       if (onError) {
-        onError(error);
+        onError(errorObject);
       }
       
       return false;

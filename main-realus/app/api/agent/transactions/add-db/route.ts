@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/utils/dbConnect";
-import TransactionModel from "@/models/transactionModel";
-import User from "@/models/userModel";
+import TransactionModel, { TransactionType, TransactionStatus } from "@/models/transactionModel";
+import User, { User as UserType } from "@/models/userModel";
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 
-const JWT_SECRET = "123123123 " as string;
+// Use environment variable for JWT secret with a fallback for development
+const JWT_SECRET = process.env.JWT_SECRET || "123123123";
 
 export async function POST(req: NextRequest) {
   console.log("Transaction creation API called");
@@ -69,7 +71,7 @@ export async function POST(req: NextRequest) {
         console.log("Token decoded:", decoded);
         
         // Find the agent in the database
-        const agent = await User.findById(decoded.id);
+        const agent = await User.findById(decoded.id) as UserType | null;
         console.log("Agent found:", agent ? "Yes" : "No");
         
         if (!agent) {
@@ -92,8 +94,18 @@ export async function POST(req: NextRequest) {
           */
         } else {
           // Valid agent found
-          agentId = agent._id.toString();
-          brokerId = agent.brokerId; // Get the broker ID from the agent's record
+          // Safely access the agent document properties
+          if (agent._id) {
+            agentId = agent._id.toString();
+          }
+          
+          // Handle the case where brokerId might be undefined
+          if (agent.brokerId) {
+            brokerId = agent.brokerId; // Get the broker ID from the agent's record
+          } else {
+            // Keep the default value set earlier
+            console.log("No broker ID found in agent document, using default");
+          }
           
           console.log("Agent ID:", agentId);
           console.log("Broker ID from agent record:", brokerId);
@@ -128,21 +140,35 @@ export async function POST(req: NextRequest) {
     // Find a TC to assign the transaction to
     let transactionCoordinatorId = null;
     try {
-      // Find TCs in the system
-      const tcs = await User.find({ role: "Tc" });
+      // Find TCs in the system - use proper Role enum
+      const tcs = await User.find({ role: "TransactionCoordinator" });
       console.log(`Found ${tcs.length} TCs in the system`);
       
       if (tcs.length > 0) {
         // Simple round-robin assignment - get a random TC
         const randomIndex = Math.floor(Math.random() * tcs.length);
-        transactionCoordinatorId = tcs[randomIndex]._id.toString();
-        console.log(`Assigned transaction to TC with ID: ${transactionCoordinatorId}`);
+        // Safely access the _id and convert to string
+        if (tcs[randomIndex]?._id) {
+          transactionCoordinatorId = tcs[randomIndex]._id.toString();
+          console.log(`Assigned transaction to TC with ID: ${transactionCoordinatorId}`);
+        } else {
+          console.log("Selected TC has no valid ID, transaction will be unassigned");
+        }
       } else {
         console.log("No TCs found in the system, transaction will be unassigned");
       }
     } catch (tcError) {
       console.error("Error finding TCs:", tcError);
       // Continue without assigning a TC
+    }
+
+    // Validate transaction type
+    if (!Object.values(TransactionType).includes(body.transactionType as TransactionType)) {
+      console.log(`Invalid transaction type: ${body.transactionType}`);
+      return NextResponse.json(
+        { message: `Invalid transaction type. Must be one of: ${Object.values(TransactionType).join(', ')}` },
+        { status: 400 }
+      );
     }
 
     // Create new transaction
@@ -154,14 +180,14 @@ export async function POST(req: NextRequest) {
       clientName: body.clientName,
       clientEmail: body.clientEmail,
       clientPhone: body.clientPhone,
-      transactionType: body.transactionType,
+      transactionType: body.transactionType as TransactionType,
       propertyAddress: body.propertyAddress,
       city: body.city,
       state: body.state,
       zipCode: body.zipCode,
       price: parseFloat(body.price),
       closingDate: new Date(body.closingDate),
-      status: "New",
+      status: TransactionStatus.New,
       notes: body.notes || "",
     });
 
@@ -195,9 +221,26 @@ export async function POST(req: NextRequest) {
     }
   } catch (error) {
     console.error("Error creating transaction:", error);
-    return NextResponse.json(
-      { message: "Failed to create transaction", error: String(error) },
-      { status: 500 }
-    );
+    
+    // Provide more specific error messages based on error type
+    if (error instanceof mongoose.Error.ValidationError) {
+      return NextResponse.json(
+        { 
+          message: "Validation error in transaction data", 
+          errors: Object.values(error.errors).map(err => err.message)
+        },
+        { status: 400 }
+      );
+    } else if (error instanceof mongoose.Error.CastError) {
+      return NextResponse.json(
+        { message: "Invalid data format", error: error.message },
+        { status: 400 }
+      );
+    } else {
+      return NextResponse.json(
+        { message: "Failed to create transaction", error: String(error) },
+        { status: 500 }
+      );
+    }
   }
 }

@@ -46,7 +46,7 @@ export const GET = catchAsync(async (req: NextRequest) => {
             decoded.id,
             agent.name,
             agent.email,
-            agent._id.toString()
+            agent._id ? agent._id.toString() : undefined
           ].filter(Boolean); // Remove any undefined/null values
           
           query.$or = [

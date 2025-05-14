@@ -41,17 +41,16 @@ export async function POST(req: NextRequest) {
         
         if (agent && agent.role === Role.Agent) {
           // Valid agent found
-          agentId = agent._id.toString();
-          brokerId = agent.brokerId; // Get the broker ID from the agent's record
+          agentId = String(agent._id);
+          brokerId = agent.brokerId ? String(agent.brokerId) : "test-broker-id"; // Get the broker ID from the agent's record, ensure it's a string
           
           console.log("Agent ID:", agentId);
           console.log("Broker ID from agent record:", brokerId);
           
           // Use the broker ID directly from the agent's record
           // No need to search for a broker or update the agent
-          if (!brokerId) {
+          if (brokerId === "test-broker-id") {
             console.log("No broker ID found for agent, using fallback");
-            brokerId = "test-broker-id"; // Fallback if no broker ID is found
           } else {
             console.log("Using broker ID from agent record:", brokerId);
             // We'll use the broker ID exactly as stored in the agent's record

@@ -1,16 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/utils/dbConnect";
-import mongoose from "mongoose";
+import mongoose, { Document, Model, Schema } from "mongoose";
+
+// Define the Complaint interface
+interface IComplaint extends Document {
+  id: string;
+  title: string;
+  transactionId: string;
+  property: string;
+  submittedDate: string;
+  status: "new" | "in_progress" | "resolved" | "escalated";
+  priority: "low" | "medium" | "high";
+  description: string;
+  category: string;
+  response?: string;
+  agentId: string;
+  assignedTo?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 // Define a simple schema for complaints if it doesn't exist
-let ComplaintModel;
+let ComplaintModel: Model<IComplaint>;
 
 try {
   // Try to get the existing model
-  ComplaintModel = mongoose.model("Complaint");
+  ComplaintModel = mongoose.model<IComplaint>("Complaint");
 } catch (error) {
   // Model doesn't exist yet, create it
-  const ComplaintSchema = new mongoose.Schema(
+  const ComplaintSchema = new Schema<IComplaint>(
     {
       id: { type: String, required: true, unique: true },
       title: { type: String, required: true },
@@ -36,7 +54,7 @@ try {
     { timestamps: true }
   );
 
-  ComplaintModel = mongoose.model("Complaint", ComplaintSchema);
+  ComplaintModel = mongoose.model<IComplaint>("Complaint", ComplaintSchema);
 }
 
 // GET handler to fetch complaints for TC
@@ -51,11 +69,11 @@ export async function GET(req: NextRequest) {
     const tcId = url.searchParams.get("tcId") || "tc-123"; // Default for testing
     
     // Build query
-    let query: any = {};
+    let query: mongoose.FilterQuery<IComplaint> = {};
     
     // Filter by status if provided
     if (status) {
-      query.status = status;
+      query.status = status as IComplaint['status'];
     }
     
     // Filter by assigned TC or unassigned complaints

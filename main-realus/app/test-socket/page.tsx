@@ -7,6 +7,13 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { SocketStatus } from "@/components/socket-status"
 import { useSocket } from "@/utils/useSocket"
 
+// Define a socket interface to help with type checking
+interface Socket {
+  on: (event: string, callback: (data: any) => void) => void;
+  off: (event: string, callback: (data: any) => void) => void;
+  emit: (event: string, data?: any) => void;
+}
+
 export default function TestSocketPage() {
   const { socket, isConnected, isAuthenticated } = useSocket()
   const [messages, setMessages] = useState<string[]>([])
@@ -20,14 +27,17 @@ export default function TestSocketPage() {
       setMessages(prev => [...prev, `Received: ${data.message}`])
     }
     
-    socket.on('test_message', handleTestMessage)
+    // Type assertion to ensure TypeScript knows socket has the expected methods
+    const socketWithMethods = socket as unknown as Socket;
+    
+    socketWithMethods.on('test_message', handleTestMessage)
     
     // Join test room
-    socket.emit('join_task', 'test-room')
+    socketWithMethods.emit('join_task', 'test-room')
     
     return () => {
-      socket.off('test_message', handleTestMessage)
-      socket.emit('leave_task', 'test-room')
+      socketWithMethods.off('test_message', handleTestMessage)
+      socketWithMethods.emit('leave_task', 'test-room')
     }
   }, [socket, isConnected, isAuthenticated])
   
@@ -35,7 +45,9 @@ export default function TestSocketPage() {
     if (!socket || !isConnected || !isAuthenticated || !inputValue.trim()) return
     
     // Send message to server
-    socket.emit('test_message', { 
+    const socketWithMethods = socket as unknown as Socket;
+    
+    socketWithMethods.emit('test_message', { 
       message: inputValue,
       room: 'test-room'
     })

@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ 
                 message: 'All brokers',
                 brokers: brokers.map(broker => ({
-                    id: broker._id.toString(),
+                    id: String(broker._id),
                     name: broker.name,
                     email: broker.email,
                     brokerId: broker.brokerId
@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
         
         return NextResponse.json({ 
             broker: {
-                id: broker._id.toString(),
+                id: String(broker._id),
                 name: broker.name,
                 email: broker.email,
                 brokerId: broker.brokerId
@@ -55,14 +55,14 @@ export async function GET(req: NextRequest) {
             pendingAgentsCount: pendingAgents.length,
             approvedAgentsCount: approvedAgents.length,
             pendingAgents: pendingAgents.map(agent => ({
-                id: agent._id.toString(),
+                id: String(agent._id),
                 name: agent.name,
                 email: agent.email,
                 role: agent.role,
                 createdAt: agent.createdAt
             })),
             approvedAgents: approvedAgents.map(agent => ({
-                id: agent._id.toString(),
+                id: String(agent._id),
                 name: agent.name,
                 email: agent.email,
                 role: agent.role,

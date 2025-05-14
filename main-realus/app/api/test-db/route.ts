@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
     
     // Check connection status
     const connectionState = mongoose.connection.readyState;
-    const stateMap = {
+    const stateMap: Record<number, string> = {
       0: "disconnected",
       1: "connected",
       2: "connecting",
@@ -20,14 +20,19 @@ export async function GET(req: NextRequest) {
     const dbName = mongoose.connection.name;
     
     // Get collections
-    const collections = await mongoose.connection.db.collections();
-    const collectionNames = collections.map(c => c.collectionName);
+    let collectionNames: string[] = [];
+    if (mongoose.connection.db) {
+      const collections = await mongoose.connection.db.collections();
+      collectionNames = collections.map(c => c.collectionName);
+    } else {
+      console.warn("Database connection not fully established yet");
+    }
     
     return NextResponse.json({
       status: "success",
       connection: {
         state: connectionState,
-        stateDescription: stateMap[connectionState],
+        stateDescription: stateMap[connectionState as number] || "unknown",
         database: dbName,
         collections: collectionNames,
       }

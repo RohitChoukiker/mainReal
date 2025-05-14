@@ -45,7 +45,7 @@ export const GET = catchAsync(async (req: NextRequest) => {
         
         if (broker && broker.role === Role.Broker) {
           // Use the broker's brokerId field if available, otherwise use the database ID
-          brokerId = broker.brokerId || broker._id.toString();
+          brokerId = broker.brokerId || String(broker._id);
           console.log("Found broker with ID:", brokerId);
         }
       } catch (error) {
@@ -64,7 +64,7 @@ export const GET = catchAsync(async (req: NextRequest) => {
           // Try to find any broker in the system
           const anyBroker = await User.findOne({ role: Role.Broker });
           if (anyBroker) {
-            brokerId = anyBroker._id.toString();
+            brokerId = String(anyBroker._id);
             console.log("Using broker ID from database:", brokerId);
           }
         } catch (err) {
@@ -119,15 +119,15 @@ export const GET = catchAsync(async (req: NextRequest) => {
           const agent = await User.findById(transactions[i].agentId);
           if (agent) {
             // Add agent name to transaction
-            (transactions[i] as any).agentName = agent.name || `${agent.firstName || ''} ${agent.lastName || ''}`.trim() || "Unknown Agent";
-            console.log(`Added agent name "${(transactions[i] as any).agentName}" to transaction ${transactions[i].transactionId || transactions[i]._id}`);
+            (transactions[i] as any).agentName = agent.name || "Unknown Agent";
+            console.log(`Added agent name "${(transactions[i] as any).agentName}" to transaction ${transactions[i].transactionId || String(transactions[i]._id)}`);
           } else {
             // If agent not found, set a default name
             (transactions[i] as any).agentName = "Unknown Agent";
-            console.log(`Agent not found for transaction ${transactions[i].transactionId || transactions[i]._id}, using default name`);
+            console.log(`Agent not found for transaction ${transactions[i].transactionId || String(transactions[i]._id)}, using default name`);
           }
         } catch (error) {
-          console.error(`Error finding agent for transaction ${transactions[i].transactionId || transactions[i]._id}:`, error);
+          console.error(`Error finding agent for transaction ${transactions[i].transactionId || String(transactions[i]._id)}:`, error);
           // Set a default name in case of error
           (transactions[i] as any).agentName = "Unknown Agent";
         }
@@ -159,7 +159,7 @@ export const GET = catchAsync(async (req: NextRequest) => {
                 const agent = await User.findById(transactions[i].agentId);
                 if (agent) {
                   // Add agent name to transaction
-                  (transactions[i] as any).agentName = agent.name || `${agent.firstName || ''} ${agent.lastName || ''}`.trim() || "Unknown Agent";
+                  (transactions[i] as any).agentName = agent.name || "Unknown Agent";
                   console.log(`Added agent name "${(transactions[i] as any).agentName}" to in-memory transaction ${i}`);
                 } else {
                   // If agent not found, set a default name
@@ -242,7 +242,7 @@ export const POST = catchAsync(async (req: NextRequest) => {
           
           if (broker && broker.role === Role.Broker) {
             // Use the broker's brokerId field if available, otherwise use the database ID
-            brokerId = broker.brokerId || broker._id.toString();
+            brokerId = broker.brokerId || String(broker._id);
             console.log("Found broker with ID:", brokerId);
           }
         } catch (error) {
@@ -308,7 +308,7 @@ export const POST = catchAsync(async (req: NextRequest) => {
         try {
           const agent = await User.findById(agentId);
           if (agent) {
-            agentName = agent.name || `${agent.firstName} ${agent.lastName}`.trim() || agentName;
+            agentName = agent.name || agentName;
           }
         } catch (error) {
           console.error(`Error finding agent ${agentId}:`, error);
@@ -353,7 +353,7 @@ export const POST = catchAsync(async (req: NextRequest) => {
       
       // Calculate average time to close
       const avgTimeToClose = agent.closedTransactionsDays.length > 0
-        ? Math.round(agent.closedTransactionsDays.reduce((sum, days) => sum + days, 0) / agent.closedTransactionsDays.length)
+        ? Math.round(agent.closedTransactionsDays.reduce((sum: number, days: number) => sum + days, 0) / agent.closedTransactionsDays.length)
         : 0;
       
       return {

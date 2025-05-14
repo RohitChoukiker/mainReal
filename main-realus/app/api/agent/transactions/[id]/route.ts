@@ -3,14 +3,16 @@ import dbConnect from "@/utils/dbConnect";
 import TransactionModel from "@/models/transactionModel";
 
 export async function GET(
-  req: NextRequest,
-  { params }: { params: { id: string } }
+  req: NextRequest
 ) {
   try {
     // Connect to database
     await dbConnect();
     
-    const transactionId = params.id;
+    // Extract the transaction ID from the URL path
+    const url = new URL(req.url);
+    const pathParts = url.pathname.split('/');
+    const transactionId = pathParts[pathParts.length - 1]; // Get the ID from the URL path
     
     // Find transaction by ID
     const transaction = await TransactionModel.findOne({ transactionId });

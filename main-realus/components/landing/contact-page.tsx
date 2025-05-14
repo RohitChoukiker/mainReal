@@ -1,10 +1,14 @@
- {/* Contact Section */}
- <section
- id="contact"
- className="py-16 bg-gradient-to-br from-blue-50 to-indigo-50"
+import { motion } from "framer-motion";
+import { MapPin, Phone, Mail, Clock } from "lucide-react";
+import Image from "next/image";
+
+{/* Contact Section */}
+<section
+  id="contact"
+  className="py-16 bg-gradient-to-br from-blue-50 to-indigo-50"
 >
- <div className="container mx-auto px-4">
-   <motion.div
+  <div className="container mx-auto px-4">
+    <motion.div
      className="text-center mb-12"
      initial={{ opacity: 0, y: 20 }}
      whileInView={{ opacity: 1, y: 0 }}

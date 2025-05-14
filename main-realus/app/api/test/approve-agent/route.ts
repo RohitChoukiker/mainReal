@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
         }
         
         // Find the agent by ID
-        const agent = await User.findById(agentId);
+        const agent = await User.findById(agentId) as any;
         
         if (!agent) {
             console.log('Agent not found with ID:', agentId);

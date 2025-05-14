@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
-interface Action {
+export interface Action {
   icon: React.ReactNode
   label: string
   href: string

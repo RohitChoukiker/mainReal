@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
         }
         
         console.log('Agent found:', {
-            id: agent._id.toString(),
+            id: String(agent._id),
             name: agent.name,
             role: agent.role,
             isApproved: agent.isApproved
@@ -92,8 +92,13 @@ export async function POST(req: NextRequest) {
         // Get the updated agent
         const updatedAgent = await User.findById(agentId);
         
+        if (!updatedAgent) {
+            console.log('Failed to retrieve updated agent with ID:', agentId);
+            return NextResponse.json({ message: 'Agent was updated but could not be retrieved' }, { status: 500 });
+        }
+        
         console.log('Agent updated successfully:', {
-            id: updatedAgent._id.toString(),
+            id: String(updatedAgent._id),
             name: updatedAgent.name,
             isApproved: updatedAgent.isApproved
         });
@@ -101,7 +106,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ 
             message: approved ? 'Agent approved successfully' : 'Agent rejected successfully',
             agent: {
-                id: updatedAgent._id,
+                id: String(updatedAgent._id),
                 name: updatedAgent.name,
                 email: updatedAgent.email,
                 isApproved: updatedAgent.isApproved

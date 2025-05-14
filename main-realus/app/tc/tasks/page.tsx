@@ -192,11 +192,7 @@ export default function TaskManagement() {
             return
           }
           
-          toast({
-            title: "Error loading tasks",
-            description: `Server returned ${tasksResponse.status}: ${tasksResponse.statusText}`,
-            variant: "destructive"
-          })
+          toast.error(`Error loading tasks: Server returned ${tasksResponse.status}: ${tasksResponse.statusText}`)
           return
         }
         
@@ -295,11 +291,7 @@ export default function TaskManagement() {
             return
           }
           
-          toast({
-            title: "Error loading tasks",
-            description: `Server returned ${tasksResponse.status}: ${tasksResponse.statusText}`,
-            variant: "destructive"
-          })
+          toast.error(`Error loading tasks: Server returned ${tasksResponse.status}: ${tasksResponse.statusText}`)
         }
         
         // Fetch transactions
@@ -310,11 +302,7 @@ export default function TaskManagement() {
         
         if (!transactionsResponse.ok) {
           console.error('Transactions API response not OK:', transactionsResponse.status, transactionsResponse.statusText)
-          toast({
-            title: "Error loading transactions",
-            description: `Server returned ${transactionsResponse.status}: ${transactionsResponse.statusText}`,
-            variant: "destructive"
-          })
+          toast.error(`Error loading transactions: Server returned ${transactionsResponse.status}: ${transactionsResponse.statusText}`)
         }
         
         // Fetch agents
@@ -325,11 +313,7 @@ export default function TaskManagement() {
         
         if (!agentsResponse.ok) {
           console.error('Agents API response not OK:', agentsResponse.status, agentsResponse.statusText)
-          toast({
-            title: "Error loading agents",
-            description: `Server returned ${agentsResponse.status}: ${agentsResponse.statusText}`,
-            variant: "destructive"
-          })
+          toast.error(`Error loading agents: Server returned ${agentsResponse.status}: ${agentsResponse.statusText}`)
         }
         
         // Process responses
@@ -454,11 +438,7 @@ export default function TaskManagement() {
         }
       } catch (error) {
         console.error('Error fetching data:', error)
-        toast({
-          title: "Error loading data",
-          description: "Failed to load tasks and transactions. Please try again.",
-          variant: "destructive"
-        })
+        toast.error("Error loading data: Failed to load tasks and transactions. Please try again.")
       } finally {
         setIsLoading(false)
       }

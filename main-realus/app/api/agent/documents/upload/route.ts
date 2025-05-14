@@ -97,7 +97,10 @@ export async function POST(req: NextRequest) {
       console.log("Document saved to database:", document.documentId);
     } catch (dbError) {
       console.error("Database error:", dbError);
-      throw new Error(`Database operation failed: ${dbError.message}`);
+      const errorMessage = dbError instanceof Error 
+        ? dbError.message 
+        : 'Unknown database error';
+      throw new Error(`Database operation failed: ${errorMessage}`);
     }
     
     // Return success response

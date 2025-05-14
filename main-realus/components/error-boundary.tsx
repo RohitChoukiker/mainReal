@@ -20,20 +20,22 @@ export function ErrorBoundary({ children }: ErrorBoundaryProps) {
       setError(error.error || new Error("An unknown error occurred"))
     }
 
+    const rejectionHandler = (event: PromiseRejectionEvent) => {
+      console.error("Unhandled promise rejection caught by error boundary:", event)
+      setHasError(true)
+      setError(event.reason || new Error("An unhandled promise rejection occurred"))
+    }
+
     // Add event listener for uncaught errors
     window.addEventListener("error", errorHandler)
 
     // Add event listener for unhandled promise rejections
-    window.addEventListener("unhandledrejection", (event) => {
-      console.error("Unhandled promise rejection caught by error boundary:", event)
-      setHasError(true)
-      setError(event.reason || new Error("An unhandled promise rejection occurred"))
-    })
+    window.addEventListener("unhandledrejection", rejectionHandler)
 
     // Cleanup
     return () => {
       window.removeEventListener("error", errorHandler)
-      window.removeEventListener("unhandledrejection", errorHandler)
+      window.removeEventListener("unhandledrejection", rejectionHandler)
     }
   }, [])
 

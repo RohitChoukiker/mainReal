@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '../../../utils/dbConnect';
-import User from '../../../models/userModel';
+import User, { User as UserType } from '../../../models/userModel';
 import mongoose from 'mongoose';
 
 // This is a direct endpoint to approve or reject an agent without any authentication
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
         }
         
         // Find the agent by ID
-        const agent = await User.findById(agentId);
+        const agent = await User.findById(agentId) as UserType;
         
         if (!agent) {
             console.log('Agent not found with ID:', agentId);
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
         }
         
         console.log('Agent found:', {
-            id: agent._id.toString(),
+            id: agent.id.toString(),
             name: agent.name,
             isApproved: agent.isApproved
         });
@@ -56,10 +56,14 @@ export async function POST(req: NextRequest) {
         }
         
         // Get the updated agent
-        const updatedAgent = await User.findById(agentId);
+        const updatedAgent = await User.findById(agentId) as UserType;
+        
+        if (!updatedAgent) {
+            console.log('Failed to retrieve updated agent with ID:', agentId);
+            return NextResponse.json({ message: 'Failed to retrieve updated agent' }, { status: 500 });
+        }
         
         console.log('Agent updated successfully:', {
-            id: updatedAgent._id.toString(),
             name: updatedAgent.name,
             isApproved: updatedAgent.isApproved
         });
@@ -67,7 +71,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ 
             message: approved ? 'Agent approved successfully' : 'Agent rejected successfully',
             agent: {
-                id: updatedAgent._id,
+                id: updatedAgent.id.toString(),
                 name: updatedAgent.name,
                 email: updatedAgent.email,
                 isApproved: updatedAgent.isApproved

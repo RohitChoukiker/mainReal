@@ -11,6 +11,7 @@ import Link from "next/link"
 
 interface Task {
   id: string
+  _id?: string  // Optional MongoDB-style ID
   title: string
   transactionId: string
   property: string

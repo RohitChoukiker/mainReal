@@ -3,7 +3,7 @@ import dbConnect from "@/utils/dbConnect";
 import mongoose from "mongoose";
 
 // Define a simple schema for complaints if it doesn't exist
-let ComplaintModel;
+let ComplaintModel: mongoose.Model<any>;
 
 try {
   // Try to get the existing model

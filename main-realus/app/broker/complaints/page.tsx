@@ -40,6 +40,7 @@ interface Complaint {
   description: string
   category: string
   assignedTo?: string
+  response?: string
 }
 
 export default function BrokerComplaints() {

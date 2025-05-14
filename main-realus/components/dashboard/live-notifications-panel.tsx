@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge"
 import { Bell } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
-interface Notification {
+export interface Notification {
   id: string
   title: string
   message: string

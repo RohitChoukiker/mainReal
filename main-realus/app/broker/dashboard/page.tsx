@@ -3,19 +3,48 @@
 import { useEffect, useState } from "react"
 import { TransactionOverviewCard } from "@/components/dashboard/transaction-overview-card"
 import { AgentPerformanceWidget } from "@/components/dashboard/agent-performance-widget"
-import { AIInsightsCard } from "@/components/dashboard/ai-insights-card"
+import { AIInsightsCard, Insight } from "@/components/dashboard/ai-insights-card"
 import { QuickActionsPanel } from "@/components/dashboard/quick-actions-panel"
-import { LiveNotificationsPanel } from "@/components/dashboard/live-notifications-panel"
-import { TransactionListTable } from "@/components/dashboard/transaction-list-table"
+import { LiveNotificationsPanel, Notification } from "@/components/dashboard/live-notifications-panel"
+import { TransactionListTable, Transaction as UITableTransaction } from "@/components/dashboard/transaction-list-table"
 import { TransactionDetailsModal } from "@/components/dashboard/transaction-details-modal"
 import BrokerIdCard from "@/components/broker/broker-id-card"
 import { FileText, UserPlus, AlertCircle, CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { TransactionStatus } from "@/models/transactionModel"
+import { TransactionStatus, Transaction } from "@/models/transactionModel"
 
 export default function BrokerDashboard() {
+  // Define a type for the UI transaction
+  interface UITransaction {
+    id: string;
+    property: string;
+    client: string;
+    agent: string;
+    status: string;
+    dueDate: string;
+    riskLevel?: string;
+    transactionId: string;
+    agentId: string;
+    brokerId: string;
+    clientName: string;
+    clientEmail?: string;
+    clientPhone?: string;
+    transactionType?: string;
+    propertyAddress?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
+    price?: number;
+    closingDate?: string;
+    notes?: string;
+    brokerNotes?: string;
+    closedDate?: string;
+    createdAt?: string;
+    updatedAt?: string;
+  }
+
   // State for transactions data
-  const [transactions, setTransactions] = useState([]);
+  const [transactions, setTransactions] = useState<UITransaction[]>([]);
   const [transactionStats, setTransactionStats] = useState({
     total: 0,
     completed: 0,
@@ -70,19 +99,19 @@ export default function BrokerDashboard() {
             }
             
             // Process transactions for display
-            const formattedTransactions = data.transactions.map(transaction => {
+            const formattedTransactions = data.transactions.map((transaction: Transaction) => {
               console.log("Processing transaction:", transaction.transactionId);
               
               // Map transaction status to UI status
               let uiStatus = "pending";
-              if (transaction.status === TransactionStatus.New || transaction.status === "New") {
+              if (transaction.status === TransactionStatus.New) {
                 uiStatus = "pending";
-              } else if (transaction.status === TransactionStatus.InProgress || transaction.status === "InProgress") {
+              } else if (transaction.status === TransactionStatus.InProgress) {
                 uiStatus = "in_progress";
-              } else if (transaction.status === TransactionStatus.Closed || transaction.status === "Closed" || 
-                         transaction.status === TransactionStatus.Approved || transaction.status === "Approved") {
+              } else if (transaction.status === TransactionStatus.Closed || 
+                         transaction.status === TransactionStatus.Approved) {
                 uiStatus = "completed";
-              } else if (transaction.status === TransactionStatus.PendingDocuments || transaction.status === "PendingDocuments") {
+              } else if (transaction.status === TransactionStatus.PendingDocuments) {
                 uiStatus = "at_risk";
               }
               
@@ -108,7 +137,7 @@ export default function BrokerDashboard() {
                 id: transaction.transactionId || `TR-${Math.floor(Math.random() * 10000)}`,
                 property: transaction.propertyAddress + (transaction.city ? `, ${transaction.city}` : ''),
                 client: transaction.clientName || "Unknown Client",
-                agent: transaction.agentName || "Agent", // We'll update this when we have agent names
+                agent: `Agent ${transaction.agentId}`, // Using agentId as we don't have agent names yet
                 status: uiStatus,
                 dueDate: formattedDate,
                 riskLevel: uiStatus === "at_risk" ? "high" : undefined,
@@ -139,23 +168,17 @@ export default function BrokerDashboard() {
             // Calculate transaction statistics
             const stats = {
               total: data.transactions.length,
-              completed: data.transactions.filter(t => 
+              completed: data.transactions.filter((t: Transaction) => 
                 t.status === TransactionStatus.Closed || 
-                t.status === TransactionStatus.Approved || 
-                t.status === "Closed" || 
-                t.status === "Approved"
+                t.status === TransactionStatus.Approved
               ).length,
-              pending: data.transactions.filter(t => 
+              pending: data.transactions.filter((t: Transaction) => 
                 t.status === TransactionStatus.New || 
-                t.status === TransactionStatus.InProgress || 
-                t.status === "New" || 
-                t.status === "InProgress"
+                t.status === TransactionStatus.InProgress
               ).length,
-              atRisk: data.transactions.filter(t => 
+              atRisk: data.transactions.filter((t: Transaction) => 
                 t.status === TransactionStatus.PendingDocuments || 
-                t.status === TransactionStatus.UnderReview || 
-                t.status === "PendingDocuments" || 
-                t.status === "UnderReview"
+                t.status === TransactionStatus.UnderReview
               ).length
             };
             
@@ -168,9 +191,9 @@ export default function BrokerDashboard() {
             setTransactions(fallbackTransactions);
             setTransactionStats({
               total: fallbackTransactions.length,
-              completed: fallbackTransactions.filter(t => t.status === "completed").length,
-              pending: fallbackTransactions.filter(t => t.status === "pending").length,
-              atRisk: fallbackTransactions.filter(t => t.status === "at_risk").length
+              completed: fallbackTransactions.filter((t: UITransaction) => t.status === "completed").length,
+              pending: fallbackTransactions.filter((t: UITransaction) => t.status === "pending").length,
+              atRisk: fallbackTransactions.filter((t: UITransaction) => t.status === "at_risk").length
             });
           }
         } catch (fetchError) {
@@ -180,9 +203,9 @@ export default function BrokerDashboard() {
           setTransactions(fallbackTransactions);
           setTransactionStats({
             total: fallbackTransactions.length,
-            completed: fallbackTransactions.filter(t => t.status === "completed").length,
-            pending: fallbackTransactions.filter(t => t.status === "pending").length,
-            atRisk: fallbackTransactions.filter(t => t.status === "at_risk").length
+            completed: fallbackTransactions.filter((t: UITransaction) => t.status === "completed").length,
+            pending: fallbackTransactions.filter((t: UITransaction) => t.status === "pending").length,
+            atRisk: fallbackTransactions.filter((t: UITransaction) => t.status === "at_risk").length
           });
         } finally {
           setIsLoading(false);
@@ -236,7 +259,7 @@ export default function BrokerDashboard() {
   }, []);
 
   // Sample data for parts we're not updating yet
-  const aiInsightsData = [
+  const aiInsightsData: Insight[] = [
     {
       id: "1",
       type: "trend",
@@ -282,7 +305,7 @@ export default function BrokerDashboard() {
     },
   ]
 
-  const notificationsData = [
+  const notificationsData: Notification[] = [
     {
       id: "1",
       title: "New Agent Registration",
@@ -310,7 +333,7 @@ export default function BrokerDashboard() {
   ]
 
   // Fallback data for when API data is not available
-  const fallbackTransactions = [
+  const fallbackTransactions: UITransaction[] = [
     {
       id: "TR-7829",
       property: "123 Main St, Austin, TX",
@@ -446,7 +469,18 @@ export default function BrokerDashboard() {
   ];
 
   // Use real data if available, otherwise use fallback data
-  const displayTransactions = transactions.length > 0 ? transactions : fallbackTransactions;
+  const rawTransactions = transactions.length > 0 ? transactions : fallbackTransactions;
+  
+  // Map our UITransaction objects to the UITableTransaction type expected by the TransactionListTable component
+  const displayTransactions: UITableTransaction[] = rawTransactions.map(t => ({
+    id: t.id,
+    property: t.property,
+    client: t.client,
+    agent: t.agent,
+    status: t.status as "pending" | "in_progress" | "completed" | "at_risk",
+    dueDate: t.dueDate,
+    riskLevel: t.riskLevel as "low" | "medium" | "high" | undefined
+  }));
   const displayAgentPerformance = agentPerformance.length > 0 ? agentPerformance : fallbackAgentPerformance;
   
   // Calculate stats for the transaction overview card
@@ -482,8 +516,8 @@ export default function BrokerDashboard() {
             <Button 
               className="mt-4 w-full" 
               onClick={() => {
-                if (displayTransactions.length > 0) {
-                  openTransactionModal(displayTransactions[0]);
+                if (rawTransactions.length > 0) {
+                  openTransactionModal(rawTransactions[0]);
                 }
               }}
             >
@@ -500,8 +534,8 @@ export default function BrokerDashboard() {
             title={isLoading ? "Loading Transactions..." : "Recent Transactions"}
             onViewDetails={(id) => {
               console.log(`View details for transaction ${id}`);
-              // Find the transaction by ID
-              const transaction = displayTransactions.find(t => t.id === id || t.transactionId === id);
+              // Find the transaction by ID in the raw transactions
+              const transaction = rawTransactions.find(t => t.id === id || t.transactionId === id);
               if (transaction) {
                 console.log("Found transaction:", transaction);
                 openTransactionModal(transaction);

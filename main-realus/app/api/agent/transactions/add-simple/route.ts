@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import dbConnect from "@/utils/dbConnect";
-import UserModel, { Role } from "@/models/userModel";
+import UserModel, { Role, User } from "@/models/userModel";
+import mongoose from "mongoose";
 
 // In-memory storage for transactions (for testing only)
 const transactions: any[] = [];
 
-const JWT_SECRET = "123123123 " as string;
+// Use environment variable for JWT secret with a fallback for development
+const JWT_SECRET = process.env.JWT_SECRET || "123123123";
 
 export async function POST(req: NextRequest) {
   try {
@@ -34,14 +36,14 @@ export async function POST(req: NextRequest) {
         const decoded = jwt.verify(token, JWT_SECRET) as { id: string, role: string };
         console.log("Token decoded:", decoded);
         
-        // Find the agent in the database
+        // Find the agent in the database and properly type it
         const agent = await UserModel.findById(decoded.id);
         console.log("Agent found:", agent ? "Yes" : "No");
         
         if (agent && agent.role === Role.Agent) {
           // Valid agent found
-          agentId = agent._id.toString();
-          brokerId = agent.brokerId; // Get the broker ID from the agent's record
+          agentId = agent._id?.toString() || agent.id?.toString() || "test-agent-id";
+          brokerId = agent.brokerId || ""; // Get the broker ID from the agent's record
           
           console.log("Agent ID:", agentId);
           console.log("Broker ID from agent record:", brokerId);
@@ -129,10 +131,27 @@ export async function POST(req: NextRequest) {
     );
   } catch (error) {
     console.error("Error creating transaction:", error);
-    return NextResponse.json(
-      { message: "Failed to create transaction", error: String(error) },
-      { status: 500 }
-    );
+    
+    // Provide more specific error messages based on error type
+    if (error instanceof mongoose.Error.ValidationError) {
+      return NextResponse.json(
+        { 
+          message: "Validation error in transaction data", 
+          errors: Object.values(error.errors).map(err => err.message)
+        },
+        { status: 400 }
+      );
+    } else if (error instanceof mongoose.Error.CastError) {
+      return NextResponse.json(
+        { message: "Invalid data format", error: error.message },
+        { status: 400 }
+      );
+    } else {
+      return NextResponse.json(
+        { message: "Failed to create transaction", error: String(error) },
+        { status: 500 }
+      );
+    }
   }
 }
 

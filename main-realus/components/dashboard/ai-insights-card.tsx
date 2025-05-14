@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Lightbulb, TrendingUp, AlertTriangle, Clock } from "lucide-react"
 
-interface Insight {
+export interface Insight {
   id: string
   type: "tip" | "trend" | "warning" | "delay"
   content: string

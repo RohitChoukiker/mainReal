@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Eye, AlertTriangle, Loader2 } from "lucide-react"
 
-interface Transaction {
+export interface Transaction {
   id: string
   property: string
   client: string

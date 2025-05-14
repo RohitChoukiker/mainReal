@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
     
     // Format the response data
     const formattedAgents = agents.map(agent => ({
-      id: agent._id.toString(),
+      id: agent.id.toString(),
       name: agent.name,
       email: agent.email,
       phone: agent.mobile || 'N/A'

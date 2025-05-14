@@ -26,6 +26,8 @@ export interface User extends Document {
   brokerId?: string; // optional for broker
   role: Role;
   isApproved: boolean;
+  createdAt: Date;
+  updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 

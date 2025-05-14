@@ -21,6 +21,17 @@ interface Agent {
   approvedDate?: string
 }
 
+// Interface for raw agent data from API
+interface RawAgent {
+  id: string
+  name: string
+  email: string
+  phone?: string
+  role: string
+  appliedDate?: string
+  approvedDate?: string
+}
+
 export default function AgentApprovals() {
   const [pendingAgents, setPendingAgents] = useState<Agent[]>([])
   const [approvedAgents, setApprovedAgents] = useState<Agent[]>([])
@@ -83,7 +94,7 @@ export default function AgentApprovals() {
       console.log('Agents data:', data)
       
       // Ensure we have the correct data structure for pending agents
-      const formattedPendingAgents = (data.pendingAgents || []).map(agent => ({
+      const formattedPendingAgents = (data.pendingAgents || []).map((agent: RawAgent) => ({
         id: agent.id,
         name: agent.name,
         email: agent.email,
@@ -94,7 +105,7 @@ export default function AgentApprovals() {
       }))
       
       // Ensure we have the correct data structure for approved agents
-      const formattedApprovedAgents = (data.approvedAgents || []).map(agent => ({
+      const formattedApprovedAgents = (data.approvedAgents || []).map((agent: RawAgent) => ({
         id: agent.id,
         name: agent.name,
         email: agent.email,
@@ -142,9 +153,9 @@ export default function AgentApprovals() {
       // Update the local state
       if (approved) {
         // Move agent from pending to approved
-        const agentToMove = pendingAgents.find(agent => agent.id === agentId)
+        const agentToMove = pendingAgents.find((agent: Agent) => agent.id === agentId)
         if (agentToMove) {
-          setPendingAgents(pendingAgents.filter(agent => agent.id !== agentId))
+          setPendingAgents(pendingAgents.filter((agent: Agent) => agent.id !== agentId))
           setApprovedAgents([...approvedAgents, {
             ...agentToMove,
             status: 'active',
@@ -154,7 +165,7 @@ export default function AgentApprovals() {
         toast.success('Agent approved successfully')
       } else {
         // Remove agent from pending list
-        setPendingAgents(pendingAgents.filter(agent => agent.id !== agentId))
+        setPendingAgents(pendingAgents.filter((agent: Agent) => agent.id !== agentId))
         toast.success('Agent rejected successfully')
       }
       
