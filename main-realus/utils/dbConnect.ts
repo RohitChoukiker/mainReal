@@ -2,10 +2,14 @@ import mongoose from "mongoose";
 
 // Use environment variable for MongoDB URI
 // WARNING: Never hardcode credentials in production code
-const MONGO_URI = process.env.MONGODB_URI || 
-  (process.env.NODE_ENV === 'production' 
-    ? '' // In production, this should fail if MONGODB_URI is not set
-    : "mongodb+srv://rohitchoukiker:sz9ngkji2s@cluster0.onuxs.mongodb.net/realus?retryWrites=true&w=majority");
+const MONGO_URI = process.env.MONGODB_URI;
+
+// Check if MONGO_URI is not set
+if (!MONGO_URI) {
+  console.error("MONGODB_URI environment variable is not set");
+  // In production, we'll let the connection fail later
+  // In development, we could set a default, but it's better to use .env files
+}
 
 // Initialize mongoose models
 import "@/models/transactionModel";
