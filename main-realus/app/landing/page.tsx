@@ -115,12 +115,12 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background">
       {isLoading && <LoadingScreen />}
       
       <nav
         className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${
-          scrollY > 10 ? "bg-white shadow-md py-3" : "bg-transparent py-5"
+          scrollY > 10 ? "bg-background shadow-md py-3" : "bg-transparent py-5"
         }`}
       >
         <div className="container mx-auto px-4">
@@ -228,7 +228,7 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section
         id="home"
-        className="relative pt-28 pb-16 md:pt-32 md:pb-24 bg-gradient-to-br from-blue-50 to-indigo-50"
+        className="relative pt-28 pb-16 md:pt-32 md:pb-24 bg-gradient-to-br from-background/50 to-background"
       >
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center">
@@ -239,10 +239,10 @@ export default function LandingPage() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.3 }}
             >
-              <h1 className="text-4xl md:text-5xl font-bold mb-4 leading-tight text-gray-900">
+              <h1 className="text-4xl md:text-5xl font-bold mb-4 leading-tight text-foreground">
                 Streamline Your Real Estate Transactions
               </h1>
-              <p className="text-lg text-gray-600 mb-6">
+              <p className="text-lg text-muted-foreground mb-6">
                 Our powerful platform helps agents, brokers, and transaction
                 coordinators manage the entire real estate transaction process
                 efficiently.
@@ -319,7 +319,7 @@ export default function LandingPage() {
       </section>
 
       {/* About Section */}
-      <section id="about" className="py-16 bg-white">
+      <section id="about" className="py-16 bg-background">
         <div className="container mx-auto px-4">
           <motion.div
             className="text-center mb-12"
@@ -328,10 +328,10 @@ export default function LandingPage() {
             transition={{ duration: 0.5 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-3xl font-bold mb-4 text-gray-900">
+            <h2 className="text-3xl font-bold mb-4 text-foreground">
               About Our Platform
             </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
+            <p className="text-muted-foreground max-w-2xl mx-auto">
               We've built a comprehensive solution to simplify the complex
               process of real estate transactions.
             </p>
@@ -339,7 +339,7 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <motion.div
-              className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow"
+              className="bg-card p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
@@ -348,17 +348,17 @@ export default function LandingPage() {
               <div className="bg-primary/10 p-3 rounded-full w-14 h-14 flex items-center justify-center mb-4">
                 <Building className="h-7 w-7 text-primary" />
               </div>
-              <h3 className="text-xl font-semibold mb-2 text-gray-900">
+              <h3 className="text-xl font-semibold mb-2 text-foreground">
                 Established in 2025
               </h3>
-              <p className="text-gray-600">
+              <p className="text-muted-foreground">
                 With years of experience in the real estate industry, we
                 understand the challenges faced by professionals.
               </p>
             </motion.div>
 
             <motion.div
-              className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow"
+              className="bg-card p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
@@ -367,17 +367,17 @@ export default function LandingPage() {
               <div className="bg-primary/10 p-3 rounded-full w-14 h-14 flex items-center justify-center mb-4">
                 <Users className="h-7 w-7 text-primary" />
               </div>
-              <h3 className="text-xl font-semibold mb-2 text-gray-900">
+              <h3 className="text-xl font-semibold mb-2 text-foreground">
                 Trusted by Thousands
               </h3>
-              <p className="text-gray-600">
+              <p className="text-muted-foreground">
                 Our platform is used by thousands of real estate professionals
                 across the country to manage their transactions.
               </p>
             </motion.div>
 
             <motion.div
-              className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow"
+              className="bg-card p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.3 }}
@@ -386,10 +386,10 @@ export default function LandingPage() {
               <div className="bg-primary/10 p-3 rounded-full w-14 h-14 flex items-center justify-center mb-4">
                 <UserCheck className="h-7 w-7 text-primary" />
               </div>
-              <h3 className="text-xl font-semibold mb-2 text-gray-900">
+              <h3 className="text-xl font-semibold mb-2 text-foreground">
                 Customer-Focused
               </h3>
-              <p className="text-gray-600">
+              <p className="text-muted-foreground">
                 We continuously improve our platform based on feedback from our
                 users to ensure it meets their needs.
               </p>
@@ -397,7 +397,7 @@ export default function LandingPage() {
           </div>
 
           <motion.div
-            className="mt-16 bg-gray-50 rounded-xl overflow-hidden shadow-md"
+            className="mt-16 bg-accent rounded-xl overflow-hidden shadow-md"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
@@ -413,16 +413,16 @@ export default function LandingPage() {
                 />
               </div>
               <div className="md:w-1/2 p-6 md:p-8">
-                <h3 className="text-2xl font-bold mb-4 text-gray-900">
+                <h3 className="text-2xl font-bold mb-4 text-foreground">
                   Our Mission
                 </h3>
-                <p className="text-gray-600 mb-4">
+                <p className="text-muted-foreground mb-4">
                   At Realus, our mission is to simplify the complex world of
                   real estate transactions. We believe that technology should
                   make the lives of real estate professionals easier, not more
                   complicated.
                 </p>
-                <p className="text-gray-600 mb-4">
+                <p className="text-muted-foreground mb-4">
                   Our platform is designed to streamline workflows, reduce
                   paperwork, and improve communication between all parties
                   involved in a transaction.
@@ -430,19 +430,19 @@ export default function LandingPage() {
                 <div className="flex items-center space-x-4 mt-6">
                   <div className="flex flex-col items-center">
                     <span className="text-3xl font-bold text-primary">5K+</span>
-                    <span className="text-sm text-gray-500">Active Users</span>
+                    <span className="text-sm text-muted-foreground">Active Users</span>
                   </div>
-                  <div className="h-10 border-r border-gray-300"></div>
+                  <div className="h-10 border-r border-muted"></div>
                   <div className="flex flex-col items-center">
                     <span className="text-3xl font-bold text-primary">
                       50K+
                     </span>
-                    <span className="text-sm text-gray-500">Transactions</span>
+                    <span className="text-sm text-muted-foreground">Transactions</span>
                   </div>
                   <div className="h-10 border-r border-gray-300"></div>
                   <div className="flex flex-col items-center">
                     <span className="text-3xl font-bold text-primary">98%</span>
-                    <span className="text-sm text-gray-500">Satisfaction</span>
+                    <span className="text-sm text-muted-foreground">Satisfaction</span>
                   </div>
                 </div>
               </div>
@@ -454,7 +454,7 @@ export default function LandingPage() {
       {/* Services Section */}
       <section
         id="services"
-        className="py-16 bg-gradient-to-br from-gray-50 to-white"
+        className="py-16 bg-gradient-to-br from-background/50 to-background"
       >
         <div className="container mx-auto px-4">
           <motion.div
@@ -464,10 +464,10 @@ export default function LandingPage() {
             transition={{ duration: 0.5 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-3xl font-bold mb-4 text-gray-900">
+            <h2 className="text-3xl font-bold mb-4 text-foreground">
               Our Services
             </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
+            <p className="text-muted-foreground max-w-2xl mx-auto">
               We offer a comprehensive suite of tools to streamline every aspect
               of real estate transactions.
             </p>
@@ -526,7 +526,7 @@ export default function LandingPage() {
             ].map((service, index) => (
               <motion.div
                 key={index}
-                className="bg-white rounded-xl shadow-md border border-gray-100 hover:shadow-lg transition-all group overflow-hidden"
+                className="bg-card rounded-xl shadow-md border border-border hover:shadow-lg transition-all group overflow-hidden"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
@@ -551,11 +551,11 @@ export default function LandingPage() {
                     <div className="bg-primary/10 p-2 rounded-full">
                       {service.icon}
                     </div>
-                    <h3 className="text-lg font-semibold text-gray-900">
+                    <h3 className="text-lg font-semibold text-foreground">
                       {service.title}
                     </h3>
                   </div>
-                  <p className="text-gray-600">{service.description}</p>
+                  <p className="text-muted-foreground">{service.description}</p>
                   <button className="mt-4 text-primary font-medium flex items-center group-hover:underline">
                     Learn more
                     <ChevronRight className="h-4 w-4 ml-1" />
@@ -656,7 +656,7 @@ export default function LandingPage() {
       {/* Contact Section */}
       <section
         id="contact"
-        className="py-16 bg-gradient-to-br from-blue-50 to-indigo-50"
+        className="py-16 bg-gradient-to-br from-background/50 to-background"
       >
         <div className="container mx-auto px-4">
           <motion.div
@@ -666,10 +666,10 @@ export default function LandingPage() {
             transition={{ duration: 0.5 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-3xl font-bold mb-4 text-gray-900">
+            <h2 className="text-3xl font-bold mb-4 text-foreground">
               Contact Us
             </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
+            <p className="text-muted-foreground max-w-2xl mx-auto">
               Have questions about our platform? Get in touch with our team and
               we'll be happy to help.
             </p>
@@ -683,8 +683,8 @@ export default function LandingPage() {
               transition={{ duration: 0.5 }}
               viewport={{ once: true }}
             >
-              <div className="bg-white p-6 rounded-xl shadow-md">
-                <h3 className="text-xl font-semibold mb-4 text-gray-900">
+              <div className="bg-card p-6 rounded-xl shadow-md">
+                <h3 className="text-xl font-semibold mb-4 text-foreground">
                   Send us a message
                 </h3>
                 <form className="space-y-4">
@@ -692,28 +692,28 @@ export default function LandingPage() {
                     <div>
                       <label
                         htmlFor="name"
-                        className="block text-sm font-medium text-gray-700 mb-1"
+                        className="block text-sm font-medium text-foreground mb-1"
                       >
                         Name
                       </label>
                       <input
                         type="text"
                         id="name"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                        className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
                         placeholder="Your name"
                       />
                     </div>
                     <div>
                       <label
                         htmlFor="email"
-                        className="block text-sm font-medium text-gray-700 mb-1"
+                        className="block text-sm font-medium text-foreground mb-1"
                       >
                         Email
                       </label>
                       <input
                         type="email"
                         id="email"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                        className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
                         placeholder="Your email"
                       />
                     </div>
@@ -721,28 +721,28 @@ export default function LandingPage() {
                   <div>
                     <label
                       htmlFor="subject"
-                      className="block text-sm font-medium text-gray-700 mb-1"
+                      className="block text-sm font-medium text-foreground mb-1"
                     >
                       Subject
                     </label>
                     <input
                       type="text"
                       id="subject"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                      className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
                       placeholder="Subject"
                     />
                   </div>
                   <div>
                     <label
                       htmlFor="message"
-                      className="block text-sm font-medium text-gray-700 mb-1"
+                      className="block text-sm font-medium text-foreground mb-1"
                     >
                       Message
                     </label>
                     <textarea
                       id="message"
                       rows={4}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                      className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
                       placeholder="Your message"
                     ></textarea>
                   </div>
@@ -763,24 +763,24 @@ export default function LandingPage() {
               transition={{ duration: 0.5 }}
               viewport={{ once: true }}
             >
-              <div className="bg-white p-6 rounded-xl shadow-md h-full">
-                <h3 className="text-xl font-semibold mb-4 text-gray-900">
+              <div className="bg-card p-6 rounded-xl shadow-md h-full">
+                <h3 className="text-xl font-semibold mb-4 text-foreground">
                   Contact Information
                 </h3>
                 <div className="space-y-4">
                   <div className="flex items-start">
                     <MapPin className="h-5 w-5 text-primary mr-3 mt-0.5" />
                     <div>
-                      <p className="font-medium text-gray-900">Address</p>
-                      <p className="text-gray-600">Indore, Madhya Pradesh</p>
-                      <p className="text-gray-600">India</p>
+                      <p className="font-medium text-foreground">Address</p>
+                      <p className="text-muted-foreground">Indore, Madhya Pradesh</p>
+                      <p className="text-muted-foreground">India</p>
                     </div>
                   </div>
                   <div className="flex items-start">
                     <Phone className="h-5 w-5 text-primary mr-3 mt-0.5" />
                     <div>
-                      <p className="font-medium text-gray-900">Phone</p>
-                      <p className="text-gray-600">+91 123456789</p>
+                      <p className="font-medium text-foreground">Phone</p>
+                      <p className="text-muted-foreground">+91 123456789</p>
                     </div>
                   </div>
                   <div className="flex items-start">
@@ -876,7 +876,7 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
+      <footer className="bg-black text-white py-12">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>

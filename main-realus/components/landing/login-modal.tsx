@@ -114,7 +114,7 @@ export default function LoginModal({
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <motion.div
-        className="bg-white rounded-xl shadow-xl w-full max-w-md relative overflow-hidden"
+        className="bg-background rounded-xl shadow-xl w-full max-w-md relative overflow-hidden"
         initial={{ opacity: 0.9, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
@@ -129,15 +129,15 @@ export default function LoginModal({
 
         <div className="p-6">
           <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">Welcome Back</h2>
-            <p className="text-gray-600">Sign in to your account to continue</p>
+            <h2 className="text-2xl font-bold text-foreground">Welcome Back</h2>
+            <p className="text-muted-foreground">Sign in to your account to continue</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-gray-700"
+                className="block text-sm font-medium text-foreground"
               >
                 Email
               </label>
@@ -153,7 +153,7 @@ export default function LoginModal({
                   required
                   value={formData.email}
                   onChange={handleChange}
-                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                  className="block w-full pl-10 pr-3 py-2 border border-border bg-background text-foreground rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
                   placeholder="you@example.com"
                   disabled={isLoading}
                 />
@@ -163,7 +163,7 @@ export default function LoginModal({
             <div className="space-y-2">
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-gray-700"
+                className="block text-sm font-medium text-foreground"
               >
                 Password
               </label>
@@ -179,7 +179,7 @@ export default function LoginModal({
                   required
                   value={formData.password}
                   onChange={handleChange}
-                  className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                  className="block w-full pl-10 pr-10 py-2 border border-border bg-background text-foreground rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
                   placeholder="••••••••"
                   disabled={isLoading}
                 />
@@ -201,7 +201,7 @@ export default function LoginModal({
             <div className="space-y-2">
               <label
                 htmlFor="role"
-                className="block text-sm font-medium text-gray-700"
+                className="block text-sm font-medium text-foreground"
               >
                 Select Role
               </label>
@@ -210,7 +210,7 @@ export default function LoginModal({
                 name="role"
                 value={formData.role}
                 onChange={handleChange}
-                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                className="block w-full px-3 py-2 border border-border bg-background text-foreground rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
                 disabled={isLoading}
               >
                 <option value="" disabled>
@@ -241,7 +241,7 @@ export default function LoginModal({
                 />
                 <label
                   htmlFor="remember-me"
-                  className="ml-2 block text-sm text-gray-700"
+                  className="ml-2 block text-sm text-foreground"
                 >
                   Remember me
                 </label>
@@ -271,7 +271,7 @@ export default function LoginModal({
           </form>
 
           <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-muted-foreground">
               Don't have an account?{" "}
               <button
                 type="button"
