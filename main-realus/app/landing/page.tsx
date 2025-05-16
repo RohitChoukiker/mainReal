@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Globe, Rocket, Sparkles, X } from "lucide-react";
+import { Globe, Rocket, Sparkles, X, Shield, Lock, FileText as FileIcon } from "lucide-react";
 import {
   Home,
   Info,
@@ -176,7 +176,7 @@ export default function LandingPage() {
                   className={`flex items-center space-x-1 ${
                     activeSection === id
                       ? "text-primary font-medium"
-                      : "text-gray-600 hover:text-primary"
+                      : "text-muted-foreground hover:text-primary"
                   }`}
                 >
                   {icon}
@@ -185,7 +185,7 @@ export default function LandingPage() {
               ))}
               <button
                 onClick={() => setIsPricingModalOpen(true)}
-                className="flex items-center space-x-1 text-gray-600 hover:text-primary"
+                className="flex items-center space-x-1 text-muted-foreground hover:text-primary"
               >
                 <DollarSign className="h-4 w-4" />
                 <span>Pricing</span>
@@ -202,7 +202,7 @@ export default function LandingPage() {
             </div>
             <div className="md:hidden">
               <button
-                className="text-gray-600 p-1"
+                className="text-muted-foreground p-1"
                 onClick={() => setIsMobileMenuOpen(true)}
               >
                 <Menu className="h-6 w-6" />
@@ -439,7 +439,7 @@ export default function LandingPage() {
                     </span>
                     <span className="text-sm text-muted-foreground">Transactions</span>
                   </div>
-                  <div className="h-10 border-r border-gray-300"></div>
+                  <div className="h-10 border-r border-border"></div>
                   <div className="flex flex-col items-center">
                     <span className="text-3xl font-bold text-primary">98%</span>
                     <span className="text-sm text-muted-foreground">Satisfaction</span>
@@ -568,7 +568,7 @@ export default function LandingPage() {
       </section>
 
       {/* Testimonials Section */}
-      {/* <section className="py-16 bg-white">
+      {/* <section className="py-16 bg-background">
         <div className="container mx-auto px-4">
           <motion.div
             className="text-center mb-12"
@@ -577,10 +577,10 @@ export default function LandingPage() {
             transition={{ duration: 0.5 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-3xl font-bold mb-4 text-gray-900">
+            <h2 className="text-3xl font-bold mb-4 text-foreground">
               What Our Clients Say
             </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
+            <p className="text-muted-foreground max-w-2xl mx-auto">
               Don't just take our word for it. Here's what real estate
               professionals have to say about our platform.
             </p>
@@ -612,7 +612,7 @@ export default function LandingPage() {
             ].map((testimonial, index) => (
               <motion.div
                 key={index}
-                className="bg-gray-50 p-6 rounded-xl shadow-md"
+                className="bg-muted p-6 rounded-xl shadow-md"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
@@ -628,13 +628,13 @@ export default function LandingPage() {
                     />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-gray-900">
+                    <h4 className="font-semibold text-foreground">
                       {testimonial.author}
                     </h4>
-                    <p className="text-sm text-gray-600">{testimonial.role}</p>
+                    <p className="text-sm text-muted-foreground">{testimonial.role}</p>
                   </div>
                 </div>
-                <p className="text-gray-700 italic">"{testimonial.quote}"</p>
+                <p className="text-muted-foreground italic">"{testimonial.quote}"</p>
                 <div className="mt-4 flex">
                   {[...Array(5)].map((_, i) => (
                     <svg
@@ -786,29 +786,29 @@ export default function LandingPage() {
                   <div className="flex items-start">
                     <Mail className="h-5 w-5 text-primary mr-3 mt-0.5" />
                     <div>
-                      <p className="font-medium text-gray-900">Email</p>
-                      <p className="text-gray-600">info@realus.com</p>
+                      <p className="font-medium text-foreground">Email</p>
+                      <p className="text-muted-foreground">info@realus.com</p>
                     </div>
                   </div>
                   <div className="flex items-start">
                     <Clock className="h-5 w-5 text-primary mr-3 mt-0.5" />
                     <div>
-                      <p className="font-medium text-gray-900">
+                      <p className="font-medium text-foreground">
                         Business Hours
                       </p>
-                      <p className="text-gray-600">
+                      <p className="text-muted-foreground">
                         Monday - Friday: 9am - 5pm
                       </p>
-                      <p className="text-gray-600">Saturday: 10am - 2pm</p>
-                      <p className="text-gray-600">Sunday: Closed</p>
+                      <p className="text-muted-foreground">Saturday: 10am - 2pm</p>
+                      <p className="text-muted-foreground">Sunday: Closed</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="mt-6">
-                  <h4 className="font-medium mb-2 text-gray-900">Follow Us</h4>
+                  <h4 className="font-medium mb-2 text-foreground">Follow Us</h4>
                   <div className="flex space-x-4">
-                    <a href="#" className="text-gray-600 hover:text-primary">
+                    <a href="#" className="text-muted-foreground hover:text-primary">
                       <svg
                         className="h-6 w-6"
                         fill="currentColor"
@@ -822,7 +822,7 @@ export default function LandingPage() {
                         />
                       </svg>
                     </a>
-                    <a href="#" className="text-gray-600 hover:text-primary">
+                    <a href="#" className="text-muted-foreground hover:text-primary">
                       <svg
                         className="h-6 w-6"
                         fill="currentColor"
@@ -837,7 +837,7 @@ export default function LandingPage() {
                       </svg>
                     </a>
 
-                    <a href="#" className="text-gray-600 hover:text-primary">
+                    <a href="#" className="text-muted-foreground hover:text-primary">
                       <svg
                         className="h-6 w-6"
                         fill="currentColor"
@@ -863,7 +863,7 @@ export default function LandingPage() {
                       className="object-cover"
                     />
                     <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
-                      <button className="bg-white text-primary px-4 py-2 rounded-md shadow-md hover:bg-gray-50 transition-colors">
+                      <button className="bg-background text-primary px-4 py-2 rounded-md shadow-md hover:bg-muted transition-colors">
                         View on Google Maps
                       </button>
                     </div>
@@ -876,7 +876,7 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-black text-white py-12">
+      <footer className="bg-primary-foreground dark:bg-gray-900 text-foreground py-12">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
@@ -902,12 +902,12 @@ export default function LandingPage() {
                   <span className="text-2xl font-bold">us</span>
                 </div>
               </div>
-              <p className="text-gray-400 mb-6 mt-3">
+              <p className="text-muted-foreground mb-6 mt-3">
                 Streamlining real estate transactions for professionals across
                 the country.
               </p>
               <div className="flex space-x-4">
-                <a href="#" className="text-gray-400 hover:text-white">
+                <a href="#" className="text-muted-foreground hover:text-foreground">
                   <svg
                     className="h-5 w-5"
                     fill="currentColor"
@@ -921,7 +921,7 @@ export default function LandingPage() {
                     />
                   </svg>
                 </a>
-                <a href="#" className="text-gray-400 hover:text-white">
+                <a href="#" className="text-muted-foreground hover:text-foreground">
                   <svg
                     className="h-5 w-5"
                     fill="currentColor"
@@ -940,37 +940,42 @@ export default function LandingPage() {
             </div>
 
             <div>
-              <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
+              <h3 className="text-lg font-semibold mb-4 text-foreground">Quick Links</h3>
               <ul className="space-y-2">
                 <li>
-                  <a href="#home" className="text-gray-400 hover:text-white">
-                    Home
+                  <a href="#home" className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group">
+                    <Home className="h-4 w-4 group-hover:text-primary transition-colors" />
+                    <span>Home</span>
                   </a>
                 </li>
                 <li>
-                  <a href="#about" className="text-gray-400 hover:text-white">
-                    About
+                  <a href="#about" className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group">
+                    <Info className="h-4 w-4 group-hover:text-primary transition-colors" />
+                    <span>About</span>
                   </a>
                 </li>
                 <li>
                   <a
                     href="#services"
-                    className="text-gray-400 hover:text-white"
+                    className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group"
                   >
-                    Services
+                    <Briefcase className="h-4 w-4 group-hover:text-primary transition-colors" />
+                    <span>Services</span>
                   </a>
                 </li>
                 <li>
-                  <a href="#contact" className="text-gray-400 hover:text-white">
-                    Contact
+                  <a href="#contact" className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group">
+                    <Phone className="h-4 w-4 group-hover:text-primary transition-colors" />
+                    <span>Contact</span>
                   </a>
                 </li>
                 <li>
                   <button
                     onClick={() => setIsPricingModalOpen(true)}
-                    className="text-gray-400 hover:text-white"
+                    className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group"
                   >
-                    Pricing
+                    <DollarSign className="h-4 w-4 group-hover:text-primary transition-colors" />
+                    <span>Pricing</span>
                   </button>
                 </li>
 
@@ -978,74 +983,88 @@ export default function LandingPage() {
             </div>
 
             <div>
-              <h3 className="text-lg font-semibold mb-4">Services</h3>
+              <h3 className="text-lg font-semibold mb-4 text-foreground">Services</h3>
               <ul className="space-y-2">
                 <li>
-                  <a href="#" className="text-gray-400 hover:text-white">
-                    Transaction Management
+                  <a href="#" className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group">
+                    <ClipboardCheck className="h-4 w-4 group-hover:text-primary transition-colors" />
+                    <span>Transaction Management</span>
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-400 hover:text-white">
-                    Document Management
+                  <a href="#" className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group">
+                    <FileText className="h-4 w-4 group-hover:text-primary transition-colors" />
+                    <span>Document Management</span>
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-400 hover:text-white">
-                    Task Automation
+                  <a href="#" className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group">
+                    <CheckSquare className="h-4 w-4 group-hover:text-primary transition-colors" />
+                    <span>Task Automation</span>
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-400 hover:text-white">
-                    Team Collaboration
+                  <a href="#" className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group">
+                    <Users className="h-4 w-4 group-hover:text-primary transition-colors" />
+                    <span>Team Collaboration</span>
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-400 hover:text-white">
-                    Client Communication
+                  <a href="#" className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group">
+                    <MessageSquare className="h-4 w-4 group-hover:text-primary transition-colors" />
+                    <span>Client Communication</span>
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-400 hover:text-white">
-                    Analytics & Reporting
+                  <a href="#" className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group">
+                    <BarChart className="h-4 w-4 group-hover:text-primary transition-colors" />
+                    <span>Analytics & Reporting</span>
                   </a>
                 </li>
               </ul>
             </div>
 
             <div>
-              <h3 className="text-lg font-semibold mb-4">Legal</h3>
+              <h3 className="text-lg font-semibold mb-4 text-foreground">Legal</h3>
               <ul className="space-y-2">
                 <li>
-                  <a href="#" className="text-gray-400 hover:text-white">
-                    Terms of Service
+                  <a href="#" className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group">
+                    <FileIcon className="h-4 w-4 group-hover:text-primary transition-colors" />
+                    <span>Terms of Service</span>
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-400 hover:text-white">
-                    Privacy Policy
+                  <a href="#" className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group">
+                    <Lock className="h-4 w-4 group-hover:text-primary transition-colors" />
+                    <span>Privacy Policy</span>
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-400 hover:text-white">
-                    Cookie Policy
+                  <a href="#" className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group">
+                    <FileIcon className="h-4 w-4 group-hover:text-primary transition-colors" />
+                    <span>Cookie Policy</span>
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-400 hover:text-white">
-                    GDPR Compliance
+                  <a href="#" className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group">
+                    <CheckSquare className="h-4 w-4 group-hover:text-primary transition-colors" />
+                    <span>GDPR Compliance</span>
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-400 hover:text-white">
-                    Security
+                  <a href="#" className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group">
+                    <Shield className="h-4 w-4 group-hover:text-primary transition-colors" />
+                    <span>Security</span>
                   </a>
                 </li>
               </ul>
             </div>
           </div>
 
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
+          <div className="border-t border-border mt-8 pt-8 text-center text-muted-foreground">
+            <div className="flex items-center justify-center mb-4">
+              <ModeToggle />
+            </div>
             <p>
               &copy; {new Date().getFullYear()} Realus. All rights reserved.
             </p>
