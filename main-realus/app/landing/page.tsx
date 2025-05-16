@@ -1062,9 +1062,7 @@ export default function LandingPage() {
           </div>
 
           <div className="border-t border-border mt-8 pt-8 text-center text-muted-foreground">
-            <div className="flex items-center justify-center mb-4">
-              <ModeToggle />
-            </div>
+            
             <p>
               &copy; {new Date().getFullYear()} Realus. All rights reserved.
             </p>
