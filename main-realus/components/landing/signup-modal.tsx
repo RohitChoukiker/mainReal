@@ -1,10 +1,17 @@
 "use client";
 
 import type React from "react";
-import { useState } from "react";
+import { useState, useCallback, memo } from "react";
 import { motion } from "framer-motion";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import dynamic from "next/dynamic";
+
+// Dynamically import ToastContainer with no SSR to improve initial load time
+const ToastContainer = dynamic(
+  () => import("react-toastify").then((mod) => mod.ToastContainer),
+  { ssr: false }
+);
 import {
   X,
   Mail,
@@ -24,7 +31,7 @@ interface SignupModalProps {
   onLoginClick: () => void;
 }
 
-export default function SignupModal({
+function SignupModal({
   onClose,
   onLoginClick,
 }: SignupModalProps) {
@@ -53,16 +60,16 @@ export default function SignupModal({
 
   const totalSteps = 2;
 
-  const generateBrokerId = () => {
+  const generateBrokerId = useCallback(() => {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     let id = "";
     for (let i = 0; i < 11; i++) {
       id += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     setFormData((prev) => ({ ...prev, brokerId: id }));
-  };
+  }, []);
 
-  const handleChange = (
+  const handleChange = useCallback((
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
@@ -79,9 +86,9 @@ export default function SignupModal({
     else {
       setFormData((prev) => ({ ...prev, [name]: value }));
     }
-  };
+  }, [formData.role, generateBrokerId]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (currentStep < totalSteps) {
@@ -89,6 +96,7 @@ export default function SignupModal({
       return;
     }
 
+    // Validate form data
     if (!formData.name || !formData.email || !formData.password) {
       toast.error("Please fill all required fields");
       return;
@@ -96,95 +104,72 @@ export default function SignupModal({
     
     // Check if broker ID is required but not provided
     if (formData.role !== "Broker" && !formData.brokerId) {
-      toast.error("Broker ID is required for your role", {
-        position: "top-right",
-        autoClose: 1000,
-      });
+      toast.error("Broker ID is required for your role");
       return;
     }
 
     if (formData.password !== formData.confirmPassword) {
-      toast.error("Passwords do not match!", {
-        position: "top-right",
-        autoClose: 1000,
-      });
+      toast.error("Passwords do not match!");
       return;
     }
 
     if (formData.password.length < 8) {
-      toast.error("Password must be at least 8 characters long", {
-        position: "top-right",
-        autoClose: 1000,
-      });
+      toast.error("Password must be at least 8 characters long");
       return;
     }
 
     setLoading(true);
 
     try {
+      // Prepare form data before API call to avoid delays
+      const formDataToSend = { ...formData };
+      
       const response = await fetch("/api/signup", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(formDataToSend),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        toast.success("Account created successfully!", {
-          position: "top-right",
-          autoClose: 1000,
-
-          onClose: () => {
-            onClose();
-          },
-        });
+        // Close modal immediately for better UX
+        onClose();
+        
+        // Show success message
+        toast.success("Account created successfully!");
+        
+        // Optionally redirect to login or dashboard
+        // You could add a redirect here if needed
       } else {
-        toast.error(data.message || "Failed to create account", {
-          position: "top-right",
-          autoClose: 3000,
-        });
+        toast.error(data.message || "Failed to create account");
       }
     } catch (err: any) {
-      toast.error(err.message || "An error occurred during signup", {
-        position: "top-right",
-        autoClose: 3000,
-      });
+      toast.error(err.message || "An error occurred during signup");
       console.error("Signup Error:", err.message);
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentStep, totalSteps, formData, onClose]);
 
-  const goToPreviousStep = () => {
+  const goToPreviousStep = useCallback(() => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
     }
-  };
+  }, [currentStep]);
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center pt-56 overflow-y-auto">
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
-      />
+      <ToastContainer />
 
       <motion.div
         className="bg-white rounded-xl shadow-xl w-full max-w-2xl relative overflow-hidden my-8"
-        initial={{ opacity: 0, scale: 0.9 }}
+        initial={{ opacity: 0.9, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.9 }}
-        transition={{ duration: 0.3 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        transition={{ duration: 0.2 }}
       >
         <button
           onClick={onClose}
@@ -665,3 +650,6 @@ export default function SignupModal({
     </div>
   );
 }
+
+// Export memoized component to prevent unnecessary re-renders
+export default memo(SignupModal);

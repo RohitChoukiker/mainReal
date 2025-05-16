@@ -1,12 +1,20 @@
 "use client";
 
 import type React from "react";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { X, Mail, Lock, Eye, EyeOff } from "lucide-react";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import dynamic from "next/dynamic";
+import { setUser } from "@/utils/auth";
+
+// Dynamically import ToastContainer with no SSR to improve initial load time
+const ToastContainer = dynamic(
+  () => import("react-toastify").then((mod) => mod.ToastContainer),
+  { ssr: false }
+);
 
 interface LoginModalProps {
   onClose: () => void;
@@ -17,9 +25,6 @@ export default function LoginModal({
   onClose,
   onSignupClick,
 }: LoginModalProps) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [role, setRole] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -32,11 +37,18 @@ export default function LoginModal({
 
   const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
+      // Start navigation preparation in parallel with API request
+      const prefetchPromises = [
+        router.prefetch("/agent/dashboard"),
+        router.prefetch("/broker/dashboard"),
+        router.prefetch("/tc/dashboard")
+      ];
+      
       const response = await fetch("/api/login", {
         method: "POST",
         headers: {
@@ -51,74 +63,62 @@ export default function LoginModal({
       });
 
       const data = await response.json();
-      console.log(data);
 
       if (response.ok) {
-        toast.success("Login successful!", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-
-        localStorage.setItem("user", JSON.stringify(data.user));
-        localStorage.setItem("token", data.user.token);
-        localStorage.setItem("role", data.user.role);
+        // Store user data immediately using our auth utility
+        setUser(data.user);
         localStorage.setItem("rememberMe", formData.rememberMe);
+        
+        // Close modal immediately
+        onClose();
+        
+        // Show toast in background
+        toast.success("Login successful!");
 
-        setTimeout(() => {
-          onClose();
-
-          switch (data.user.role) {
-            case "Agent":
-              router.push("/agent/dashboard");
-              break;
-            case "Broker":
-              router.push("/broker/dashboard");
-              break;
-            case "Tc":
-              router.push("/tc/dashboard");
-              break;
-            default:
-              console.log("Unknown role:", data.user.role);
-              router.push("/"); // Default route
-          }
-        }, 1000);
+        // Navigate immediately without delay
+        switch (data.user.role) {
+          case "Agent":
+            router.push("/agent/dashboard");
+            break;
+          case "Broker":
+            router.push("/broker/dashboard");
+            break;
+          case "Tc":
+            router.push("/tc/dashboard");
+            break;
+          default:
+            console.log("Unknown role:", data.user.role);
+            router.push("/"); // Default route
+        }
       } else {
-        toast.error(data.message || "Login failed!", {
-          position: "top-right",
-          autoClose: 3000,
-        });
+        toast.error(data.message || "Login failed!");
       }
+      
+      // Ensure prefetch promises are resolved
+      await Promise.all(prefetchPromises);
     } catch (error) {
-      toast.error("An error occurred. Please try again.", {
-        position: "top-right",
-        autoClose: 3000,
-      });
+      toast.error("An error occurred. Please try again.");
       console.error("Login error:", error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [formData, router, onClose]);
 
-  const handleChange = (
+  const handleChange = useCallback((
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-
-    // Update individual state values
-    if (name === "email") setEmail(value);
-    if (name === "password") setPassword(value);
-    if (name === "role") setRole(value);
-  };
+  }, []);
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <motion.div
         className="bg-white rounded-xl shadow-xl w-full max-w-md relative overflow-hidden"
-        initial={{ opacity: 0, scale: 0.9 }}
+        initial={{ opacity: 0.9, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.9 }}
-        transition={{ duration: 0.3 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        transition={{ duration: 0.2 }}
       >
         <button
           onClick={onClose}

@@ -9,8 +9,12 @@ import { AIDelayPredictionWidget } from "@/components/dashboard/ai-delay-predict
 import AgentTaskPanel from "@/components/agent/task-panel"
 import { PlusCircle, Upload, CheckSquare, AlertCircle } from "lucide-react"
 import { TransactionStatus } from "@/models/transactionModel"
+import { withAuth } from "@/components/auth/with-auth"
+import { useAuth } from "@/hooks/use-auth"
 
-export default function AgentDashboard() {
+function AgentDashboard() {
+  // Get user data from auth hook
+  const { user } = useAuth();
   // Define Action type for QuickActionsPanel
   type Action = {
     icon: React.ReactNode;
@@ -289,7 +293,9 @@ export default function AgentDashboard() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold tracking-tight">Agent Dashboard</h1>
+      <h1 className="text-3xl font-bold tracking-tight">
+        {user?.name ? `${user.name}'s Dashboard` : 'Agent Dashboard'}
+      </h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <TransactionOverviewCard 
@@ -322,4 +328,7 @@ export default function AgentDashboard() {
     </div>
   )
 }
+
+// Export the component wrapped with authentication protection
+export default withAuth(AgentDashboard, ["Agent"]);
 
