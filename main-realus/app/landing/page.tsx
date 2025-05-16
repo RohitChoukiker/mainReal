@@ -29,6 +29,9 @@ import Image from "next/image";
 import LoginModal from "@/components/landing/login-modal";
 import SignupModal from "@/components/landing/signup-modal";
 import PricingModal from "@/components/landing/pricing-modal";
+import { ModeToggle } from "@/components/mode-toggle";
+import LoadingScreen from "@/components/loading";
+import { usePreloadImages } from "@/hooks/use-preload-images";
 
 import MobileMenu from "@/components/landing/mobile-menu";
 
@@ -39,26 +42,48 @@ export default function LandingPage() {
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [scrollY, setScrollY] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Preload hero images to improve performance
+  usePreloadImages([
+    "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=60&w=600",
+    "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&q=60&w=600",
+    "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=60&w=600",
+    "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&q=60&w=600"
+  ]);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrollY(window.scrollY);
-
-      const sections = ["home", "about", "services", "contact"];
-      for (const section of sections) {
-        const element = document.getElementById(section);
-        if (element) {
-          const rect = element.getBoundingClientRect();
-          if (rect.top <= 100 && rect.bottom >= 100) {
-            setActiveSection(section);
-            break;
+    // Hide loading screen after a short delay
+    const loadingTimer = setTimeout(() => {
+      setIsLoading(false);
+    }, 800);
+    
+    // Delay adding scroll listener to improve initial load performance
+    const scrollTimer = setTimeout(() => {
+      const handleScroll = () => {
+        setScrollY(window.scrollY);
+  
+        const sections = ["home", "about", "services", "contact"];
+        for (const section of sections) {
+          const element = document.getElementById(section);
+          if (element) {
+            const rect = element.getBoundingClientRect();
+            if (rect.top <= 100 && rect.bottom >= 100) {
+              setActiveSection(section);
+              break;
+            }
           }
         }
-      }
+      };
+  
+      window.addEventListener("scroll", handleScroll);
+      return () => window.removeEventListener("scroll", handleScroll);
+    }, 1000); // Delay by 1000ms
+    
+    return () => {
+      clearTimeout(loadingTimer);
+      clearTimeout(scrollTimer);
     };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const scrollToSection = (sectionId: string) => {
@@ -91,8 +116,10 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-white">
+      {isLoading && <LoadingScreen />}
+      
       <nav
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${
           scrollY > 10 ? "bg-white shadow-md py-3" : "bg-transparent py-5"
         }`}
       >
@@ -164,7 +191,8 @@ export default function LandingPage() {
                 <span>Pricing</span>
               </button>
             </div>
-            <div className="hidden md:block">
+            <div className="hidden md:flex items-center space-x-3">
+              <ModeToggle />
               <button
                 onClick={openLoginModal}
                 className="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 transition-colors"
@@ -207,9 +235,9 @@ export default function LandingPage() {
             {/* Left Content */}
             <motion.div
               className="md:w-1/2 mb-8 md:mb-0"
-              initial={{ opacity: 0, x: -50 }}
+              initial={{ opacity: 0.8, x: 0 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5 }}
+              transition={{ duration: 0.3 }}
             >
               <h1 className="text-4xl md:text-5xl font-bold mb-4 leading-tight text-gray-900">
                 Streamline Your Real Estate Transactions
@@ -239,32 +267,41 @@ export default function LandingPage() {
             {/* Right Images Grid */}
             <motion.div
               className="md:w-1/2 relative"
-              initial={{ opacity: 0, x: 50 }}
+              initial={{ opacity: 0.8, x: 0 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
+              transition={{ duration: 0.3 }}
             >
               <div className="relative grid grid-cols-2 gap-4">
                 <div className="space-y-4">
-                  <img
-                    src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80&w=600"
+                  <Image
+                    src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=60&w=600"
                     alt="Luxury Home"
+                    width={300}
+                    height={200}
+                    priority
                     className="rounded-2xl shadow-lg transform hover:scale-105 transition-transform duration-300"
                   />
-                  <img
-                    src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&q=80&w=600"
+                  <Image
+                    src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&q=60&w=600"
                     alt="Modern Interior"
+                    width={300}
+                    height={200}
                     className="rounded-2xl shadow-lg transform hover:scale-105 transition-transform duration-300"
                   />
                 </div>
                 <div className="space-y-4 pt-8">
-                  <img
-                    src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=600"
+                  <Image
+                    src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=60&w=600"
                     alt="Luxury Villa"
+                    width={300}
+                    height={200}
                     className="rounded-2xl shadow-lg transform hover:scale-105 transition-transform duration-300"
                   />
-                  <img
-                    src="https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&q=80&w=600"
+                  <Image
+                    src="https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&q=60&w=600"
                     alt="Modern House"
+                    width={300}
+                    height={200}
                     className="rounded-2xl shadow-lg transform hover:scale-105 transition-transform duration-300"
                   />
                 </div>

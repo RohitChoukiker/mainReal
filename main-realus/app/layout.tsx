@@ -19,6 +19,13 @@ export const metadata: Metadata = {
     maximumScale: 1,
     userScalable: false,
   },
+  // Add preconnect hints for external resources
+  other: {
+    "link": [
+      { rel: "preconnect", href: "https://images.unsplash.com" },
+      { rel: "dns-prefetch", href: "https://images.unsplash.com" },
+    ]
+  }
 }
 
 export default function RootLayout({

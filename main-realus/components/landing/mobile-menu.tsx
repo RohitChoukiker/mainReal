@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion"
 import { X, Home, Info, Briefcase, Phone, DollarSign, LogIn } from "lucide-react"
+import { ModeToggle } from "@/components/mode-toggle"
 
 interface MobileMenuProps {
   onClose: () => void
@@ -76,7 +77,11 @@ export default function MobileMenu({
           </motion.button>
         </div>
 
-        <div className="mt-auto pt-4">
+        <div className="mt-auto pt-4 space-y-4">
+          <div className="flex items-center justify-between px-2">
+            <span className="text-white text-lg">Theme</span>
+            <ModeToggle />
+          </div>
           <motion.button 
             onClick={() => {
               openLoginModal();
