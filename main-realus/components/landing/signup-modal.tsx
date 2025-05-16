@@ -24,7 +24,10 @@ import {
   Eye,
   EyeOff,
   CheckCircle,
+  Moon,
+  Sun,
 } from "lucide-react";
+import { useTheme } from "next-themes";
 
 interface SignupModalProps {
   onClose: () => void;
@@ -57,8 +60,13 @@ function SignupModal({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const { theme, setTheme } = useTheme();
 
   const totalSteps = 2;
+  
+  const toggleTheme = useCallback(() => {
+    setTheme(theme === "dark" ? "light" : "dark");
+  }, [theme, setTheme]);
 
   const generateBrokerId = useCallback(() => {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -165,25 +173,35 @@ function SignupModal({
       <ToastContainer />
 
       <motion.div
-        className="bg-white rounded-xl shadow-xl w-full max-w-2xl relative overflow-hidden my-8"
+        className="bg-background rounded-xl shadow-xl w-full max-w-2xl relative overflow-hidden my-8"
         initial={{ opacity: 0.9, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
         transition={{ duration: 0.2 }}
       >
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
-        >
-          <X className="h-5 w-5" />
-        </button>
+        <div className="absolute top-4 right-4 flex items-center space-x-2">
+          <button
+            onClick={toggleTheme}
+            className="text-muted-foreground hover:text-foreground p-1 rounded-md"
+            aria-label="Toggle theme"
+          >
+            <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+            <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+          </button>
+          <button
+            onClick={onClose}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
 
         <div className="p-6">
           <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">
+            <h2 className="text-2xl font-bold text-foreground">
               Create an Account
             </h2>
-            <p className="text-gray-600">
+            <p className="text-muted-foreground">
               Join our platform to streamline your real estate transactions
             </p>
           </div>
@@ -198,7 +216,7 @@ function SignupModal({
                         ? "bg-green-500 text-white"
                         : currentStep === index + 1
                         ? "bg-primary text-white"
-                        : "bg-gray-200 text-gray-600"
+                        : "bg-muted text-muted-foreground"
                     }`}
                   >
                     {currentStep > index + 1 ? (
@@ -210,7 +228,7 @@ function SignupModal({
                   {index < totalSteps - 1 && (
                     <div
                       className={`flex-1 h-1 ${
-                        currentStep > index + 1 ? "bg-green-500" : "bg-gray-200"
+                        currentStep > index + 1 ? "bg-green-500" : "bg-muted"
                       }`}
                     ></div>
                   )}
@@ -218,8 +236,8 @@ function SignupModal({
               ))}
             </div>
             <div className="flex justify-between mt-2">
-              <span className="text-xs text-gray-500">Account Information</span>
-              <span className="text-xs text-gray-500">Company Details</span>
+              <span className="text-xs text-muted-foreground">Account Information</span>
+              <span className="text-xs text-muted-foreground">Company Details</span>
             </div>
           </div>
 
@@ -229,13 +247,13 @@ function SignupModal({
                 <div className="space-y-2">
                   <label
                     htmlFor="name"
-                    className="block text-sm font-medium text-gray-700"
+                    className="block text-sm font-medium text-foreground"
                   >
                     Full Name
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <User className="h-5 w-5 text-gray-400" />
+                      <User className="h-5 w-5 text-muted-foreground" />
                     </div>
                     <input
                       id="name"
@@ -244,7 +262,7 @@ function SignupModal({
                       required
                       value={formData.name}
                       onChange={handleChange}
-                      className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                      className="block w-full pl-10 pr-3 py-2 border border-border bg-background text-foreground rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
                       placeholder="Enter Your Name"
                     />
                   </div>
@@ -253,13 +271,13 @@ function SignupModal({
                 <div className="space-y-2">
                   <label
                     htmlFor="email"
-                    className="block text-sm font-medium text-gray-700"
+                    className="block text-sm font-medium text-foreground"
                   >
                     Email
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Mail className="h-5 w-5 text-gray-400" />
+                      <Mail className="h-5 w-5 text-muted-foreground" />
                     </div>
                     <input
                       id="email"
@@ -269,7 +287,7 @@ function SignupModal({
                       required
                       value={formData.email}
                       onChange={handleChange}
-                      className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                      className="block w-full pl-10 pr-3 py-2 border border-border bg-background text-foreground rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
                       placeholder="Enter Your Email"
                     />
                   </div>
@@ -279,13 +297,13 @@ function SignupModal({
                   <div className="space-y-2">
                     <label
                       htmlFor="password"
-                      className="block text-sm font-medium text-gray-700"
+                      className="block text-sm font-medium text-foreground"
                     >
                       Password
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Lock className="h-5 w-5 text-gray-400" />
+                        <Lock className="h-5 w-5 text-muted-foreground" />
                       </div>
                       <input
                         id="password"
@@ -294,7 +312,7 @@ function SignupModal({
                         required
                         value={formData.password}
                         onChange={handleChange}
-                        className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                        className="block w-full pl-10 pr-10 py-2 border border-border bg-background text-foreground rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
                         placeholder="••••••••"
                       />
                       <button
@@ -303,9 +321,9 @@ function SignupModal({
                         onClick={() => setShowPassword(!showPassword)}
                       >
                         {showPassword ? (
-                          <EyeOff className="h-5 w-5 text-gray-400" />
+                          <EyeOff className="h-5 w-5 text-muted-foreground" />
                         ) : (
-                          <Eye className="h-5 w-5 text-gray-400" />
+                          <Eye className="h-5 w-5 text-muted-foreground" />
                         )}
                       </button>
                     </div>
@@ -314,13 +332,13 @@ function SignupModal({
                   <div className="space-y-2">
                     <label
                       htmlFor="confirmPassword"
-                      className="block text-sm font-medium text-gray-700"
+                      className="block text-sm font-medium text-foreground"
                     >
                       Confirm Password
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Lock className="h-5 w-5 text-gray-400" />
+                        <Lock className="h-5 w-5 text-muted-foreground" />
                       </div>
                       <input
                         id="confirmPassword"
@@ -329,7 +347,7 @@ function SignupModal({
                         required
                         value={formData.confirmPassword}
                         onChange={handleChange}
-                        className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                        className="block w-full pl-10 pr-10 py-2 border border-border bg-background text-foreground rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
                         placeholder="••••••••"
                       />
                       <button
@@ -340,9 +358,9 @@ function SignupModal({
                         }
                       >
                         {showConfirmPassword ? (
-                          <EyeOff className="h-5 w-5 text-gray-400" />
+                          <EyeOff className="h-5 w-5 text-muted-foreground" />
                         ) : (
-                          <Eye className="h-5 w-5 text-gray-400" />
+                          <Eye className="h-5 w-5 text-muted-foreground" />
                         )}
                       </button>
                     </div>
@@ -352,13 +370,13 @@ function SignupModal({
                 <div className="space-y-2">
                   <label
                     htmlFor="mobile"
-                    className="block text-sm font-medium text-gray-700"
+                    className="block text-sm font-medium text-foreground"
                   >
                     Mobile Number
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Phone className="h-5 w-5 text-gray-400" />
+                      <Phone className="h-5 w-5 text-muted-foreground" />
                     </div>
                     <input
                       id="mobile"
@@ -367,7 +385,7 @@ function SignupModal({
                       required
                       value={formData.mobile}
                       onChange={handleChange}
-                      className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                      className="block w-full pl-10 pr-3 py-2 border border-border bg-background text-foreground rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
                       placeholder="(555) 123-4567"
                     />
                   </div>
@@ -376,11 +394,14 @@ function SignupModal({
                 <div className="space-y-2">
                   <label
                     htmlFor="brokerId"
-                    className="block text-sm font-medium text-gray-700"
+                    className="block text-sm font-medium text-foreground"
                   >
                     {formData.role === "TransactionCoordinator" ? "Your Broker's ID" : "Broker Id"}
                   </label>
                   <div className="relative flex items-center space-x-2">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <User className="h-5 w-5 text-muted-foreground" />
+                    </div>
                     <input
                       id="brokerId"
                       name="brokerId"
@@ -389,7 +410,7 @@ function SignupModal({
                       maxLength={11}
                       value={formData.brokerId}
                       onChange={handleChange}
-                      className="block w-full pl-3 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                      className="block w-full pl-10 pr-3 py-2 border border-border bg-background text-foreground rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
                       placeholder={formData.role === "TransactionCoordinator" ? "Enter your broker's ID" : "Enter Broker Id"}
                     />
                     {formData.role === "Broker" && (
@@ -407,22 +428,27 @@ function SignupModal({
                 <div className="space-y-2">
                   <label
                     htmlFor="role"
-                    className="block text-sm font-medium text-gray-700"
+                    className="block text-sm font-medium text-foreground"
                   >
                     Role
                   </label>
-                  <select
-                    id="role"
-                    name="role"
-                    value={formData.role}
-                    onChange={handleChange}
-                    required
-                    className="block w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <User className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <select
+                      id="role"
+                      name="role"
+                      value={formData.role}
+                      onChange={handleChange}
+                      required
+                      className="block w-full pl-10 pr-10 py-2 border border-border bg-background text-foreground rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
                   >
-                    <option value="Agent">Agent</option>
-                    <option value="Broker">Broker</option>
-                    <option value="TransactionCoordinator">Transaction Coordinator</option>
-                  </select>
+                      <option value="Agent">Agent</option>
+                      <option value="Broker">Broker</option>
+                      <option value="TransactionCoordinator">Transaction Coordinator</option>
+                    </select>
+                  </div>
                 </div>
               </div>
             )}
@@ -433,13 +459,13 @@ function SignupModal({
                   <div className="space-y-2">
                     <label
                       htmlFor="companyName"
-                      className="block text-sm font-medium text-gray-700"
+                      className="block text-sm font-medium text-foreground"
                     >
                       Company Name
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Building className="h-5 w-5 text-gray-400" />
+                        <Building className="h-5 w-5 text-muted-foreground" />
                       </div>
                       <input
                         id="companyName"
@@ -447,7 +473,7 @@ function SignupModal({
                         type="text"
                         value={formData.companyName}
                         onChange={handleChange}
-                        className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                        className="block w-full pl-10 pr-3 py-2 border border-border bg-background text-foreground rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
                         placeholder="Acme Real Estate"
                       />
                     </div>
@@ -456,32 +482,37 @@ function SignupModal({
                   <div className="space-y-2">
                     <label
                       htmlFor="teamName"
-                      className="block text-sm font-medium text-gray-700"
+                      className="block text-sm font-medium text-foreground"
                     >
                       Team Name (Optional)
                     </label>
-                    <input
-                      id="teamName"
-                      name="teamName"
-                      type="text"
-                      value={formData.teamName}
-                      onChange={handleChange}
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
-                      placeholder="Sales Team"
-                    />
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <User className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                      <input
+                        id="teamName"
+                        name="teamName"
+                        type="text"
+                        value={formData.teamName}
+                        onChange={handleChange}
+                        className="block w-full pl-10 pr-3 py-2 border border-border bg-background text-foreground rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                        placeholder="Sales Team"
+                      />
+                    </div>
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <label
                     htmlFor="address"
-                    className="block text-sm font-medium text-gray-700"
+                    className="block text-sm font-medium text-foreground"
                   >
                     Address
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <MapPin className="h-5 w-5 text-gray-400" />
+                      <MapPin className="h-5 w-5 text-muted-foreground" />
                     </div>
                     <input
                       id="address"
@@ -489,7 +520,7 @@ function SignupModal({
                       type="text"
                       value={formData.address}
                       onChange={handleChange}
-                      className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                      className="block w-full pl-10 pr-3 py-2 border border-border bg-background text-foreground rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
                       placeholder="123 Main St, Suite 100"
                     />
                   </div>
@@ -498,13 +529,13 @@ function SignupModal({
                 <div className="space-y-2">
                   <label
                     htmlFor="companyPhone"
-                    className="block text-sm font-medium text-gray-700"
+                    className="block text-sm font-medium text-foreground"
                   >
                     Company Phone
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Phone className="h-5 w-5 text-gray-400" />
+                      <Phone className="h-5 w-5 text-muted-foreground" />
                     </div>
                     <input
                       id="companyPhone"
@@ -512,7 +543,7 @@ function SignupModal({
                       type="tel"
                       value={formData.companyPhone}
                       onChange={handleChange}
-                      className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                      className="block w-full pl-10 pr-3 py-2 border border-border bg-background text-foreground rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
                       placeholder="Company Phone Number"
                     />
                   </div>
@@ -522,75 +553,90 @@ function SignupModal({
                   <div className="space-y-2">
                     <label
                       htmlFor="city"
-                      className="block text-sm font-medium text-gray-700"
+                      className="block text-sm font-medium text-foreground"
                     >
                       City
                     </label>
-                    <input
-                      id="city"
-                      name="city"
-                      type="text"
-                      value={formData.city}
-                      onChange={handleChange}
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
-                      placeholder="Austin"
-                    />
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <MapPin className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                      <input
+                        id="city"
+                        name="city"
+                        type="text"
+                        value={formData.city}
+                        onChange={handleChange}
+                        className="block w-full pl-10 pr-3 py-2 border border-border bg-background text-foreground rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                        placeholder="Austin"
+                      />
+                    </div>
                   </div>
 
                   <div className="space-y-2">
                     <label
                       htmlFor="state"
-                      className="block text-sm font-medium text-gray-700"
+                      className="block text-sm font-medium text-foreground"
                     >
                       State
                     </label>
-                    <input
-                      id="state"
-                      name="state"
-                      type="text"
-                      value={formData.state}
-                      onChange={handleChange}
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
-                      placeholder="TX"
-                    />
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <MapPin className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                      <input
+                        id="state"
+                        name="state"
+                        type="text"
+                        value={formData.state}
+                        onChange={handleChange}
+                        className="block w-full pl-10 pr-3 py-2 border border-border bg-background text-foreground rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                        placeholder="TX"
+                      />
+                    </div>
                   </div>
 
                   <div className="space-y-2">
                     <label
                       htmlFor="pinCode"
-                      className="block text-sm font-medium text-gray-700"
+                      className="block text-sm font-medium text-foreground"
                     >
                       ZIP Code
                     </label>
-                    <input
-                      id="pinCode"
-                      name="pinCode"
-                      type="text"
-                      value={formData.pinCode}
-                      onChange={handleChange}
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
-                      placeholder="78701"
-                    />
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <MapPin className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                      <input
+                        id="pinCode"
+                        name="pinCode"
+                        type="text"
+                        value={formData.pinCode}
+                        onChange={handleChange}
+                        className="block w-full pl-10 pr-3 py-2 border border-border bg-background text-foreground rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                        placeholder="78701"
+                      />
+                    </div>
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <label
                     htmlFor="timeZone"
-                    className="block text-sm font-medium text-gray-700"
+                    className="block text-sm font-medium text-foreground"
                   >
                     Time Zone
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Clock className="h-5 w-5 text-gray-400" />
+                      <Clock className="h-5 w-5 text-muted-foreground" />
                     </div>
                     <select
                       id="timeZone"
                       name="timeZone"
                       value={formData.timeZone}
                       onChange={handleChange}
-                      className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                      className="block w-full pl-10 pr-10 py-2 border border-border bg-background text-foreground rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
                     >
                       <option value="UTC">
                         UTC (Coordinated Universal Time)
@@ -611,7 +657,7 @@ function SignupModal({
                   type="button"
                   onClick={goToPreviousStep}
                   disabled={loading}
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50"
+                  className="inline-flex items-center px-4 py-2 border border-border shadow-sm text-sm font-medium rounded-md text-foreground bg-background hover:bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50"
                 >
                   Back
                 </button>
@@ -634,7 +680,7 @@ function SignupModal({
           </form>
 
           <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-muted-foreground">
               Already have an account?{" "}
               <button
                 type="button"

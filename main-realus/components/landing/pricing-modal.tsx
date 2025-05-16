@@ -60,20 +60,20 @@ export default function PricingModal({ onClose }: PricingModalProps) {
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center pt-72 overflow-y-auto">
       <motion.div
-        className="bg-white rounded-xl shadow-xl w-full max-w-4xl relative my-8"
+        className="bg-background rounded-xl shadow-xl w-full max-w-4xl relative my-8"
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.9 }}
         transition={{ duration: 0.3 }}
       >
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 z-10">
+        <button onClick={onClose} className="absolute top-4 right-4 text-muted-foreground hover:text-foreground z-10">
           <X className="h-5 w-5" />
         </button>
 
         <div className="p-6">
           <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-gray-900">Pricing Plans</h2>
-            <p className="text-gray-600 mt-2">Choose the perfect plan for your real estate business</p>
+            <h2 className="text-3xl font-bold text-foreground">Pricing Plans</h2>
+            <p className="text-muted-foreground mt-2">Choose the perfect plan for your real estate business</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -81,24 +81,24 @@ export default function PricingModal({ onClose }: PricingModalProps) {
               <div
                 key={index}
                 className={`rounded-xl border ${
-                  plan.popular ? "border-primary shadow-lg relative" : "border-gray-200"
+                  plan.popular ? "border-primary shadow-lg relative" : "border-border"
                 }`}
               >
                 {plan.popular && (
                   <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                    <span className="bg-primary text-white text-xs font-semibold px-3 py-1 rounded-full">
+                    <span className="bg-primary text-primary-foreground text-xs font-semibold px-3 py-1 rounded-full">
                       Most Popular
                     </span>
                   </div>
                 )}
 
                 <div className="p-6">
-                  <h3 className="text-xl font-bold text-gray-900">{plan.name}</h3>
+                  <h3 className="text-xl font-bold text-foreground">{plan.name}</h3>
                   <div className="mt-4 flex items-baseline">
-                    <span className="text-3xl font-extrabold text-gray-900">{plan.price}</span>
-                    <span className="ml-1 text-xl font-semibold text-gray-500">/month</span>
+                    <span className="text-3xl font-extrabold text-foreground">{plan.price}</span>
+                    <span className="ml-1 text-xl font-semibold text-muted-foreground">/month</span>
                   </div>
-                  <p className="mt-2 text-sm text-gray-500">{plan.description}</p>
+                  <p className="mt-2 text-sm text-muted-foreground">{plan.description}</p>
 
                   <ul className="mt-6 space-y-3">
                     {plan.features.map((feature, idx) => (
@@ -106,16 +106,16 @@ export default function PricingModal({ onClose }: PricingModalProps) {
                         <div className="flex-shrink-0">
                           <Check className="h-5 w-5 text-green-500" />
                         </div>
-                        <span className="ml-2 text-sm text-gray-700">{feature}</span>
+                        <span className="ml-2 text-sm text-foreground">{feature}</span>
                       </li>
                     ))}
 
                     {plan.limitations.map((limitation, idx) => (
                       <li key={idx} className="flex items-start">
                         <div className="flex-shrink-0">
-                          <X className="h-5 w-5 text-gray-400" />
+                          <X className="h-5 w-5 text-muted-foreground" />
                         </div>
-                        <span className="ml-2 text-sm text-gray-500">{limitation}</span>
+                        <span className="ml-2 text-sm text-muted-foreground">{limitation}</span>
                       </li>
                     ))}
                   </ul>
@@ -125,8 +125,8 @@ export default function PricingModal({ onClose }: PricingModalProps) {
                       type="button"
                       className={`w-full py-2 px-4 rounded-md shadow-sm text-sm font-medium ${
                         plan.popular
-                          ? "bg-primary text-white hover:bg-primary/90"
-                          : "bg-white text-primary border border-primary hover:bg-primary/10"
+                          ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                          : "bg-background text-primary border border-primary hover:bg-primary/10"
                       }`}
                     >
                       {plan.cta}
@@ -137,35 +137,35 @@ export default function PricingModal({ onClose }: PricingModalProps) {
             ))}
           </div>
 
-          <div className="mt-10 border-t border-gray-200 pt-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Frequently Asked Questions</h3>
+          <div className="mt-10 border-t border-border pt-6">
+            <h3 className="text-lg font-semibold text-foreground mb-4">Frequently Asked Questions</h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <h4 className="text-base font-medium text-gray-900">Can I switch plans later?</h4>
-                <p className="mt-1 text-sm text-gray-500">
+                <h4 className="text-base font-medium text-foreground">Can I switch plans later?</h4>
+                <p className="mt-1 text-sm text-muted-foreground">
                   Yes, you can upgrade or downgrade your plan at any time. Changes will be reflected in your next
                   billing cycle.
                 </p>
               </div>
 
               <div>
-                <h4 className="text-base font-medium text-gray-900">Is there a setup fee?</h4>
-                <p className="mt-1 text-sm text-gray-500">
+                <h4 className="text-base font-medium text-foreground">Is there a setup fee?</h4>
+                <p className="mt-1 text-sm text-muted-foreground">
                   No, there are no setup fees for any of our plans. You only pay the monthly subscription.
                 </p>
               </div>
 
               <div>
-                <h4 className="text-base font-medium text-gray-900">Do you offer annual billing?</h4>
-                <p className="mt-1 text-sm text-gray-500">
+                <h4 className="text-base font-medium text-foreground">Do you offer annual billing?</h4>
+                <p className="mt-1 text-sm text-muted-foreground">
                   Yes, we offer a 20% discount for annual billing on all plans. Contact our sales team for details.
                 </p>
               </div>
 
               <div>
-                <h4 className="text-base font-medium text-gray-900">What payment methods do you accept?</h4>
-                <p className="mt-1 text-sm text-gray-500">
+                <h4 className="text-base font-medium text-foreground">What payment methods do you accept?</h4>
+                <p className="mt-1 text-sm text-muted-foreground">
                   We accept all major credit cards, ACH transfers, and PayPal for payment.
                 </p>
               </div>
