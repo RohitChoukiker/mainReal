@@ -40,16 +40,14 @@ export default function ProtectedRoute({
         const userRole = getUserRole();
         
         if (!userRole || !allowedRoles.includes(userRole)) {
-          // Redirect based on user role
-          if (userRole === "Agent") {
-            router.replace("/agent/dashboard");
-          } else if (userRole === "Broker") {
-            router.replace("/broker/dashboard");
-          } else if (userRole === "Tc") {
-            router.replace("/tc/dashboard");
-          } else {
-            router.replace("/landing");
-          }
+          // Import the utility function to get the dashboard URL
+          const { getRoleDashboard } = require("@/utils/auth");
+          
+          // Get the appropriate dashboard URL for the user's role
+          const dashboardUrl = getRoleDashboard(userRole);
+          
+          // Redirect to the appropriate dashboard
+          router.replace(dashboardUrl);
           return;
         }
       }

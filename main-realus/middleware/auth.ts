@@ -31,10 +31,23 @@ export function middleware(req: NextRequest) {
   const isAllowed = allowedPrefixes.some(prefix => url.startsWith(prefix));
   console.log(`Is URL allowed: ${isAllowed}`);
 
-  // If not allowed, redirect to unauthorized page
+  // If not allowed, redirect to the appropriate dashboard based on role
   if (!isAllowed) {
-    console.log(`Access not allowed, redirecting to unauthorized page`);
-    return NextResponse.redirect(new URL("/unauthorized", req.url));
+    console.log(`Access not allowed, redirecting based on role: ${role}`);
+    
+    // Define role-specific dashboards
+    const roleDashboards: Record<string, string> = {
+      Agent: "/agent/dashboard",
+      Broker: "/broker/dashboard",
+      Tc: "/tc/dashboard",
+      Admin: "/admin/dashboard"
+    };
+    
+    // Get the dashboard URL for the user's role, or default to unauthorized
+    const redirectUrl = roleDashboards[role] || "/unauthorized";
+    console.log(`Redirecting to: ${redirectUrl}`);
+    
+    return NextResponse.redirect(new URL(redirectUrl, req.url));
   }
 
   console.log(`Access allowed, proceeding to ${url}`);

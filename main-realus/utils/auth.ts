@@ -111,3 +111,27 @@ export const isUserApproved = (): boolean => {
   const user = getUser();
   return user?.isApproved || false;
 };
+
+// Get the dashboard URL for a specific role
+export const getRoleDashboard = (role: string | null): string => {
+  if (!role) return '/landing';
+  
+  const roleDashboards: Record<string, string> = {
+    Agent: "/agent/dashboard",
+    Broker: "/broker/dashboard",
+    Tc: "/tc/dashboard",
+    Admin: "/admin/dashboard"
+  };
+  
+  return roleDashboards[role] || '/landing';
+};
+
+// Redirect user based on their role
+export const redirectToRoleDashboard = (): void => {
+  if (!isBrowser()) return;
+  
+  const role = getUserRole();
+  const dashboardUrl = getRoleDashboard(role);
+  
+  window.location.href = dashboardUrl;
+};
