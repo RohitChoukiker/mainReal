@@ -11,6 +11,7 @@ export interface Transaction extends Document {
   transactionType: string;
   propertyAddress: string;
   city: string;
+  country: string;
   state: string;
   zipCode: string;
   price: number;
@@ -31,6 +32,7 @@ const TransactionSchema: Schema = new Schema(
     transactionType: { type: String, required: true },
     propertyAddress: { type: String, required: true },
     city: { type: String, required: true },
+    country: { type: String, required: true, default: "India" },
     state: { type: String, required: true },
     zipCode: { type: String, required: true },
     price: { type: Number, required: true },

@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -24,12 +24,158 @@ export default function NewTransaction() {
     transactionType: "",
     propertyAddress: "",
     city: "",
+    country: "India", // Default country set to India
     state: "",
     zipCode: "",
     price: "",
     closingDate: "",
     notes: ""
   })
+
+  // Country and state data
+  const countries = [
+    { value: "India", label: "India" },
+    { value: "USA", label: "United States" },
+    { value: "UK", label: "United Kingdom" },
+    { value: "Canada", label: "Canada" },
+    { value: "Australia", label: "Australia" }
+  ]
+
+  const statesByCountry = {
+    India: [
+      { value: "AP", label: "Andhra Pradesh" },
+      { value: "AR", label: "Arunachal Pradesh" },
+      { value: "AS", label: "Assam" },
+      { value: "BR", label: "Bihar" },
+      { value: "CG", label: "Chhattisgarh" },
+      { value: "GA", label: "Goa" },
+      { value: "GJ", label: "Gujarat" },
+      { value: "HR", label: "Haryana" },
+      { value: "HP", label: "Himachal Pradesh" },
+      { value: "JH", label: "Jharkhand" },
+      { value: "KA", label: "Karnataka" },
+      { value: "KL", label: "Kerala" },
+      { value: "MP", label: "Madhya Pradesh" },
+      { value: "MH", label: "Maharashtra" },
+      { value: "MN", label: "Manipur" },
+      { value: "ML", label: "Meghalaya" },
+      { value: "MZ", label: "Mizoram" },
+      { value: "NL", label: "Nagaland" },
+      { value: "OD", label: "Odisha" },
+      { value: "PB", label: "Punjab" },
+      { value: "RJ", label: "Rajasthan" },
+      { value: "SK", label: "Sikkim" },
+      { value: "TN", label: "Tamil Nadu" },
+      { value: "TG", label: "Telangana" },
+      { value: "TR", label: "Tripura" },
+      { value: "UP", label: "Uttar Pradesh" },
+      { value: "UK", label: "Uttarakhand" },
+      { value: "WB", label: "West Bengal" },
+      { value: "AN", label: "Andaman and Nicobar Islands" },
+      { value: "CH", label: "Chandigarh" },
+      { value: "DN", label: "Dadra and Nagar Haveli and Daman and Diu" },
+      { value: "DL", label: "Delhi" },
+      { value: "JK", label: "Jammu and Kashmir" },
+      { value: "LA", label: "Ladakh" },
+      { value: "LD", label: "Lakshadweep" },
+      { value: "PY", label: "Puducherry" }
+    ],
+    USA: [
+      { value: "AL", label: "Alabama" },
+      { value: "AK", label: "Alaska" },
+      { value: "AZ", label: "Arizona" },
+      { value: "AR", label: "Arkansas" },
+      { value: "CA", label: "California" },
+      { value: "CO", label: "Colorado" },
+      { value: "CT", label: "Connecticut" },
+      { value: "DE", label: "Delaware" },
+      { value: "FL", label: "Florida" },
+      { value: "GA", label: "Georgia" },
+      { value: "HI", label: "Hawaii" },
+      { value: "ID", label: "Idaho" },
+      { value: "IL", label: "Illinois" },
+      { value: "IN", label: "Indiana" },
+      { value: "IA", label: "Iowa" },
+      { value: "KS", label: "Kansas" },
+      { value: "KY", label: "Kentucky" },
+      { value: "LA", label: "Louisiana" },
+      { value: "ME", label: "Maine" },
+      { value: "MD", label: "Maryland" },
+      { value: "MA", label: "Massachusetts" },
+      { value: "MI", label: "Michigan" },
+      { value: "MN", label: "Minnesota" },
+      { value: "MS", label: "Mississippi" },
+      { value: "MO", label: "Missouri" },
+      { value: "MT", label: "Montana" },
+      { value: "NE", label: "Nebraska" },
+      { value: "NV", label: "Nevada" },
+      { value: "NH", label: "New Hampshire" },
+      { value: "NJ", label: "New Jersey" },
+      { value: "NM", label: "New Mexico" },
+      { value: "NY", label: "New York" },
+      { value: "NC", label: "North Carolina" },
+      { value: "ND", label: "North Dakota" },
+      { value: "OH", label: "Ohio" },
+      { value: "OK", label: "Oklahoma" },
+      { value: "OR", label: "Oregon" },
+      { value: "PA", label: "Pennsylvania" },
+      { value: "RI", label: "Rhode Island" },
+      { value: "SC", label: "South Carolina" },
+      { value: "SD", label: "South Dakota" },
+      { value: "TN", label: "Tennessee" },
+      { value: "TX", label: "Texas" },
+      { value: "UT", label: "Utah" },
+      { value: "VT", label: "Vermont" },
+      { value: "VA", label: "Virginia" },
+      { value: "WA", label: "Washington" },
+      { value: "WV", label: "West Virginia" },
+      { value: "WI", label: "Wisconsin" },
+      { value: "WY", label: "Wyoming" }
+    ],
+    UK: [
+      { value: "EN", label: "England" },
+      { value: "SC", label: "Scotland" },
+      { value: "WA", label: "Wales" },
+      { value: "NI", label: "Northern Ireland" }
+    ],
+    Canada: [
+      { value: "AB", label: "Alberta" },
+      { value: "BC", label: "British Columbia" },
+      { value: "MB", label: "Manitoba" },
+      { value: "NB", label: "New Brunswick" },
+      { value: "NL", label: "Newfoundland and Labrador" },
+      { value: "NS", label: "Nova Scotia" },
+      { value: "ON", label: "Ontario" },
+      { value: "PE", label: "Prince Edward Island" },
+      { value: "QC", label: "Quebec" },
+      { value: "SK", label: "Saskatchewan" },
+      { value: "NT", label: "Northwest Territories" },
+      { value: "NU", label: "Nunavut" },
+      { value: "YT", label: "Yukon" }
+    ],
+    Australia: [
+      { value: "ACT", label: "Australian Capital Territory" },
+      { value: "NSW", label: "New South Wales" },
+      { value: "NT", label: "Northern Territory" },
+      { value: "QLD", label: "Queensland" },
+      { value: "SA", label: "South Australia" },
+      { value: "TAS", label: "Tasmania" },
+      { value: "VIC", label: "Victoria" },
+      { value: "WA", label: "Western Australia" }
+    ]
+  }
+
+  // Get available states based on selected country
+  const [availableStates, setAvailableStates] = useState(statesByCountry.India)
+
+  // Update available states when country changes
+  useEffect(() => {
+    if (formData.country && statesByCountry[formData.country]) {
+      setAvailableStates(statesByCountry[formData.country])
+      // Reset state when country changes
+      setFormData(prev => ({ ...prev, state: "" }))
+    }
+  }, [formData.country])
 
   // AI suggested documents based on transaction type
   const suggestedDocuments = [
@@ -70,7 +216,7 @@ export default function NewTransaction() {
         return;
       }
 
-      if (!formData.propertyAddress || !formData.city || !formData.state || !formData.zipCode) {
+      if (!formData.propertyAddress || !formData.city || !formData.country || !formData.state || !formData.zipCode) {
         toast.error('Please complete all property address fields');
         setIsLoading(false);
         return;
@@ -102,6 +248,7 @@ export default function NewTransaction() {
         transactionType: formData.transactionType,
         propertyAddress: formData.propertyAddress,
         city: formData.city,
+        country: formData.country,
         state: formData.state,
         zipCode: formData.zipCode,
         price: parseFloat(formData.price),
@@ -210,15 +357,35 @@ export default function NewTransaction() {
                   />
                 </div>
 
+                <div className="space-y-2">
+                  <Label htmlFor="city">City</Label>
+                  <Input 
+                    id="city" 
+                    required 
+                    value={formData.city}
+                    onChange={handleChange}
+                  />
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="city">City</Label>
-                    <Input 
-                      id="city" 
-                      required 
-                      value={formData.city}
-                      onChange={handleChange}
-                    />
+                    <Label htmlFor="country">Country</Label>
+                    <Select 
+                      required
+                      onValueChange={(value) => handleSelectChange(value, 'country')}
+                      value={formData.country}
+                    >
+                      <SelectTrigger id="country">
+                        <SelectValue placeholder="Select country" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {countries.map((country) => (
+                          <SelectItem key={country.value} value={country.value}>
+                            {country.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="state">State</Label>
@@ -228,13 +395,14 @@ export default function NewTransaction() {
                       value={formData.state}
                     >
                       <SelectTrigger id="state">
-                        <SelectValue placeholder="State" />
+                        <SelectValue placeholder="Select state" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="TX">Texas</SelectItem>
-                        <SelectItem value="CA">California</SelectItem>
-                        <SelectItem value="NY">New York</SelectItem>
-                        <SelectItem value="FL">Florida</SelectItem>
+                        {availableStates.map((state) => (
+                          <SelectItem key={state.value} value={state.value}>
+                            {state.label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
