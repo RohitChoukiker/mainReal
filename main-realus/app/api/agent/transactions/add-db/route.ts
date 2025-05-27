@@ -49,20 +49,25 @@ export async function POST(req: NextRequest) {
     console.log("Token from cookies:", token ? "Found" : "Not found");
     
     // For development/testing - if no token, create a test transaction
-    let agentId = "test-agent-id";
+    let agentId: any = "test-agent-id"; // Using any type to accommodate both string and ObjectId
     let brokerId = "test-broker-id";
     
     if (!token) {
       console.log("No authentication token found - using test IDs");
       
-      // In production, you would return an error here
-      // For development, we'll continue with test IDs
-      /*
-      return NextResponse.json(
-        { message: "Authentication required" },
-        { status: 401 }
-      );
-      */
+      // For development, create a valid ObjectId for testing
+      if (process.env.NODE_ENV !== 'production') {
+        agentId = new mongoose.Types.ObjectId();
+        agentName = "Test Agent"; // Set a test agent name
+        console.log("Created test ObjectId for agent:", agentId);
+        console.log("Using test agent name:", agentName);
+      } else {
+        // In production, require authentication
+        return NextResponse.json(
+          { message: "Authentication required" },
+          { status: 401 }
+        );
+      }
     } else {
       // Verify the token and get the agent's ID
       try {
@@ -95,10 +100,14 @@ export async function POST(req: NextRequest) {
             { status: 403 }
           );
         } else {
-          // Valid agent found - use the agent's unique ID
+          // Valid agent found - use the agent's MongoDB ObjectId directly
           if (agent._id) {
-            agentId = agent._id.toString();
-            console.log("Using agent's unique ID:", agentId);
+            agentId = agent._id;
+            console.log("Using agent's MongoDB ObjectId:", agentId);
+            
+            // Store the agent's name to use in the transaction
+            agentName = agent.name || "Unknown Agent";
+            console.log("Using agent's name:", agentName);
           } else {
             return NextResponse.json(
               { message: "Agent ID is missing" },
@@ -120,10 +129,13 @@ export async function POST(req: NextRequest) {
       } catch (error) {
         console.error("Token verification error:", error);
         
-        // For development, we'll continue with test IDs
+        // For development, create a valid ObjectId for testing
         if (process.env.NODE_ENV !== 'production') {
-          console.log("Using test IDs for development");
-          // Keep using the default test IDs set earlier
+          console.log("Token verification failed, using test ObjectId for development");
+          agentId = new mongoose.Types.ObjectId();
+          agentName = "Test Agent (Token Error)"; // Set a test agent name
+          console.log("Created test ObjectId for agent:", agentId);
+          console.log("Using test agent name:", agentName);
         } else {
           return NextResponse.json(
             { message: "Invalid authentication token" },
@@ -147,9 +159,9 @@ export async function POST(req: NextRequest) {
       if (tcs.length > 0) {
         // Simple round-robin assignment - get a random TC
         const randomIndex = Math.floor(Math.random() * tcs.length);
-        // Safely access the _id and convert to string
+        // Safely access the _id and use it directly as ObjectId
         if (tcs[randomIndex]?._id) {
-          transactionCoordinatorId = tcs[randomIndex]._id.toString();
+          transactionCoordinatorId = tcs[randomIndex]._id;
           console.log(`Assigned transaction to TC with ID: ${transactionCoordinatorId}`);
         } else {
           console.log("Selected TC has no valid ID, transaction will be unassigned");
@@ -171,10 +183,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Get agent name if available
+    let agentName = "Unknown Agent";
+    if (token && agent && agent.name) {
+      agentName = agent.name;
+    }
+    console.log("Using agent name for transaction:", agentName);
+    
     // Create new transaction
     const transaction = new TransactionModel({
       transactionId,
       agentId: agentId,
+      agentName: agentName, // Store the agent name directly in the transaction
       brokerId: brokerId,
       transactionCoordinatorId: transactionCoordinatorId, // Assign to TC
       clientName: body.clientName,

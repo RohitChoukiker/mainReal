@@ -26,9 +26,10 @@ export enum TransactionStatus {
 // Transaction Interface
 export interface Transaction extends Document {
   transactionId: string;
-  agentId: string;
+  agentId: mongoose.Types.ObjectId;
+  agentName?: string; // Add agent name field
   brokerId: string;
-  transactionCoordinatorId?: string;
+  transactionCoordinatorId?: mongoose.Types.ObjectId;
   clientName: string;
   clientEmail: string;
   clientPhone: string;
@@ -58,9 +59,10 @@ export interface Transaction extends Document {
 const TransactionSchema: Schema<Transaction> = new Schema<Transaction>(
   {
     transactionId: { type: String, required: true, unique: true },
-    agentId: { type: String, required: true },
+    agentId: { type: mongoose.Schema.Types.ObjectId, required: true, ref: 'User' },
+    agentName: { type: String }, // Add agent name field
     brokerId: { type: String, required: true, index: true }, // Add index for faster queries
-    transactionCoordinatorId: { type: String },
+    transactionCoordinatorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     clientName: { type: String, required: true },
     clientEmail: { type: String, required: true },
     clientPhone: { type: String, required: true },

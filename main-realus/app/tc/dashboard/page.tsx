@@ -76,7 +76,7 @@ export default function TCDashboard() {
         let data
         try {
           data = await response.json()
-          console.log('Fetched transactions:', data)
+          console.log('Fetched transactions:', JSON.stringify(data.transactions, null, 2))
         } catch (parseError) {
           console.error('Error parsing JSON response:', parseError)
           throw new Error('Failed to parse API response')
@@ -108,11 +108,14 @@ export default function TCDashboard() {
             if (status === "new") status = "pending"
             if (status === "inprogress") status = "in_progress"
             
+            // Log the agent information for debugging
+            console.log(`Transaction ${t.transactionId}: Agent ID=${t.agentId}, Agent Name=${t.agentName}`);
+            
             return {
               id: t.transactionId || `TR-${Math.floor(Math.random() * 10000)}`,
               property,
               client: t.clientName || "Unknown Client",
-              agent: t.agentId || "Unknown Agent",
+              agent: t.agentName || t.agentId || "Unknown Agent",
               status,
               dueDate,
               // Random risk level for demo purposes

@@ -110,22 +110,63 @@ export const GET = catchAsync(async (req: NextRequest) => {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit);
+        
+      console.log("Raw transactions from database:", JSON.stringify(transactions.map(t => ({
+        id: t.transactionId,
+        agentId: t.agentId,
+        agentName: t.agentName
+      })), null, 2));
       
       console.log(`Found ${transactions.length} transactions in database`);
       
       // Add agent names to transactions
       for (let i = 0; i < transactions.length; i++) {
         try {
-          const agent = await User.findById(transactions[i].agentId);
-          if (agent) {
-            // Add agent name to transaction
-            (transactions[i] as any).agentName = agent.name || "Unknown Agent";
-            console.log(`Added agent name "${(transactions[i] as any).agentName}" to transaction ${transactions[i].transactionId || String(transactions[i]._id)}`);
+          // Log the agent ID for debugging
+          console.log(`Looking up agent with ID: ${transactions[i].agentId}, type: ${typeof transactions[i].agentId}`);
+          
+          // Check if the transaction already has an agent name
+          if (transactions[i].agentName) {
+            console.log(`Transaction already has agent name: ${transactions[i].agentName}`);
+            // Make sure it's accessible in the expected format
+            (transactions[i] as any).agentName = transactions[i].agentName;
           } else {
-            // If agent not found, set a default name
-            (transactions[i] as any).agentName = "Unknown Agent";
-            console.log(`Agent not found for transaction ${transactions[i].transactionId || String(transactions[i]._id)}, using default name`);
+            // Try to find the agent by ID
+            let agent = null;
+            
+            try {
+              // First try direct lookup by ID
+              agent = await User.findById(transactions[i].agentId);
+            } catch (idError) {
+              console.log(`Error finding agent by direct ID: ${idError}`);
+              // If that fails, try a more general query
+              try {
+                agent = await User.findOne({ _id: transactions[i].agentId });
+              } catch (queryError) {
+                console.log(`Error finding agent by query: ${queryError}`);
+              }
+            }
+            
+            if (agent) {
+              // Add agent name to transaction
+              (transactions[i] as any).agentName = agent.name || "Unknown Agent";
+              console.log(`Added agent name "${(transactions[i] as any).agentName}" to transaction ${transactions[i].transactionId || String(transactions[i]._id)}`);
+            } else {
+              // If agent not found, set a default name
+              (transactions[i] as any).agentName = "Unknown Agent";
+              console.log(`Agent not found for transaction ${transactions[i].transactionId || String(transactions[i]._id)}, using default name`);
+            }
           }
+          
+          // IMPORTANT: Make sure agentName is set as a direct property for the frontend
+          // This ensures it's accessible in the expected format
+          transactions[i] = {
+            ...transactions[i].toObject(),
+            agentName: (transactions[i] as any).agentName || "Unknown Agent"
+          };
+          
+          console.log(`Final agent name for transaction ${transactions[i].transactionId}: ${transactions[i].agentName}`);
+          
         } catch (error) {
           console.error(`Error finding agent for transaction ${transactions[i].transactionId || String(transactions[i]._id)}:`, error);
           // Set a default name in case of error
@@ -156,16 +197,51 @@ export const GET = catchAsync(async (req: NextRequest) => {
             // Add agent names to in-memory transactions
             for (let i = 0; i < transactions.length; i++) {
               try {
-                const agent = await User.findById(transactions[i].agentId);
-                if (agent) {
-                  // Add agent name to transaction
-                  (transactions[i] as any).agentName = agent.name || "Unknown Agent";
-                  console.log(`Added agent name "${(transactions[i] as any).agentName}" to in-memory transaction ${i}`);
+                // Log the agent ID for debugging
+                console.log(`Looking up agent for in-memory transaction with ID: ${transactions[i].agentId}, type: ${typeof transactions[i].agentId}`);
+                
+                // Check if the transaction already has an agent name
+                if (transactions[i].agentName) {
+                  console.log(`In-memory transaction already has agent name: ${transactions[i].agentName}`);
+                  // Make sure it's accessible in the expected format
+                  (transactions[i] as any).agentName = transactions[i].agentName;
                 } else {
-                  // If agent not found, set a default name
-                  (transactions[i] as any).agentName = "Unknown Agent";
-                  console.log(`Agent not found for in-memory transaction ${i}, using default name`);
+                  // Try to find the agent by ID
+                  let agent = null;
+                  
+                  try {
+                    // First try direct lookup by ID
+                    agent = await User.findById(transactions[i].agentId);
+                  } catch (idError) {
+                    console.log(`Error finding agent by direct ID: ${idError}`);
+                    // If that fails, try a more general query
+                    try {
+                      agent = await User.findOne({ _id: transactions[i].agentId });
+                    } catch (queryError) {
+                      console.log(`Error finding agent by query: ${queryError}`);
+                    }
+                  }
+                  
+                  if (agent) {
+                    // Add agent name to transaction
+                    (transactions[i] as any).agentName = agent.name || "Unknown Agent";
+                    console.log(`Added agent name "${(transactions[i] as any).agentName}" to in-memory transaction ${i}`);
+                  } else {
+                    // If agent not found, set a default name
+                    (transactions[i] as any).agentName = "Unknown Agent";
+                    console.log(`Agent not found for in-memory transaction ${i}, using default name`);
+                  }
                 }
+                
+                // IMPORTANT: Make sure agentName is set as a direct property for the frontend
+                // This ensures it's accessible in the expected format
+                transactions[i] = {
+                  ...transactions[i],
+                  agentName: (transactions[i] as any).agentName || "Unknown Agent"
+                };
+                
+                console.log(`Final agent name for in-memory transaction ${i}: ${transactions[i].agentName}`);
+                
               } catch (error) {
                 console.error(`Error finding agent for in-memory transaction ${i}:`, error);
                 // Set a default name in case of error
@@ -306,9 +382,27 @@ export const POST = catchAsync(async (req: NextRequest) => {
         // Find agent details
         let agentName = "Unknown Agent";
         try {
-          const agent = await User.findById(agentId);
+          console.log(`Looking up agent for performance with ID: ${agentId}, type: ${typeof agentId}`);
+          
+          // Try to find the agent by ID
+          let agent = null;
+          
+          try {
+            // First try direct lookup by ID
+            agent = await User.findById(agentId);
+          } catch (idError) {
+            console.log(`Error finding agent by direct ID: ${idError}`);
+            // If that fails, try a more general query
+            try {
+              agent = await User.findOne({ _id: agentId });
+            } catch (queryError) {
+              console.log(`Error finding agent by query: ${queryError}`);
+            }
+          }
+          
           if (agent) {
             agentName = agent.name || agentName;
+            console.log(`Found agent name: ${agentName}`);
           }
         } catch (error) {
           console.error(`Error finding agent ${agentId}:`, error);

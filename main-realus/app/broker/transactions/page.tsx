@@ -70,7 +70,7 @@ export default function BrokerTransactions() {
         let data;
         try {
           data = await response.json();
-          console.log('Fetched transactions:', data);
+          console.log('Fetched transactions:', JSON.stringify(data.transactions, null, 2));
         } catch (parseError) {
           console.error('Error parsing JSON response:', parseError);
           throw new Error('Failed to parse API response');
@@ -140,6 +140,9 @@ export default function BrokerTransactions() {
             console.error("Error formatting price:", e);
           }
           
+          // Log the agent information for debugging
+          console.log(`Transaction ${t.transactionId}: Agent ID=${t.agentId}, Agent Name=${t.agentName}`);
+          
           return {
             id: t.transactionId || `TR-${Math.floor(Math.random() * 10000)}`,
             property: t.propertyAddress ? 
@@ -147,7 +150,8 @@ export default function BrokerTransactions() {
               "Address not available",
             client: t.clientName || "Unknown Client",
             agent: {
-              name: t.agentId || "Unknown Agent",
+              // Force the agent name to be a string to avoid type issues
+              name: String(t.agentName || t.agentId || "Unknown Agent"),
               avatar: "/placeholder.svg?height=40&width=40",
             },
             status: (t.status || "pending") as any,
@@ -171,7 +175,7 @@ export default function BrokerTransactions() {
             property: "Error loading property details",
             client: "Unknown",
             agent: {
-              name: "Unknown Agent",
+              name: String(t.agentName || t.agentId || "Unknown Agent"),
               avatar: "/placeholder.svg?height=40&width=40",
             },
             status: "pending" as any,

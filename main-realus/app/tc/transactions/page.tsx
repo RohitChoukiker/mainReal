@@ -21,6 +21,7 @@ interface ApiTransaction {
   state: string;
   clientName: string;
   agentId: string;
+  agentName?: string; // Add agent name field
   status: string;
   createdAt: string;
   closingDate: string;
@@ -129,7 +130,7 @@ export default function TCTransactions() {
         let data
         try {
           data = await response.json()
-          console.log('Fetched transactions:', data)
+          console.log('Fetched transactions:', JSON.stringify(data.transactions, null, 2))
         } catch (parseError) {
           console.error('Error parsing JSON response:', parseError)
           throw new Error('Failed to parse API response')
@@ -198,6 +199,9 @@ export default function TCTransactions() {
           // Calculate completion percentage (random for now)
           const completionPercentage = Math.floor(Math.random() * 100);
           
+          // Log the agent information for debugging
+          console.log(`Transaction ${t.transactionId}: Agent ID=${t.agentId}, Agent Name=${t.agentName}`);
+          
           return {
             id: t.transactionId || `TR-${Math.floor(Math.random() * 10000)}`,
             property: t.propertyAddress ? 
@@ -205,7 +209,7 @@ export default function TCTransactions() {
               "Address not available",
             client: t.clientName || "Unknown Client",
             agent: {
-              name: t.agentId || "Unknown Agent",
+              name: t.agentName || t.agentId || "Unknown Agent",
               avatar: "/placeholder.svg?height=40&width=40",
             },
             status: (t.status ? mapApiStatusToTransactionStatus(t.status) : "New") as Transaction["status"],
@@ -230,7 +234,7 @@ export default function TCTransactions() {
             property: "Error loading property details",
             client: "Unknown",
             agent: {
-              name: "Unknown Agent",
+              name: t.agentName || t.agentId || "Unknown Agent",
               avatar: "/placeholder.svg?height=40&width=40",
             },
             status: "New" as Transaction["status"],
