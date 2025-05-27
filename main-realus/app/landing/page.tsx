@@ -2,7 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Globe, Rocket, Sparkles, X, Shield, Lock, FileText as FileIcon } from "lucide-react";
+import {
+  Globe,
+  Rocket,
+  Sparkles,
+  X,
+  Shield,
+  Lock,
+  FileText as FileIcon,
+} from "lucide-react";
 import {
   Home,
   Info,
@@ -43,13 +51,13 @@ export default function LandingPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [scrollY, setScrollY] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   // Preload hero images to improve performance
   usePreloadImages([
     "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=60&w=600",
     "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&q=60&w=600",
     "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=60&w=600",
-    "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&q=60&w=600"
+    "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&q=60&w=600",
   ]);
 
   useEffect(() => {
@@ -57,12 +65,12 @@ export default function LandingPage() {
     const loadingTimer = setTimeout(() => {
       setIsLoading(false);
     }, 800);
-    
+
     // Delay adding scroll listener to improve initial load performance
     const scrollTimer = setTimeout(() => {
       const handleScroll = () => {
         setScrollY(window.scrollY);
-  
+
         const sections = ["home", "about", "services", "contact"];
         for (const section of sections) {
           const element = document.getElementById(section);
@@ -75,11 +83,11 @@ export default function LandingPage() {
           }
         }
       };
-  
+
       window.addEventListener("scroll", handleScroll);
       return () => window.removeEventListener("scroll", handleScroll);
     }, 1000); // Delay by 1000ms
-    
+
     return () => {
       clearTimeout(loadingTimer);
       clearTimeout(scrollTimer);
@@ -117,7 +125,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background">
       {isLoading && <LoadingScreen />}
-      
+
       <nav
         className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${
           scrollY > 10 ? "bg-background shadow-md py-3" : "bg-transparent py-5"
@@ -427,24 +435,30 @@ export default function LandingPage() {
                   paperwork, and improve communication between all parties
                   involved in a transaction.
                 </p>
-                <div className="flex items-center space-x-4 mt-6">
+                {/* <div className="flex items-center space-x-4 mt-6">
                   <div className="flex flex-col items-center">
                     <span className="text-3xl font-bold text-primary">5K+</span>
-                    <span className="text-sm text-muted-foreground">Active Users</span>
+                    <span className="text-sm text-muted-foreground">
+                      Active Users
+                    </span>
                   </div>
                   <div className="h-10 border-r border-muted"></div>
                   <div className="flex flex-col items-center">
                     <span className="text-3xl font-bold text-primary">
                       50K+
                     </span>
-                    <span className="text-sm text-muted-foreground">Transactions</span>
+                    <span className="text-sm text-muted-foreground">
+                      Transactions
+                    </span>
                   </div>
                   <div className="h-10 border-r border-border"></div>
                   <div className="flex flex-col items-center">
                     <span className="text-3xl font-bold text-primary">98%</span>
-                    <span className="text-sm text-muted-foreground">Satisfaction</span>
+                    <span className="text-sm text-muted-foreground">
+                      Satisfaction
+                    </span>
                   </div>
-                </div>
+                </div> */}
               </div>
             </div>
           </motion.div>
@@ -687,7 +701,11 @@ export default function LandingPage() {
                 <h3 className="text-xl font-semibold mb-4 text-foreground">
                   Send us a message
                 </h3>
-                <form className="space-y-4">
+                <form
+                  className="space-y-4"
+                  action="https://formsubmit.co/rohitchoukiker21@gmail.com"
+                  method="POST"
+                >
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label
@@ -699,8 +717,10 @@ export default function LandingPage() {
                       <input
                         type="text"
                         id="name"
+                        name="name"
                         className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
                         placeholder="Your name"
+                        required
                       />
                     </div>
                     <div>
@@ -713,8 +733,10 @@ export default function LandingPage() {
                       <input
                         type="email"
                         id="email"
+                        name="email"
                         className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
                         placeholder="Your email"
+                        required
                       />
                     </div>
                   </div>
@@ -728,8 +750,10 @@ export default function LandingPage() {
                     <input
                       type="text"
                       id="subject"
+                      name="subject"
                       className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
                       placeholder="Subject"
+                      required
                     />
                   </div>
                   <div>
@@ -741,11 +765,31 @@ export default function LandingPage() {
                     </label>
                     <textarea
                       id="message"
+                      name="message"
                       rows={4}
                       className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
                       placeholder="Your message"
+                      required
                     ></textarea>
                   </div>
+
+                  {/* Optional: Honeypot field for spam protection */}
+                  <input
+                    type="text"
+                    name="_honey"
+                    style={{ display: "none" }}
+                  />
+
+                  {/* Optional: Disable CAPTCHA */}
+                  <input type="hidden" name="_captcha" value="true" />
+
+                  {/* Redirect after submission */}
+                  <input
+                    type="hidden"
+                    name="_next"
+                    value="https://mainrealus.vercel.app/"
+                  />
+
                   <button
                     type="submit"
                     className="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 transition-colors"
@@ -772,7 +816,9 @@ export default function LandingPage() {
                     <MapPin className="h-5 w-5 text-primary mr-3 mt-0.5" />
                     <div>
                       <p className="font-medium text-foreground">Address</p>
-                      <p className="text-muted-foreground">Indore, Madhya Pradesh</p>
+                      <p className="text-muted-foreground">
+                        Indore, Madhya Pradesh
+                      </p>
                       <p className="text-muted-foreground">India</p>
                     </div>
                   </div>
@@ -799,16 +845,23 @@ export default function LandingPage() {
                       <p className="text-muted-foreground">
                         Monday - Friday: 9am - 5pm
                       </p>
-                      <p className="text-muted-foreground">Saturday: 10am - 2pm</p>
+                      <p className="text-muted-foreground">
+                        Saturday: 10am - 2pm
+                      </p>
                       <p className="text-muted-foreground">Sunday: Closed</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="mt-6">
-                  <h4 className="font-medium mb-2 text-foreground">Follow Us</h4>
+                  <h4 className="font-medium mb-2 text-foreground">
+                    Follow Us
+                  </h4>
                   <div className="flex space-x-4">
-                    <a href="#" className="text-muted-foreground hover:text-primary">
+                    <a
+                      href="#"
+                      className="text-muted-foreground hover:text-primary"
+                    >
                       <svg
                         className="h-6 w-6"
                         fill="currentColor"
@@ -822,7 +875,10 @@ export default function LandingPage() {
                         />
                       </svg>
                     </a>
-                    <a href="#" className="text-muted-foreground hover:text-primary">
+                    <a
+                      href="#"
+                      className="text-muted-foreground hover:text-primary"
+                    >
                       <svg
                         className="h-6 w-6"
                         fill="currentColor"
@@ -837,7 +893,10 @@ export default function LandingPage() {
                       </svg>
                     </a>
 
-                    <a href="#" className="text-muted-foreground hover:text-primary">
+                    <a
+                      href="#"
+                      className="text-muted-foreground hover:text-primary"
+                    >
                       <svg
                         className="h-6 w-6"
                         fill="currentColor"
@@ -907,7 +966,10 @@ export default function LandingPage() {
                 the country.
               </p>
               <div className="flex space-x-4">
-                <a href="#" className="text-muted-foreground hover:text-foreground">
+                <a
+                  href="#"
+                  className="text-muted-foreground hover:text-foreground"
+                >
                   <svg
                     className="h-5 w-5"
                     fill="currentColor"
@@ -921,7 +983,10 @@ export default function LandingPage() {
                     />
                   </svg>
                 </a>
-                <a href="#" className="text-muted-foreground hover:text-foreground">
+                <a
+                  href="#"
+                  className="text-muted-foreground hover:text-foreground"
+                >
                   <svg
                     className="h-5 w-5"
                     fill="currentColor"
@@ -935,21 +1000,28 @@ export default function LandingPage() {
                     />
                   </svg>
                 </a>
-                
               </div>
             </div>
 
             <div>
-              <h3 className="text-lg font-semibold mb-4 text-foreground">Quick Links</h3>
+              <h3 className="text-lg font-semibold mb-4 text-foreground">
+                Quick Links
+              </h3>
               <ul className="space-y-2">
                 <li>
-                  <a href="#home" className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group">
+                  <a
+                    href="#home"
+                    className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group"
+                  >
                     <Home className="h-4 w-4 group-hover:text-primary transition-colors" />
                     <span>Home</span>
                   </a>
                 </li>
                 <li>
-                  <a href="#about" className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group">
+                  <a
+                    href="#about"
+                    className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group"
+                  >
                     <Info className="h-4 w-4 group-hover:text-primary transition-colors" />
                     <span>About</span>
                   </a>
@@ -964,7 +1036,10 @@ export default function LandingPage() {
                   </a>
                 </li>
                 <li>
-                  <a href="#contact" className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group">
+                  <a
+                    href="#contact"
+                    className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group"
+                  >
                     <Phone className="h-4 w-4 group-hover:text-primary transition-colors" />
                     <span>Contact</span>
                   </a>
@@ -978,45 +1053,64 @@ export default function LandingPage() {
                     <span>Pricing</span>
                   </button>
                 </li>
-
               </ul>
             </div>
 
             <div>
-              <h3 className="text-lg font-semibold mb-4 text-foreground">Services</h3>
+              <h3 className="text-lg font-semibold mb-4 text-foreground">
+                Services
+              </h3>
               <ul className="space-y-2">
                 <li>
-                  <a href="#" className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group">
+                  <a
+                    href="#"
+                    className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group"
+                  >
                     <ClipboardCheck className="h-4 w-4 group-hover:text-primary transition-colors" />
                     <span>Transaction Management</span>
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group">
+                  <a
+                    href="#"
+                    className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group"
+                  >
                     <FileText className="h-4 w-4 group-hover:text-primary transition-colors" />
                     <span>Document Management</span>
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group">
+                  <a
+                    href="#"
+                    className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group"
+                  >
                     <CheckSquare className="h-4 w-4 group-hover:text-primary transition-colors" />
                     <span>Task Automation</span>
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group">
+                  <a
+                    href="#"
+                    className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group"
+                  >
                     <Users className="h-4 w-4 group-hover:text-primary transition-colors" />
                     <span>Team Collaboration</span>
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group">
+                  <a
+                    href="#"
+                    className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group"
+                  >
                     <MessageSquare className="h-4 w-4 group-hover:text-primary transition-colors" />
                     <span>Client Communication</span>
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group">
+                  <a
+                    href="#"
+                    className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group"
+                  >
                     <BarChart className="h-4 w-4 group-hover:text-primary transition-colors" />
                     <span>Analytics & Reporting</span>
                   </a>
@@ -1025,34 +1119,51 @@ export default function LandingPage() {
             </div>
 
             <div>
-              <h3 className="text-lg font-semibold mb-4 text-foreground">Legal</h3>
+              <h3 className="text-lg font-semibold mb-4 text-foreground">
+                Legal
+              </h3>
               <ul className="space-y-2">
                 <li>
-                  <a href="#" className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group">
+                  <a
+                    href="#"
+                    className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group"
+                  >
                     <FileIcon className="h-4 w-4 group-hover:text-primary transition-colors" />
                     <span>Terms of Service</span>
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group">
+                  <a
+                    href="#"
+                    className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group"
+                  >
                     <Lock className="h-4 w-4 group-hover:text-primary transition-colors" />
                     <span>Privacy Policy</span>
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group">
+                  <a
+                    href="#"
+                    className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group"
+                  >
                     <FileIcon className="h-4 w-4 group-hover:text-primary transition-colors" />
                     <span>Cookie Policy</span>
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group">
+                  <a
+                    href="#"
+                    className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group"
+                  >
                     <CheckSquare className="h-4 w-4 group-hover:text-primary transition-colors" />
                     <span>GDPR Compliance</span>
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group">
+                  <a
+                    href="#"
+                    className="text-muted-foreground hover:text-foreground transition-colors duration-200 flex items-center gap-1 group"
+                  >
                     <Shield className="h-4 w-4 group-hover:text-primary transition-colors" />
                     <span>Security</span>
                   </a>
@@ -1062,7 +1173,6 @@ export default function LandingPage() {
           </div>
 
           <div className="border-t border-border mt-8 pt-8 text-center text-muted-foreground">
-            
             <p>
               &copy; {new Date().getFullYear()} Realus. All rights reserved.
             </p>
@@ -1089,9 +1199,9 @@ export default function LandingPage() {
         )}
 
         {isPricingModalOpen && (
-          <PricingModal 
+          <PricingModal
             key="pricing-modal"
-            onClose={() => setIsPricingModalOpen(false)} 
+            onClose={() => setIsPricingModalOpen(false)}
           />
         )}
       </AnimatePresence>

@@ -4,7 +4,6 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dbConnect from "@/utils/dbConnect";
 
-// Cache for successful logins to improve performance on repeated login attempts
 const loginCache = new Map();
 
 const JWT_SECRET = "123123123 "as string;
@@ -13,18 +12,18 @@ export async function POST(req: NextRequest) {
   try {
     const { email, password, role } = await req.json();
     
-    // Check cache for repeated login attempts with same credentials
+
     const cacheKey = `${email}:${password}:${role}`;
     const cachedResponse = loginCache.get(cacheKey);
     
     if (cachedResponse) {
-      // Return cached response for faster login
+      
       return cachedResponse;
     }
     
     await dbConnect();
   
-    // Check if user exists
+   
     const user = await UserModel.findOne({ email }).lean();
     if (!user) {
       return NextResponse.json({ message: "User is not Exist" }, { status: 401 });
@@ -35,14 +34,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: "Wrong password" }, { status: 401 });
     }
     
-    // Handle role validation with proper conversion
+
     let validRole = role;
     
-    // Convert frontend role value to match database enum values
+    
     if (role === "TransactionCoordinator") {
       validRole = Role.Tc;
     } else if (role === "Tc") {
-      // If frontend sends "Tc", convert it to match the database value "TransactionCoordinator"
+      
       validRole = Role.Tc;
     }
     
@@ -57,10 +56,10 @@ export async function POST(req: NextRequest) {
         isApproved: user.isApproved 
       },
       JWT_SECRET,
-      { expiresIn: "7d" } // Token valid for 7 days
+      { expiresIn: "7d" } 
     );
 
-    // Normalize the role for frontend consistency
+    
     let normalizedRole: string = user.role;
     if (user.role === "TransactionCoordinator") {
       normalizedRole = "Tc";

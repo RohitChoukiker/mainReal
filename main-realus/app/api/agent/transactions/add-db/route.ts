@@ -6,7 +6,7 @@ import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 
 // Use environment variable for JWT secret with a fallback for development
-const JWT_SECRET = process.env.JWT_SECRET || "123123123";
+const JWT_SECRET = process.env.JWT_SECRET || "123123123 ";
 
 export async function POST(req: NextRequest) {
   console.log("Transaction creation API called");
@@ -70,66 +70,66 @@ export async function POST(req: NextRequest) {
         const decoded = jwt.verify(token, JWT_SECRET) as { id: string, role: string };
         console.log("Token decoded:", decoded);
         
+        if (!decoded || !decoded.id) {
+          console.log("Invalid token payload:", decoded);
+          return NextResponse.json(
+            { message: "Invalid token format" },
+            { status: 401 }
+          );
+        }
+        
         // Find the agent in the database
         const agent = await User.findById(decoded.id) as UserType | null;
         console.log("Agent found:", agent ? "Yes" : "No");
         
         if (!agent) {
           console.log("Agent not found in database");
-          // For development, continue with test IDs instead of returning error
-          /*
           return NextResponse.json(
             { message: "Agent not found" },
             { status: 404 }
           );
-          */
         } else if (agent.role !== "Agent") {
           console.log(`User role is ${agent.role}, not Agent`);
-          // For development, continue with test IDs instead of returning error
-          /*
           return NextResponse.json(
             { message: "Only agents can create transactions" },
             { status: 403 }
           );
-          */
         } else {
-          // Valid agent found
-          // Safely access the agent document properties
+          // Valid agent found - use the agent's unique ID
           if (agent._id) {
             agentId = agent._id.toString();
+            console.log("Using agent's unique ID:", agentId);
+          } else {
+            return NextResponse.json(
+              { message: "Agent ID is missing" },
+              { status: 500 }
+            );
           }
           
-          // Handle the case where brokerId might be undefined
+          // Always use the broker ID that was set during signup
           if (agent.brokerId) {
-            brokerId = agent.brokerId; // Get the broker ID from the agent's record
+            brokerId = agent.brokerId;
+            console.log("Using broker ID from agent's signup:", brokerId);
           } else {
-            // Keep the default value set earlier
-            console.log("No broker ID found in agent document, using default");
-          }
-          
-          console.log("Agent ID:", agentId);
-          console.log("Broker ID from agent record:", brokerId);
-          
-          // Use the broker ID directly from the agent's record
-          // No need to search for a broker or update the agent
-          if (!brokerId) {
-            console.log("No broker ID found for agent, using fallback");
-            brokerId = "test-broker-id"; // Fallback if no broker ID is found
-          } else {
-            console.log("Using broker ID from agent record:", brokerId);
-            // We'll use the broker ID exactly as stored in the agent's record
-            // This is as per the requirement to use the broker ID as entered during signup
+            return NextResponse.json(
+              { message: "Broker ID is missing. Please contact your administrator." },
+              { status: 400 }
+            );
           }
         }
       } catch (error) {
         console.error("Token verification error:", error);
-        // For development, continue with test IDs instead of returning error
-        /*
-        return NextResponse.json(
-          { message: "Invalid authentication token" },
-          { status: 401 }
-        );
-        */
+        
+        // For development, we'll continue with test IDs
+        if (process.env.NODE_ENV !== 'production') {
+          console.log("Using test IDs for development");
+          // Keep using the default test IDs set earlier
+        } else {
+          return NextResponse.json(
+            { message: "Invalid authentication token" },
+            { status: 401 }
+          );
+        }
       }
     }
 

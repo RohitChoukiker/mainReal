@@ -48,17 +48,14 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ message: 'Passwords do not match' }, { status: 400 });
         }
         
-        // Check if broker ID is required but not provided
+        
         if (validRole !== Role.Broker && !brokerId) {
             return NextResponse.json({ message: 'Broker ID is required for agents and transaction coordinators' }, { status: 400 });
         }
-        
-        // If user is an agent or TC, verify that the broker ID exists
-        // We'll accept any broker ID during signup without validation
+       
         if (validRole !== Role.Broker && brokerId) {
             console.log(`Using provided broker ID: ${brokerId} without validation`);
-            // We'll skip validation to allow any broker ID to be used
-            // This is as per the requirement to accept any broker ID entered during signup
+
         }
         
         const existingUser = await User.findOne({ email });
@@ -69,7 +66,7 @@ export async function POST(req: NextRequest) {
         // For brokers, ensure they have a broker ID
         if (validRole === Role.Broker) {
             if (!brokerId) {
-                // Generate a broker ID if not provided
+                
                 const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
                 let generatedId = "";
                 for (let i = 0; i < 11; i++) {
@@ -79,23 +76,22 @@ export async function POST(req: NextRequest) {
                 console.log('Generated broker ID for broker:', brokerId);
             }
             
-            // Check if broker ID is unique
+      
             const existingBroker = await User.findOne({ brokerId });
             if (existingBroker) {
                 return NextResponse.json({ message: 'This broker ID is already in use. Please generate a new one.' }, { status: 400 });
             }
         }
 
-        // Set approval status based on role
-        // Brokers are auto-approved, agents and TCs need approval
+        
         const isApproved = validRole === Role.Broker;
 
         const newUser = new User({ 
             name, email, password, confirmPassword, mobile, 
             companyName, teamName, address, companyPhone, 
             city, state, pinCode, timeZone, brokerId, 
-            role: validRole, // Use the validated role
-            isApproved // Set approval status
+            role: validRole, 
+            isApproved 
         });
 
         await newUser.save();

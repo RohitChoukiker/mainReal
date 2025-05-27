@@ -88,7 +88,7 @@ export default function LoginModal({
             break;
           default:
             console.log("Unknown role:", data.user.role);
-            router.push("/"); // Default route
+            router.push("/"); 
         }
       } else {
         toast.error(data.message || "Login failed!");
@@ -239,12 +239,12 @@ export default function LoginModal({
                   className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
                   disabled={isLoading}
                 />
-                <label
+                {/* <label
                   htmlFor="remember-me"
                   className="ml-2 block text-sm text-foreground"
                 >
                   Remember me
-                </label>
+                </label> */}
               </div>
 
               <div className="text-sm">

@@ -80,6 +80,76 @@ export function initSocketServer(server: NetServer) {
       socket.leave(`task:${taskId}`);
     });
     
+    // Handle joining a room (generic)
+    socket.on('join_room', (data: { role?: string, userId?: string, transactionId?: string }) => {
+      if (data.role) {
+        console.log(`Socket ${socket.id} joining role room: ${data.role}`);
+        socket.join(data.role);
+      }
+      
+      if (data.userId) {
+        console.log(`Socket ${socket.id} joining user room: ${data.userId}`);
+        socket.join(`user:${data.userId}`);
+      }
+      
+      if (data.transactionId) {
+        console.log(`Socket ${socket.id} joining transaction room: ${data.transactionId}`);
+        socket.join(`transaction:${data.transactionId}`);
+      }
+      
+      socket.emit('joined_rooms', data);
+    });
+    
+    // Handle subscribing to transaction updates
+    socket.on('subscribe_to_transactions', () => {
+      console.log(`Socket ${socket.id} subscribing to transaction updates`);
+      // Find user role from connected users
+      let userRole = '';
+      for (const [userId, user] of connectedUsers.entries()) {
+        if (user.socketId === socket.id) {
+          userRole = user.role;
+          break;
+        }
+      }
+      
+      if (userRole) {
+        socket.join(`transaction_updates:${userRole}`);
+        socket.emit('subscribed_to_transactions', { success: true });
+      } else {
+        socket.emit('subscription_error', { message: 'User not authenticated' });
+      }
+    });
+    
+    // Handle request for transaction stats
+    socket.on('request_transaction_stats', async () => {
+      console.log(`Socket ${socket.id} requesting transaction stats`);
+      
+      // Find user role from connected users
+      let userRole = '';
+      let userId = '';
+      for (const [id, user] of connectedUsers.entries()) {
+        if (user.socketId === socket.id) {
+          userRole = user.role;
+          userId = id;
+          break;
+        }
+      }
+      
+      if (userRole === 'Broker') {
+        try {
+          // Import the emitTransactionStatsUpdate function
+          const { emitTransactionStatsUpdate } = await import('./socketEmitter');
+          
+          // Trigger a stats update
+          await emitTransactionStatsUpdate();
+          
+          console.log(`Transaction stats update triggered for broker: ${userId}`);
+        } catch (error) {
+          console.error('Error triggering transaction stats update:', error);
+        }
+      }
+    });
+    
     // Handle disconnect
     socket.on('disconnect', () => {
       console.log(`Socket disconnected: ${socket.id}`);
@@ -140,6 +210,31 @@ export function emitToRole(role: string, event: string, data: any) {
   
   console.log(`Emitting ${event} to role:${role}`);
   io.to(`role:${role}`).emit(event, data);
+}
+
+// Function to emit transaction updates
+export function emitTransactionUpdate(transactionId: string, event: string, data: any) {
+  if (!io) {
+    console.warn('Socket.IO server not initialized');
+    return;
+  }
+  
+  console.log(`Emitting ${event} for transaction:${transactionId}`);
+  io.to(`transaction:${transactionId}`).emit(event, data);
+}
+
+// Function to emit transaction stats updates to brokers
+export function emitTransactionStatsUpdate(stats: any) {
+  if (!io) {
+    console.warn('Socket.IO server not initialized');
+    return;
+  }
+  
+  console.log('Emitting transaction_stats_updated to brokers');
+  io.to('Broker').emit('transaction_stats_updated', {
+    stats,
+    timestamp: new Date()
+  });
 }
 
 // Helper function to get user ID from request cookies

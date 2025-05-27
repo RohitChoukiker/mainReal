@@ -60,62 +60,37 @@ export default function TransactionPanel() {
       const response = await fetch('/api/agents/list')
       const data = await response.json()
       
-      if (response.ok && data.agents && data.agents.length > 0) {
-        console.log("Fetched agents:", data.agents)
+      if (response.ok) {
+        // Combine pending and approved agents
+        const allAgents = [...(data.pendingAgents || []), ...(data.approvedAgents || [])];
         
-        // Map the agents to our Agent interface
-        const mappedAgents = data.agents.map((agent: any) => ({
-          _id: agent._id || agent.id,
-          name: agent.name || `${agent.firstName || ''} ${agent.lastName || ''}`.trim() || "Unknown Agent",
-          email: agent.email || "unknown@example.com",
-          mobile: agent.mobile || agent.phone || "unknown"
-        }))
+        console.log("Fetched agents:", allAgents);
         
-        setAgents(mappedAgents)
-        return mappedAgents
-      } else {
-        console.log("No agents returned from API or API failed, using sample agents")
-        
-        // Create sample agents for testing
-        const sampleAgents = [
-          {
-            _id: "agent1",
-            name: "Rohit Sharma",
-            email: "rohit@example.com",
-            mobile: "9876543210"
-          },
-          {
-            _id: "agent2",
-            name: "Virat Kohli",
-            email: "virat@example.com",
-            mobile: "9876543211"
-          }
-        ]
-        
-        setAgents(sampleAgents)
-        return sampleAgents
+        if (allAgents.length > 0) {
+          // Map the agents to our Agent interface
+          const mappedAgents = allAgents.map((agent: any) => ({
+            _id: agent._id || agent.id,
+            name: agent.name || `${agent.firstName || ''} ${agent.lastName || ''}`.trim() || "Unknown Agent",
+            email: agent.email || "unknown@example.com",
+            mobile: agent.mobile || agent.phone || "unknown"
+          }));
+          
+          setAgents(mappedAgents);
+          return mappedAgents;
+        } else {
+          console.log("No agents returned from API or API failed");
+          
+          // Return empty array instead of sample data to force database lookup
+          setAgents([]);
+          return [];
+        }
       }
     } catch (error) {
-      console.error("Error fetching agents:", error)
+      console.error("Error fetching agents:", error);
       
-      // Create sample agents for testing in case of error
-      const sampleAgents = [
-        {
-          _id: "agent1",
-          name: "Rohit Sharma",
-          email: "rohit@example.com",
-          mobile: "9876543210"
-        },
-        {
-          _id: "agent2",
-          name: "Virat Kohli",
-          email: "virat@example.com",
-          mobile: "9876543211"
-        }
-      ]
-      
-      setAgents(sampleAgents)
-      return sampleAgents
+      // Return empty array instead of sample data to force database lookup
+      setAgents([]);
+      return [];
     }
   }
 
@@ -133,7 +108,7 @@ export default function TransactionPanel() {
       createdDate: new Date().toISOString().split('T')[0],
       timestamp: Date.now(),
       brokerId: ""
-    }
+    };
   }
 
   // Function to add a new transaction - will be connected to API in the future
@@ -162,6 +137,17 @@ export default function TransactionPanel() {
       // Fetch agents first
       const agentsList = await fetchAgents()
       
+      // Create a map of agent IDs to agent names for quick lookup
+      const agentMap = new Map<string, string>();
+      console.log("Creating agent ID to name mapping:");
+      agentsList.forEach((agent: Agent) => {
+        console.log(`Mapping agent ID: ${agent._id} to name: ${agent.name}`);
+        agentMap.set(agent._id, agent.name);
+      });
+      
+      // Log all mapped agents
+      console.log("Agent ID to name map created with entries:", agentMap.size);
+      
       // Fetch transactions from the API
       const response = await fetch('/api/broker/transactions')
       const data = await response.json()
@@ -176,58 +162,86 @@ export default function TransactionPanel() {
         if (data.transactions && data.transactions.length > 0) {
           console.log("Fetched transactions:", data.transactions)
           
-          // Check if agent names are present in the API response
-          data.transactions.forEach((tx: any, index: number) => {
-            console.log(`API transaction ${index} agent name:`, tx.agentName);
+          // Log the raw transaction data to see what fields are available
+          console.log("Raw transaction data sample:", data.transactions[0]);
+          
+          // Ensure each transaction has the agent name from our agent map
+          transactionsToUse = data.transactions.map((tx: any) => {
+            // Check if transaction has agentId field
+            if (!tx.agentId) {
+              console.log("Transaction missing agentId:", tx);
+              // Try to find agent ID in other fields
+              tx.agentId = tx.agent_id || tx.agent || "";
+              console.log("Assigned agentId:", tx.agentId);
+              
+              // If we have an agent name but no agent ID, try to find the agent ID from the name
+              if (tx.agentName && !tx.agentId) {
+                console.log("Transaction has agent name but no ID, trying to find ID from name:", tx.agentName);
+                // Create a reverse map from name to ID
+                const nameToIdMap = new Map<string, string>();
+                agentsList.forEach(agent => {
+                  nameToIdMap.set(agent.name, agent._id);
+                });
+                
+                // Try to find the agent ID from the name
+                tx.agentId = nameToIdMap.get(tx.agentName) || "";
+                console.log("Found agent ID from name:", tx.agentId);
+              }
+            }
+            
+            // Get the agent name from our map if available
+            // Log the agent ID to debug
+            console.log(`Looking up agent name for ID: ${tx.agentId}`);
+            console.log(`Available agent IDs in map: ${Array.from(agentMap.keys()).join(', ')}`);
+            
+            // Try to get the agent name from the database first
+            const agentName = agentMap.get(tx.agentId);
+            
+            if (agentName) {
+              console.log(`Found agent name in database: ${agentName}`);
+            } else {
+              console.log(`Agent name not found in database for ID: ${tx.agentId}, using fallback: ${tx.agentName || "Unknown Agent"}`);
+            }
+            
+            // Use the database name if available, otherwise fall back to the transaction's agent name
+            const finalAgentName = agentName || tx.agentName || "Unknown Agent";
+            console.log(`Final resolved agent name: ${finalAgentName}`);
+            return {
+              ...tx,
+              agentName: finalAgentName // Use the resolved agent name from database
+            };
           });
           
-          transactionsToUse = data.transactions
+          // Check if agent names are present in the mapped transactions
+          transactionsToUse.forEach((tx: any, index: number) => {
+            console.log(`API transaction ${index} agent name:`, tx.agentName);
+          });
         } else {
           console.log("No transactions returned from API, using sample data")
           
-          // Create sample transactions for testing
-          const sampleTransactions = [
-            {
-              _id: "tx1",
-              id: "TX-12345",
-              propertyAddress: "123 Main St, City",
-              property: "123 Main St, City",
-              clientName: "John Doe",
-              client: "John Doe",
-              agentId: "agent1",
-              agentName: "Rohit Sharma",
-              status: "pending",
-              createdDate: new Date().toISOString().split('T')[0],
-              timestamp: Date.now() - 5000,
-              brokerId: "broker1"
-            },
-            {
-              _id: "tx2",
-              id: "TX-67890",
-              propertyAddress: "456 Oak Ave, Town",
-              property: "456 Oak Ave, Town",
-              clientName: "Jane Smith",
-              client: "Jane Smith",
-              agentId: "agent2",
-              agentName: "Virat Kohli",
-              status: "in_progress",
-              createdDate: new Date().toISOString().split('T')[0],
-              timestamp: Date.now() - 3600000,
-              brokerId: "broker1"
-            }
-          ];
+          // Instead of using sample transactions, we'll try to fetch from the database
+          console.log("Attempting to fetch transactions from database...");
           
-          console.log("Sample transactions:", sampleTransactions);
-          console.log("Sample transaction 1 agent name:", sampleTransactions[0].agentName);
-          console.log("Sample transaction 2 agent name:", sampleTransactions[1].agentName);
+          // Empty array for now - we'll rely on the API to provide real data
+          const sampleTransactions = [];
           
-          transactionsToUse = sampleTransactions
+          console.log("No sample transactions available - will use database data only");
+          
+          transactionsToUse = sampleTransactions;
         }
         
         // Log all transactions with their agent names
         console.log("Final transactions with agent names:");
         transactionsToUse.forEach((tx: any, index: number) => {
           console.log(`Transaction ${index} agent name:`, tx.agentName);
+        });
+        
+        // Make sure all transactions have agent names
+        transactionsToUse.forEach((tx: any) => {
+          if (!tx.agentName && tx.agentId) {
+            tx.agentName = agentMap.get(tx.agentId) || "Unknown Agent";
+            console.log(`Added missing agent name for transaction: ${tx.agentName}`);
+          }
         });
         
         // Set the transactions
@@ -252,7 +266,7 @@ export default function TransactionPanel() {
               property: tx.propertyAddress || tx.property || "Unknown Property",
               client: tx.clientName || tx.client || "Unknown Client",
               agentId: tx.agentId || "unknown",
-              agentName: tx.agentName || "Unknown Agent",
+              agentName: tx.agentName || "Unknown Agent", // Use the agent name from the transaction
               status: tx.status || "pending",
               createdDate: tx.createdDate || new Date(tx.createdAt || Date.now()).toISOString().split('T')[0],
               timestamp: tx.timestamp || Date.now(),
@@ -285,9 +299,21 @@ export default function TransactionPanel() {
             
             if (!agentTxMap.has(agentId)) {
               // Find the agent in our list
+              let agentName = agentMap.get(agentId);
+              if (!agentName) {
+                const agent = agentsList.find((a: Agent) => a._id === agentId);
+                if (agent) {
+                  agentName = agent.name;
+                } else {
+                  agentName = tx.agentName || "Unknown Agent";
+                }
+              }
+              
+              console.log(`Creating agent object for ID ${agentId} with name ${agentName}`);
+              
               const agent = agentsList.find((a: Agent) => a._id === agentId) || {
                 _id: agentId,
-                name: tx.agentName || "Unknown Agent",
+                name: agentName,
                 email: "unknown@example.com",
                 mobile: "unknown"
               }
@@ -298,9 +324,28 @@ export default function TransactionPanel() {
               })
             }
             
-            // Find the agent in our list
-            const agent = agentsList.find((a: Agent) => a._id === agentId);
-            const agentName = tx.agentName || (agent ? agent.name : "Unknown Agent");
+            // Get the real-time agent name - prioritize the agent from our map
+            console.log(`Looking up agent name for ID in transaction object: ${agentId}`);
+            
+            // First try to get from our agent map (most accurate and real-time)
+            let agentName = agentMap.get(agentId);
+            
+            // If not found in map, try to find in the agent list
+            if (!agentName) {
+              const agent = agentsList.find((a: Agent) => a._id === agentId);
+              if (agent) {
+                agentName = agent.name;
+                console.log(`Found agent name in agent list: ${agentName}`);
+              }
+            }
+            
+            // If still not found, use the name from transaction or default
+            if (!agentName) {
+              agentName = tx.agentName || "Unknown Agent";
+              console.log(`Using transaction agent name or default: ${agentName}`);
+            }
+            
+            console.log(`Final agent name for transaction: ${agentName}`);
             
             // Create transaction object with agent name
             const transactionObj = {
@@ -308,7 +353,7 @@ export default function TransactionPanel() {
               property: tx.propertyAddress || tx.property || "Unknown Property",
               client: tx.clientName || tx.client || "Unknown Client",
               agentId: tx.agentId,
-              agentName: agentName,
+              agentName: agentName, // Use the real-time agent name
               status: tx.status || "pending",
               createdDate: tx.createdDate || new Date(tx.createdAt || Date.now()).toISOString().split('T')[0],
               timestamp: tx.timestamp || Date.now(),
@@ -498,7 +543,7 @@ export default function TransactionPanel() {
                           <div>
                             <p className="text-sm font-medium">{transaction.property}</p>
                             <p className="text-xs text-muted-foreground">Client: {transaction.client}</p>
-                            <p className="text-xs text-muted-foreground">Agent: {transaction.agentName || "Unknown Agent"}</p>
+                            <p className="text-xs text-muted-foreground">Agent: <span className="font-medium text-primary">{transaction.agentName || "Unknown Agent"}</span></p>
                           </div>
                           <div className="flex items-center gap-2">
                             {getStatusBadge(transaction.status)}

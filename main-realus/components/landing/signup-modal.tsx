@@ -143,14 +143,13 @@ function SignupModal({
       const data = await response.json();
 
       if (response.ok) {
-        // Close modal immediately for better UX
+       
         onClose();
         
-        // Show success message
+        
         toast.success("Account created successfully!");
         
-        // Optionally redirect to login or dashboard
-        // You could add a redirect here if needed
+        
       } else {
         toast.error(data.message || "Failed to create account");
       }

@@ -12,6 +12,7 @@ import BrokerIdCard from "@/components/broker/broker-id-card"
 import { FileText, UserPlus, AlertCircle, CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { TransactionStatus, Transaction } from "@/models/transactionModel"
+import { useTransactionSocket, TransactionStats } from "@/hooks/use-transaction-socket"
 
 export default function BrokerDashboard() {
   // Define a type for the UI transaction
@@ -68,6 +69,9 @@ export default function BrokerDashboard() {
     setSelectedTransaction(transaction);
     setIsDetailsModalOpen(true);
   };
+  
+  // Initialize socket for real-time updates
+  const { subscribeToTransactionUpdates, isConnected, socket } = useTransactionSocket();
   
   // Fetch transaction data
   useEffect(() => {
@@ -257,6 +261,42 @@ export default function BrokerDashboard() {
     fetchTransactions();
     fetchAgentPerformance();
   }, []);
+  
+  // Subscribe to real-time transaction updates
+  useEffect(() => {
+    console.log("Setting up real-time transaction updates, socket connected:", isConnected);
+    
+    if (!isConnected) return;
+    
+    // Subscribe to transaction stats updates
+    const unsubscribe = subscribeToTransactionUpdates((stats: TransactionStats) => {
+      console.log("Received real-time transaction stats update:", stats);
+      
+      // Update the transaction stats state with the new values
+      // This will trigger a re-render of the TransactionOverviewCard
+      // and update the progress bars
+      setTransactionStats(prevStats => ({
+        ...prevStats,
+        total: stats.total,
+        completed: stats.completed,
+        pending: stats.pending,
+        atRisk: stats.atRisk
+      }));
+    });
+    
+    // Explicitly subscribe to transaction updates
+    if (socket) {
+      socket.emit('subscribe_to_transactions');
+      
+      // Request initial stats
+      socket.emit('request_transaction_stats');
+    }
+    
+    return () => {
+      // Cleanup subscription when component unmounts
+      unsubscribe();
+    };
+  }, [isConnected, subscribeToTransactionUpdates, socket]);
 
   // Sample data for parts we're not updating yet
   const aiInsightsData: Insight[] = [
@@ -484,11 +524,13 @@ export default function BrokerDashboard() {
   const displayAgentPerformance = agentPerformance.length > 0 ? agentPerformance : fallbackAgentPerformance;
   
   // Calculate stats for the transaction overview card
+  // Use a computed value that updates whenever transactionStats changes
+  // This ensures the progress bars update in real-time
   const displayStats = {
-    total: transactionStats.total || 42,
-    completed: transactionStats.completed || 18,
-    pending: transactionStats.pending || 20,
-    atRisk: transactionStats.atRisk || 4
+    total: transactionStats.total || 0,
+    completed: transactionStats.completed || 0,
+    pending: transactionStats.pending || 0,
+    atRisk: transactionStats.atRisk || 0
   };
 
   return (
@@ -497,6 +539,7 @@ export default function BrokerDashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <TransactionOverviewCard 
+          key={`transaction-stats-${displayStats.total}-${displayStats.completed}-${displayStats.pending}-${displayStats.atRisk}`}
           title="Transactions" 
           total={displayStats.total} 
           completed={displayStats.completed} 

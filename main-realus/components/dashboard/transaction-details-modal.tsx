@@ -165,7 +165,7 @@ export function TransactionDetailsModal({
                     </div>
                     <div className="flex justify-between">
                       <dt className="font-medium">Agent:</dt>
-                      <dd>{transaction?.agentName || transaction?.agent || "N/A"}</dd>
+                      <dd className="font-semibold text-primary">{transaction?.agentName || transaction?.agent || "N/A"}</dd>
                     </div>
                     <div className="flex justify-between">
                       <dt className="font-medium">Due Date:</dt>
