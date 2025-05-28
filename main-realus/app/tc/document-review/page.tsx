@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { FileText, CheckCircle, XCircle, AlertTriangle, Eye, Download, MessageSquare, Loader2 } from "lucide-react"
 import { toast } from "sonner"
+import { DocumentViewer } from "@/components/document-viewer"
 
 interface ApiTransaction {
   transactionId: string;
@@ -53,6 +54,10 @@ export default function DocumentReview() {
   const [isLoading, setIsLoading] = useState(true)
   const [apiTransactions, setApiTransactions] = useState<ApiTransaction[]>([])
   const [documents, setDocuments] = useState<Document[]>([])
+  
+  // Document viewer state
+  const [viewerOpen, setViewerOpen] = useState(false)
+  const [currentDocument, setCurrentDocument] = useState<{url: string; name: string; fileName?: string} | null>(null)
 
   // Fetch transactions and documents from the API
   useEffect(() => {
@@ -82,6 +87,37 @@ export default function DocumentReview() {
         if (transactionsData && transactionsData.transactions && Array.isArray(transactionsData.transactions)) {
           console.log(`Successfully loaded ${transactionsData.transactions.length} transactions`)
           setApiTransactions(transactionsData.transactions)
+        }
+        
+        // Fetch agents
+        console.log('Fetching agents from API...')
+        let agentsData = null;
+        try {
+          const agentsResponse = await fetch('/api/tc/agents')
+          
+          if (!agentsResponse.ok) {
+            console.error('Agents API response not OK:', agentsResponse.status, agentsResponse.statusText)
+            throw new Error(`Failed to fetch agents: ${agentsResponse.status} ${agentsResponse.statusText}`)
+          }
+          
+          try {
+            agentsData = await agentsResponse.json()
+            console.log('Fetched agents:', agentsData)
+          } catch (parseError) {
+            console.error('Error parsing agents JSON response:', parseError)
+            throw new Error('Failed to parse agents API response')
+          }
+        } catch (fetchError) {
+          console.error('Error fetching agents:', fetchError)
+          // Continue with the rest of the function
+        }
+        
+        // Create a map of agents for quick lookup
+        const agentMap = new Map<string, any>();
+        if (agentsData && agentsData.agents && Array.isArray(agentsData.agents)) {
+          agentsData.agents.forEach((agent: any) => {
+            agentMap.set(agent.id, agent);
+          });
         }
         
         // Fetch documents
@@ -129,6 +165,10 @@ export default function DocumentReview() {
             const transaction = transactionMap.get(doc.transactionId);
             console.log("Found transaction:", transaction);
             
+            // Find the associated agent from the agents API (as a backup)
+            const agent = agentMap.get(doc.agentId);
+            console.log("Found agent:", agent);
+            
             // Format property address
             const property = transaction ? 
               `${transaction.propertyAddress}${transaction.city ? `, ${transaction.city}` : ''}${transaction.state ? `, ${transaction.state}` : ''}` : 
@@ -140,14 +180,21 @@ export default function DocumentReview() {
             // Log the document ID for debugging
             console.log(`Using document ID: ${doc.id}`);
             
-            return {
+            // Use the agent name directly from the document data
+            console.log("Agent name from document:", doc.agentName);
+            const agentName = doc.agentName || (agent ? agent.name : "Unknown Agent");
+            
+            // Log the fileUrl for debugging
+            console.log(`Document ${doc.id} fileUrl:`, doc.fileUrl);
+            
+            const processedDoc = {
               id: doc.id, // This is the documentId from the database
               _id: doc._id, // This is the MongoDB _id (backup)
               name: doc.name,
               transactionId: doc.transactionId,
               property,
               agent: {
-                name: doc.agentId || "Unknown Agent",
+                name: agentName,
                 avatar: "/placeholder.svg?height=40&width=40",
               },
               uploadDate: doc.uploadDate,
@@ -158,6 +205,15 @@ export default function DocumentReview() {
               fileUrl: doc.fileUrl, // URL to the document file
               fileName: doc.fileName // Original file name
             };
+            
+            // Log the processed document for debugging
+            console.log(`Processed document ${processedDoc.id}:`, {
+              ...processedDoc,
+              fileUrl: processedDoc.fileUrl,
+              fileName: processedDoc.fileName
+            });
+            
+            return processedDoc;
           });
           
           setDocuments(processedDocs);
@@ -171,7 +227,7 @@ export default function DocumentReview() {
               transactionId: "TR-7829",
               property: "123 Main St, Austin, TX",
               agent: {
-                name: "Sarah Johnson",
+                name: "John Developer",
                 avatar: "/placeholder.svg?height=40&width=40",
               },
               uploadDate: "Apr 12, 2025",
@@ -187,7 +243,7 @@ export default function DocumentReview() {
               transactionId: "TR-7829",
               property: "123 Main St, Austin, TX",
               agent: {
-                name: "Sarah Johnson",
+                name: "John Developer",
                 avatar: "/placeholder.svg?height=40&width=40",
               },
               uploadDate: "Apr 12, 2025",
@@ -211,7 +267,7 @@ export default function DocumentReview() {
             transactionId: "TR-7829",
             property: "123 Main St, Austin, TX",
             agent: {
-              name: "Sarah Johnson",
+              name: "John Developer",
               avatar: "/placeholder.svg?height=40&width=40",
             },
             uploadDate: "Apr 12, 2025",
@@ -343,7 +399,25 @@ export default function DocumentReview() {
       // Show loading toast
       toast.loading('Loading document...');
       
-      // Fetch the document URL from the API
+      // If the document already has a fileUrl, use it directly with our document viewer
+      if (doc.fileUrl) {
+        console.log('Opening document in viewer:', doc.fileUrl);
+        
+        // Dismiss loading toast
+        toast.dismiss();
+        
+        // Open the document in our document viewer
+        setCurrentDocument({
+          url: doc.fileUrl,
+          name: doc.name,
+          fileName: doc.fileName
+        });
+        setViewerOpen(true);
+        
+        return;
+      }
+      
+      // Otherwise, fetch the document URL from the API
       const response = await fetch(`/api/tc/documents/view?documentId=${doc.id}`);
       
       if (!response.ok) {
@@ -361,13 +435,19 @@ export default function DocumentReview() {
       // Dismiss loading toast
       toast.dismiss();
       
-      // Open the document in a new tab
-      window.open(data.viewUrl, '_blank');
+      // Open the document in our document viewer
+      setCurrentDocument({
+        url: data.viewUrl,
+        name: data.documentName || doc.name,
+        fileName: data.fileName || doc.fileName
+      });
+      setViewerOpen(true);
       
-      toast.success('Document opened in new tab');
+      console.log('Opening document in viewer:', data.viewUrl);
     } catch (error) {
       console.error('Error viewing document:', error);
       toast.error('Failed to view document. Please try again.');
+      toast.dismiss();
     }
   }
   
@@ -379,7 +459,26 @@ export default function DocumentReview() {
       // Show loading toast
       toast.loading('Preparing download...');
       
-      // Fetch the document URL from the API
+      // If the document already has a fileUrl, use it directly
+      if (doc.fileUrl) {
+        console.log('Using direct fileUrl for download:', doc.fileUrl);
+        
+        // Dismiss loading toast
+        toast.dismiss();
+        
+        // Create a temporary anchor element
+        const link = document.createElement('a');
+        link.href = doc.fileUrl;
+        link.download = doc.fileName || `${doc.name}.pdf`; // Use fileName if available, otherwise create a name
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        toast.success('Document download started');
+        return;
+      }
+      
+      // Otherwise, fetch the document URL from the API
       const response = await fetch(`/api/tc/documents/download?documentId=${doc.id}`);
       
       if (!response.ok) {
@@ -470,7 +569,22 @@ export default function DocumentReview() {
                   <div className="flex items-center gap-3">
                     <FileText className="h-5 w-5 text-muted-foreground" />
                     <div>
-                      <div className="font-medium">{doc.name}</div>
+                      <div className="font-medium">
+                        <a 
+                          href={doc.fileUrl || "#"} 
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="hover:underline text-blue-600 dark:text-blue-400"
+                          onClick={(e) => {
+                            if (!doc.fileUrl) {
+                              e.preventDefault();
+                              alert("Document URL not available");
+                            }
+                          }}
+                        >
+                          {doc.name}
+                        </a>
+                      </div>
                       <div className="text-xs text-muted-foreground">{doc.property}</div>
                     </div>
                   </div>
@@ -494,24 +608,40 @@ export default function DocumentReview() {
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      onClick={() => handleViewDocument(doc)}
+                    {/* Direct link for viewing document */}
+                    <a 
+                      href={doc.fileUrl || "#"} 
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center h-8 w-8 rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+                      onClick={(e) => {
+                        if (!doc.fileUrl) {
+                          e.preventDefault();
+                          alert("Document URL not available");
+                        }
+                      }}
                       title="View document"
                     >
                       <Eye className="h-4 w-4" />
                       <span className="sr-only">View document</span>
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      onClick={() => handleDownloadDocument(doc)}
+                    </a>
+                    
+                    {/* Direct link for downloading document */}
+                    <a 
+                      href={doc.fileUrl || "#"} 
+                      download={doc.fileName || `${doc.name}.pdf`}
+                      className="inline-flex items-center justify-center h-8 w-8 rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+                      onClick={(e) => {
+                        if (!doc.fileUrl) {
+                          e.preventDefault();
+                          alert("Document URL not available");
+                        }
+                      }}
                       title="Download document"
                     >
                       <Download className="h-4 w-4" />
                       <span className="sr-only">Download</span>
-                    </Button>
+                    </a>
                     {doc.status === "pending" && (
                       <>
                         <Button
@@ -620,6 +750,17 @@ export default function DocumentReview() {
 
         <TabsContent value="rejected">{renderDocumentTable(rejectedDocuments)}</TabsContent>
       </Tabs>
+      
+      {/* Document Viewer */}
+      {currentDocument && (
+        <DocumentViewer
+          isOpen={viewerOpen}
+          onClose={() => setViewerOpen(false)}
+          documentUrl={currentDocument.url}
+          documentName={currentDocument.name}
+          fileName={currentDocument.fileName}
+        />
+      )}
     </div>
   )
 }

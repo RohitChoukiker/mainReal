@@ -6,7 +6,7 @@ import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 
 // Use environment variable for JWT secret with a fallback for development
-const JWT_SECRET = process.env.JWT_SECRET || "123123123 ";
+const JWT_SECRET = process.env.JWT_SECRET || "123123123 "; // Make sure this matches the JWT_SECRET in login/route.ts
 
 export async function POST(req: NextRequest) {
   console.log("Transaction creation API called");
@@ -51,6 +51,7 @@ export async function POST(req: NextRequest) {
     // For development/testing - if no token, create a test transaction
     let agentId: any = "test-agent-id"; // Using any type to accommodate both string and ObjectId
     let brokerId = "test-broker-id";
+    let agentName = "Unknown Agent"; // Initialize agentName variable
     
     if (!token) {
       console.log("No authentication token found - using test IDs");
@@ -183,11 +184,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Get agent name if available
-    let agentName = "Unknown Agent";
-    if (token && agent && agent.name) {
-      agentName = agent.name;
-    }
+    // Agent name is already set in the token verification section
     console.log("Using agent name for transaction:", agentName);
     
     // Create new transaction

@@ -23,6 +23,8 @@ const publicRoutes = [
 const protectedApiRoutes = [
   '/api/user',
   '/api/profile',
+  '/api/user/status',
+  '/api/agent/transactions',
 ];
 
 export async function middleware(request: NextRequest) {
@@ -50,7 +52,7 @@ export async function middleware(request: NextRequest) {
   
   try {
     // Verify the token
-    const secret = new TextEncoder().encode("123123123 "); // Use the same secret as in your API
+    const secret = new TextEncoder().encode("123123123 "); // Make sure this matches the JWT_SECRET in login/route.ts and user/status/route.ts
     const { payload } = await jwtVerify(token, secret);
     
     // Check if token has role information

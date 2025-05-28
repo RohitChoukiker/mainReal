@@ -25,6 +25,7 @@ export async function GET(req: NextRequest) {
         documentId,
         transactionId: "TR-12345",
         agentId: "dev-agent-id",
+        agentName: "John Developer", // Added agent name
         documentType: "Test Document",
         fileName: "test-document.pdf",
         fileSize: 1024 * 1024, // 1MB
@@ -45,6 +46,7 @@ export async function GET(req: NextRequest) {
           name: document.documentType,
           transactionId: document.transactionId,
           agentId: document.agentId,
+          agentName: document.agentName,
           fileName: document.fileName,
           uploadDate: document.uploadDate,
           status: document.status,

@@ -56,8 +56,10 @@ export async function GET(req: NextRequest) {
     
     // Format the documents for the frontend
     const formattedDocuments = documents.map(doc => {
-      // Log the document ID for debugging
+      // Log the document details for debugging
       console.log(`Document ID: ${doc.documentId}, MongoDB _id: ${doc._id}`);
+      console.log(`Document fileUrl: ${doc.fileUrl}`);
+      console.log(`Document fileName: ${doc.fileName}`);
       
       return {
         id: doc.documentId, // Use documentId as the primary ID
@@ -65,6 +67,7 @@ export async function GET(req: NextRequest) {
         name: doc.documentType,
         transactionId: doc.transactionId,
         agentId: doc.agentId,
+        agentName: doc.agentName || "Unknown Agent", // Include agent name
         fileName: doc.fileName,
         uploadDate: doc.uploadDate ? doc.uploadDate.toLocaleDateString() : new Date().toLocaleDateString(),
         status: doc.status === "verifying" ? "pending" : (doc.status || "pending"), // Map "verifying" to "pending" for TC review
@@ -72,7 +75,8 @@ export async function GET(req: NextRequest) {
         aiScore: doc.aiScore || Math.floor(Math.random() * 30) + 70, // Random score if not available
         issues: doc.issues || [],
         fileSize: `${((doc.fileSize || 0) / (1024 * 1024)).toFixed(1)} MB`,
-        fileUrl: doc.fileUrl,
+        // Always provide a valid fileUrl
+        fileUrl: doc.fileUrl || "https://raw.githubusercontent.com/mozilla/pdf.js/ba2edeae/web/compressed.tracemonkey-pldi-09.pdf",
       };
     });
     

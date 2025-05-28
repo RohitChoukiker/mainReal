@@ -458,10 +458,31 @@ export default function TaskManagement() {
 
   // Handle select changes
   const handleSelectChange = (field: string, value: string) => {
-    setNewTask(prev => ({
-      ...prev,
-      [field]: value
-    }))
+    // If changing the agent, reset the transaction selection
+    if (field === "agentId") {
+      console.log("Agent selected:", value);
+      console.log("Available transactions before filter:", transactions);
+      
+      // Reset transaction ID when agent changes
+      setNewTask(prev => ({
+        ...prev,
+        [field]: value,
+        transactionId: "" // Reset transaction when agent changes
+      }));
+      
+      // Force a re-render by logging the filtered transactions
+      setTimeout(() => {
+        const filteredTransactions = transactions.filter(t => 
+          t.agentId === value || t.agent.id === value
+        );
+        console.log("Available transactions for this agent:", filteredTransactions);
+      }, 100);
+    } else {
+      setNewTask(prev => ({
+        ...prev,
+        [field]: value
+      }));
+    }
   }
 
   // Handle checkbox changes
@@ -475,8 +496,28 @@ export default function TaskManagement() {
 
   // Get transactions for a specific agent
   const getAgentTransactions = () => {
-    if (!newTask.agentId) return []
-    return transactions.filter(t => t.agentId === newTask.agentId || t.agent.id === newTask.agentId)
+    if (!newTask.agentId) return [];
+    
+    // Log for debugging
+    console.log("Getting transactions for agent:", newTask.agentId);
+    console.log("Total available transactions:", transactions.length);
+    
+    // First try exact match on agentId or agent.id
+    let filteredTransactions = transactions.filter(t => 
+      t.agentId === newTask.agentId || t.agent.id === newTask.agentId
+    );
+    
+    // If no transactions found, try case-insensitive match
+    if (filteredTransactions.length === 0) {
+      const agentIdLower = newTask.agentId.toLowerCase();
+      filteredTransactions = transactions.filter(t => 
+        (t.agentId && t.agentId.toLowerCase() === agentIdLower) || 
+        (t.agent.id && t.agent.id.toLowerCase() === agentIdLower)
+      );
+    }
+    
+    console.log("Filtered transactions for this agent:", filteredTransactions);
+    return filteredTransactions;
   }
 
   // Handle form submission

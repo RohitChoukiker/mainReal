@@ -63,21 +63,30 @@ export async function GET(req: NextRequest) {
         );
       }
       
-      // For demo purposes, we'll create a PDF viewer URL
+      // For demo purposes, we'll create a PDF viewer URL for PDFs
       // In a real application, this would be a URL to a secure document viewer
       // or a signed URL to access the document from cloud storage
       
-      // For now, we'll use Google Docs Viewer as a simple PDF viewer
-      const viewUrl = document.fileUrl.startsWith('http') 
-        ? `https://docs.google.com/viewer?url=${encodeURIComponent(document.fileUrl)}&embedded=true` 
+      // Determine if the file is a PDF
+      const isPdf = document.fileName.toLowerCase().endsWith('.pdf') || 
+                   document.fileUrl.toLowerCase().endsWith('.pdf');
+      
+      // For PDFs, use Google Docs Viewer; for other files, use direct URL
+      const viewUrl = isPdf && document.fileUrl.startsWith('http')
+        ? `https://docs.google.com/viewer?url=${encodeURIComponent(document.fileUrl)}&embedded=true`
         : document.fileUrl;
+        
+      console.log(`Document view URL generated for ${document.documentId}:`, viewUrl);
       
       return NextResponse.json({
         message: "Document view URL generated successfully",
         viewUrl,
         documentId: document.documentId,
-        documentName: document.documentType,
-        fileName: document.fileName
+        documentName: document.name || document.documentType,
+        fileName: document.fileName,
+        fileType: document.fileName.split('.').pop() || 'pdf',
+        fileSize: document.fileSize,
+        uploadDate: document.uploadDate
       });
     } catch (fetchError) {
       console.error("Error fetching document:", fetchError);

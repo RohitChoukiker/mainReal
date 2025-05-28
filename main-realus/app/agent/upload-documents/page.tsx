@@ -10,7 +10,8 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Upload, FileText, CheckCircle, AlertTriangle, X, Clock, RefreshCw, Loader2, AlertCircle } from "lucide-react"
+import { Upload, FileText, CheckCircle, AlertTriangle, X, Clock, RefreshCw, Loader2, AlertCircle, Eye, Download } from "lucide-react"
+import { DocumentViewer } from "@/components/document-viewer"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 interface Document {
@@ -53,6 +54,10 @@ export default function UploadDocuments() {
   const [uploadSuccess, setUploadSuccess] = useState(false)
   
   const [documents, setDocuments] = useState<Document[]>([])
+  
+  // Document viewer state
+  const [viewerOpen, setViewerOpen] = useState(false)
+  const [currentDocument, setCurrentDocument] = useState<{url: string; name: string; fileName?: string} | null>(null)
   
   // Fetch transactions from API
   useEffect(() => {
@@ -126,6 +131,25 @@ export default function UploadDocuments() {
     "Lead-Based Paint Disclosure",
   ]
 
+  // Handle document viewing
+  const handleViewDocument = (doc: Document) => {
+    console.log(`Viewing document: ${doc.name} (${doc.id})`);
+    
+    if (doc.fileUrl) {
+      console.log('Opening document in viewer:', doc.fileUrl);
+      
+      // Open the document in our document viewer
+      setCurrentDocument({
+        url: doc.fileUrl,
+        name: doc.name,
+        fileName: doc.fileName
+      });
+      setViewerOpen(true);
+    } else {
+      alert("Document URL not available");
+    }
+  }
+  
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "verified":
@@ -462,18 +486,20 @@ export default function UploadDocuments() {
                                 <FileText className="h-5 w-5 text-muted-foreground" />
                                 <div>
                                   <div className="font-medium">
-                                    {doc.fileUrl ? (
-                                      <a 
-                                        href={doc.fileUrl} 
-                                        target="_blank" 
-                                        rel="noopener noreferrer"
-                                        className="hover:underline text-blue-600 dark:text-blue-400"
-                                      >
-                                        {doc.name}
-                                      </a>
-                                    ) : (
-                                      doc.name
-                                    )}
+                                    <a 
+                                      href={doc.fileUrl || "#"} 
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="hover:underline text-blue-600 dark:text-blue-400"
+                                      onClick={(e) => {
+                                        if (!doc.fileUrl) {
+                                          e.preventDefault();
+                                          alert("Document URL not available");
+                                        }
+                                      }}
+                                    >
+                                      {doc.name}
+                                    </a>
                                   </div>
                                   <div className="text-xs text-muted-foreground hidden md:block">
                                     {doc.property}
@@ -492,7 +518,49 @@ export default function UploadDocuments() {
                                 )}
                               </div>
                             </TableCell>
-                            <TableCell className="text-right">{doc.fileSize}</TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2">
+                                {doc.fileUrl && (
+                                  <>
+                                    {/* Direct link for viewing document */}
+                                    <a 
+                                      href={doc.fileUrl || "#"} 
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center justify-center h-8 w-8 rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+                                      onClick={(e) => {
+                                        if (!doc.fileUrl) {
+                                          e.preventDefault();
+                                          alert("Document URL not available");
+                                        }
+                                      }}
+                                      title="View document"
+                                    >
+                                      <Eye className="h-4 w-4" />
+                                      <span className="sr-only">View document</span>
+                                    </a>
+                                    
+                                    {/* Direct link for downloading document */}
+                                    <a 
+                                      href={doc.fileUrl || "#"} 
+                                      download={doc.fileName || `${doc.name}.pdf`}
+                                      className="inline-flex items-center justify-center h-8 w-8 rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+                                      onClick={(e) => {
+                                        if (!doc.fileUrl) {
+                                          e.preventDefault();
+                                          alert("Document URL not available");
+                                        }
+                                      }}
+                                      title="Download document"
+                                    >
+                                      <Download className="h-4 w-4" />
+                                      <span className="sr-only">Download</span>
+                                    </a>
+                                  </>
+                                )}
+                                <span className="ml-2">{doc.fileSize}</span>
+                              </div>
+                            </TableCell>
                           </TableRow>
                         ))
                     ) : (
@@ -600,7 +668,17 @@ export default function UploadDocuments() {
           </Card>
         </div>
       </div>
+      
+      {currentDocument && (
+        <DocumentViewer
+          isOpen={viewerOpen}
+          onClose={() => setViewerOpen(false)}
+          documentUrl={currentDocument.url}
+          documentName={currentDocument.name}
+          fileName={currentDocument.fileName}
+        />
+      )}
     </div>
-  )
+  );
 }
 

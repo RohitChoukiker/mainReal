@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/utils/dbConnect";
 import DocumentModel from "@/models/document";
+import { uploadToCloudinary } from "@/utils/cloudinary";
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,9 +17,10 @@ export async function POST(req: NextRequest) {
       );
     }
     
-    // For development purposes, we're using a hardcoded agent ID
+    // For development purposes, we're using a hardcoded agent ID and name
     // In a production environment, you would get this from the authenticated user session
     const agentId = "dev-agent-id";
+    const agentName = "John Developer"; // Added agent name
     
     // Parse the form data
     const formData = await req.formData();
@@ -60,16 +62,43 @@ export async function POST(req: NextRequest) {
       );
     }
     
-    // For development purposes, we'll create a simulated file URL
-    // In a production environment, you would upload the file to a storage service
-    console.log("Creating file URL for development...");
+    // Upload file to Cloudinary
+    console.log("Uploading file to Cloudinary...");
     
-    // In a real application, this would be where you upload the file to cloud storage
-    // For this demo, we'll use a public PDF for testing
-    
-    // Use a real PDF for testing - Mozilla's sample PDF
-    const fileUrl = "https://raw.githubusercontent.com/mozilla/pdf.js/ba2edeae/web/compressed.tracemonkey-pldi-09.pdf";
-    console.log("Using sample PDF URL for testing:", fileUrl);
+    let fileUrl;
+    try {
+      // Convert file to buffer for Cloudinary upload
+      const buffer = Buffer.from(await file.arrayBuffer());
+      
+      // Create a folder structure based on transaction ID
+      const folderPath = `documents/${transactionId}`;
+      
+      // Create a unique public ID for the file
+      const publicId = `${documentType.replace(/\s+/g, '_')}_${Date.now()}`;
+      
+      // Add metadata for better organization and searchability
+      const metadata = {
+        transactionId,
+        agentId,
+        documentType,
+        fileName: file.name,
+        uploadDate: new Date().toISOString(),
+        tags: [transactionId, documentType, 'agent-upload']
+      };
+      
+      // Upload to Cloudinary using our utility function
+      const cloudinaryUploadResult = await uploadToCloudinary(buffer, folderPath, publicId, metadata);
+      
+      // Extract the secure URL from the Cloudinary response
+      fileUrl = cloudinaryUploadResult.secure_url;
+      console.log("File uploaded to Cloudinary:", fileUrl);
+    } catch (cloudinaryError) {
+      console.error("Error uploading to Cloudinary:", cloudinaryError);
+      return NextResponse.json(
+        { message: "Failed to upload document to cloud storage", error: String(cloudinaryError) },
+        { status: 500 }
+      );
+    }
     
     // Create a new document in the database
     console.log("Creating document in database...");
@@ -83,10 +112,12 @@ export async function POST(req: NextRequest) {
         documentId, // Explicitly set the document ID
         transactionId,
         agentId,
-        documentType,
+        agentName, // Added agent name
+        documentType: documentType, // Document type (e.g., "Purchase Agreement")
+        name: documentType, // Set name same as documentType for consistency
         fileName: file.name,
         fileSize: file.size,
-        fileUrl,
+        fileUrl, // Use the Cloudinary URL
         status: "verifying", // Initial status is verifying
         aiVerified: false,
         uploadDate: new Date(),
@@ -115,6 +146,14 @@ export async function POST(req: NextRequest) {
         uploadDate: document.uploadDate,
         fileSize: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
         fileUrl,
+        agentId: document.agentId,
+        agentName: document.agentName,
+        documentType: document.documentType,
+        aiVerified: document.aiVerified,
+        cloudinary: {
+          stored: true,
+          provider: "cloudinary"
+        }
       }
     }, { status: 201 });
   } catch (error) {

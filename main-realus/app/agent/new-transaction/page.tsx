@@ -17,6 +17,7 @@ export default function NewTransaction() {
   const [transactionId, setTransactionId] = useState<string>("")
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false)
   const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true) // Assume authenticated until proven otherwise
   const [formData, setFormData] = useState({
     clientName: "",
     clientEmail: "",
@@ -168,6 +169,58 @@ export default function NewTransaction() {
   // Get available states based on selected country
   const [availableStates, setAvailableStates] = useState(statesByCountry.India)
 
+  // Check authentication status when component loads
+  useEffect(() => {
+    const checkAuthStatus = async () => {
+      try {
+        // First check if we have a token in localStorage (client-side auth)
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+          try {
+            const user = JSON.parse(userStr);
+            if (user && user.role === 'Agent') {
+              console.log('User authenticated from localStorage');
+              setIsAuthenticated(true);
+              return;
+            }
+          } catch (e) {
+            console.error('Error parsing user from localStorage:', e);
+          }
+        }
+
+        // If no valid user in localStorage, check with the server
+        const response = await fetch('/api/user/status', {
+          credentials: 'include' // Include cookies for authentication
+        });
+        
+        if (!response.ok) {
+          console.error('Authentication check failed:', response.status);
+          setIsAuthenticated(false);
+          // Don't show toast for 401 errors - we'll show the UI message instead
+          return;
+        }
+        
+        const data = await response.json();
+        console.log('Auth status from server:', data);
+        
+        if (data.role !== 'Agent') {
+          console.error('User is not an Agent, role:', data.role);
+          setIsAuthenticated(false);
+          return;
+        }
+        
+        setIsAuthenticated(true);
+        console.log('Authentication successful');
+      } catch (error) {
+        console.error('Error checking authentication:', error);
+        setIsAuthenticated(false);
+        // Don't show error toast - we'll show the UI message instead
+      }
+    };
+    
+    checkAuthStatus();
+  }, []);
+
   // Update available states when country changes
   useEffect(() => {
     if (formData.country && statesByCountry[formData.country]) {
@@ -209,6 +262,13 @@ export default function NewTransaction() {
     setIsLoading(true)
 
     try {
+      // Check if user is authenticated - don't show toast here
+      // as we already show a UI message when not authenticated
+      if (!isAuthenticated) {
+        setIsLoading(false);
+        return;
+      }
+      
       // Validate form data
       if (!formData.transactionType) {
         toast.error('Please select a transaction type');
@@ -261,11 +321,13 @@ export default function NewTransaction() {
       // Call API to create transaction
       toast.info('Creating transaction...');
       
+      // Make sure to include credentials to send cookies with the request
       const response = await fetch('/api/agent/transactions/add-db', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // Important: This ensures cookies are sent with the request
         body: JSON.stringify(apiData),
       })
 
@@ -275,6 +337,8 @@ export default function NewTransaction() {
       console.log('API response data:', data);
 
       if (!response.ok) {
+        console.error('Transaction creation failed with status:', response.status);
+        console.error('Error details:', data);
         throw new Error(data.message || 'Failed to create transaction')
       }
 
@@ -283,10 +347,26 @@ export default function NewTransaction() {
       setIsSubmitted(true)
       toast.success('Transaction created successfully!')
     } catch (error) {
-      console.error('Error creating transaction:', error)
-      toast.error(error instanceof Error ? error.message : 'Failed to create transaction')
+      console.error('Error creating transaction:', error);
+      
+      // Provide more detailed error message
+      let errorMessage = 'Failed to create transaction';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        console.error('Error details:', error.stack);
+      }
+      
+      // Show error toast with retry option
+      toast.error(errorMessage, {
+        action: {
+          label: "Retry",
+          onClick: () => handleSubmit(new Event('submit') as any)
+        },
+        duration: 5000
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 
@@ -294,7 +374,30 @@ export default function NewTransaction() {
     <div className="space-y-6">
       <h1 className="text-3xl font-bold tracking-tight">Create New Transaction</h1>
 
-      {isSubmitted ? (
+      {!isAuthenticated ? (
+        <Card className="max-w-2xl mx-auto">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-12 h-12 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center mb-4">
+              <AlertCircle className="h-6 w-6 text-red-600 dark:text-red-300" />
+            </div>
+            <CardTitle className="text-xl">Authentication Required</CardTitle>
+            <CardDescription>You must be logged in as an Agent to create transactions</CardDescription>
+          </CardHeader>
+          <CardContent className="text-center">
+            <p className="text-muted-foreground mb-6">
+              Please log in with your Agent account to continue.
+            </p>
+            <div className="flex justify-center gap-4">
+              <Button asChild>
+                <a href="/">Log In</a>
+              </Button>
+              <Button variant="outline" asChild>
+                <a href="/agent/dashboard">Back to Dashboard</a>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : isSubmitted ? (
         <Card className="max-w-2xl mx-auto">
           <CardHeader className="text-center">
             <div className="mx-auto w-12 h-12 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mb-4">

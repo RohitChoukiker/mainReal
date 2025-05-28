@@ -5,7 +5,9 @@ export interface DocumentModel extends Document {
   documentId: string;
   transactionId: string;
   agentId: string;
+  agentName?: string; // Added agent name field
   documentType: string;
+  name?: string; // Added name field for consistency with TC document review
   fileName: string;
   fileSize: number;
   fileUrl: string;
@@ -22,7 +24,9 @@ const DocumentSchema: Schema = new Schema(
     documentId: { type: String, required: true, unique: true }, // Now required since we're setting it explicitly
     transactionId: { type: String, required: true },
     agentId: { type: String, required: true },
+    agentName: { type: String }, // Added agent name field
     documentType: { type: String, required: true },
+    name: { type: String }, // Added name field for consistency with TC document review
     fileName: { type: String, required: true },
     fileSize: { type: Number, required: true },
     fileUrl: { type: String, required: true },

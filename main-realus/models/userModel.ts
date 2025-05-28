@@ -6,6 +6,7 @@ export enum Role {
   Agent = "Agent",
   Broker = "Broker",
   Tc = "TransactionCoordinator",
+  Admin = "Admin",
 }
 
 // User Interface

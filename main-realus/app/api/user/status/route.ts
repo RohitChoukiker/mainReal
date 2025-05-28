@@ -3,7 +3,7 @@ import dbConnect from '../../../../utils/dbConnect';
 import User, { Role } from '../../../../models/userModel';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = "123123123 " as string;
+const JWT_SECRET = "123123123 " as string; // Make sure this matches the secret in login/route.ts
 
 export async function GET(req: NextRequest) {
     try {
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
         
         // Normalize the role for frontend consistency
         let normalizedRole: string = user.role;
-        if (user.role === Role.Tc) {
+        if (user.role === Role.Tc || user.role === "TransactionCoordinator") {
             normalizedRole = "Tc"; // Using string for frontend display
         }
         

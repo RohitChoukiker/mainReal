@@ -71,8 +71,11 @@ export async function GET(req: NextRequest) {
         message: "Document download URL generated successfully",
         downloadUrl,
         documentId: document.documentId,
-        documentName: document.documentType,
-        fileName: document.fileName
+        documentName: document.name || document.documentType,
+        fileName: document.fileName,
+        fileType: document.fileName.split('.').pop() || 'pdf',
+        fileSize: document.fileSize,
+        uploadDate: document.uploadDate
       });
     } catch (fetchError) {
       console.error("Error fetching document:", fetchError);
