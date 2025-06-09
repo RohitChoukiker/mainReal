@@ -215,6 +215,25 @@ export async function POST(req: NextRequest) {
       const savedTransaction = await transaction.save();
       console.log("Transaction saved successfully:", savedTransaction.transactionId);
       
+      // Send email notification about new transaction
+      try {
+        // Import sendTransactionStatusEmail function
+        const { sendTransactionStatusEmail } = await import('@/utils/automationUtils');
+        
+        // Send notification to client
+        await sendTransactionStatusEmail(
+          savedTransaction.transactionId,
+          savedTransaction.status,
+          savedTransaction.clientEmail,
+          savedTransaction.clientName
+        );
+        
+        console.log(`Transaction creation notification sent to ${savedTransaction.clientEmail}`);
+      } catch (emailError) {
+        console.error("Error sending transaction notification email:", emailError);
+        // Don't block the response if email fails
+      }
+      
       return NextResponse.json(
         {
           message: "Transaction created successfully",

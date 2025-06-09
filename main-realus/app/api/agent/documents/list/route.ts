@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
       issues: doc.issues || [],
       fileSize: `${((doc.fileSize || 0) / (1024 * 1024)).toFixed(1)} MB`,
       // Always provide a valid fileUrl
-      fileUrl: doc.fileUrl || "https://raw.githubusercontent.com/mozilla/pdf.js/ba2edeae/web/compressed.tracemonkey-pldi-09.pdf",
+      fileUrl: doc.fileUrl 
     }));
     
     // Return the documents

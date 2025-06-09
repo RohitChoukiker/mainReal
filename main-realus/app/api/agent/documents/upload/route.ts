@@ -134,6 +134,25 @@ export async function POST(req: NextRequest) {
       throw new Error(`Database operation failed: ${errorMessage}`);
     }
     
+    // Trigger document validation asynchronously
+    try {
+      // We don't await this to avoid blocking the response
+      fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/agent/documents/validate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ documentId: document.documentId }),
+      }).catch(error => {
+        console.error('Error triggering document validation:', error);
+      });
+      
+      console.log(`Triggered document validation for ${document.documentId}`);
+    } catch (validationError) {
+      console.error('Error triggering document validation:', validationError);
+      // Don't block the response if validation trigger fails
+    }
+    
     // Return success response
     return NextResponse.json({
       message: "Document uploaded successfully",
