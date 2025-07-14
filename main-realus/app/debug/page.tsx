@@ -6,17 +6,24 @@ import { Button } from "@/components/ui/button"
 
 export default function DebugPage() {
   const [localStorageData, setLocalStorageData] = useState<Record<string, string>>({})
+  const [isLoading, setIsLoading] = useState(true) // लोडिंग स्टेट जोड़ा
   
   useEffect(() => {
     // Get all localStorage items
     const items: Record<string, string> = {}
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i)
-      if (key) {
-        items[key] = localStorage.getItem(key) || ''
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        if (key) {
+          items[key] = localStorage.getItem(key) || ''
+        }
       }
+    } catch (error) {
+      console.error('Error accessing localStorage:', error)
     }
+    
     setLocalStorageData(items)
+    setIsLoading(false) // डेटा लोड होने के बाद लोडिंग बंद करें
   }, [])
   
   const clearLocalStorage = () => {
@@ -36,7 +43,9 @@ export default function DebugPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {Object.keys(localStorageData).length === 0 ? (
+          {isLoading ? (
+            <p>Loading localStorage data...</p>
+          ) : Object.keys(localStorageData).length === 0 ? (
             <p>No data in localStorage</p>
           ) : (
             <div className="space-y-4">
