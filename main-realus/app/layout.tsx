@@ -1,5 +1,5 @@
 import type React from "react"
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
@@ -14,12 +14,6 @@ export const metadata: Metadata = {
   icons: {
     icon: "/images/logo.png",
   },
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-  },
   // Add preconnect hints for external resources
   other: {
     "link": [
@@ -27,6 +21,13 @@ export const metadata: Metadata = {
       { rel: "dns-prefetch", href: "https://images.unsplash.com" },
     ]
   }
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 }
 
 export default function RootLayout({
