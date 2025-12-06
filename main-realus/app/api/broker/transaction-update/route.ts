@@ -1,24 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
 import { emitTransactionUpdated, emitTransactionStatsUpdate } from "@/utils/socketEmitter";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { Role } from "@/models/userModel";
+import jwt from "jsonwebtoken";
+
+const JWT_SECRET = "123123123 " as string;
 
 export async function POST(req: NextRequest) {
   try {
     // Check authentication
-    const session = await getServerSession(authOptions);
+    const token = req.cookies.get('token')?.value;
     
-    if (!session || !session.user) {
+    if (!token) {
       return NextResponse.json(
-        { error: "Unauthorized" },
+        { error: "Unauthorized: No token provided" },
+        { status: 401 }
+      );
+    }
+    
+    // Verify the token
+    let decoded;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET) as { id: string, role: string };
+    } catch (error) {
+      return NextResponse.json(
+        { error: "Unauthorized: Invalid token" },
         { status: 401 }
       );
     }
     
     // Check if user has broker role
-    const userRole = session.user.role;
-    if (userRole !== Role.Broker && userRole !== Role.Admin) {
+    if (decoded.role !== Role.Broker && decoded.role !== Role.Admin) {
       return NextResponse.json(
         { error: "Forbidden: Insufficient permissions" },
         { status: 403 }
@@ -40,7 +51,7 @@ export async function POST(req: NextRequest) {
     // For now, we'll just emit the socket event
     
     // Emit transaction updated event
-    emitTransactionUpdated(transaction, brokerId || session.user.id);
+    emitTransactionUpdated(transaction, brokerId || decoded.id);
     
     // Emit transaction stats update
     await emitTransactionStatsUpdate();

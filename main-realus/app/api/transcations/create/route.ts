@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
       }
       agentId = agent._id;
       agentName = agent.name;
-      brokerId = agent.brokerId || brokerId;
+      brokerId =  brokerId;
     }
 
     // Generate a transaction ID

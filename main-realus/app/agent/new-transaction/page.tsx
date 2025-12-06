@@ -262,8 +262,7 @@ export default function NewTransaction() {
     setIsLoading(true)
 
     try {
-      // Check if user is authenticated - don't show toast here
-      // as we already show a UI message when not authenticated
+      
       if (!isAuthenticated) {
         setIsLoading(false);
         return;

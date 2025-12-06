@@ -52,8 +52,20 @@ export async function POST(req: NextRequest) {
     const token = jwt.sign(
       { 
         id: user._id, 
+        name: user.name,
+        email: user.email,
+        mobile: user.mobile,
         role: user.role,
-        isApproved: user.isApproved 
+        isApproved: user.isApproved,
+        brokerId: user.brokerId,
+        companyName: user.companyName,
+        teamName: user.teamName,
+        address: user.address,
+        companyPhone: user.companyPhone,
+        city: user.city,
+        state: user.state,
+        pinCode: user.pinCode,
+        timeZone: user.timeZone
       },
       JWT_SECRET,
       { expiresIn: "7d" } 
@@ -80,6 +92,7 @@ export async function POST(req: NextRequest) {
 
     response.cookies.set("token", token, {
       httpOnly: true, 
+  
       sameSite: "strict", 
       maxAge: 7 * 24 * 60 * 60, 
       path: "/", 
